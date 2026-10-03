@@ -1,0 +1,23 @@
+/*
+ * Znaczniki na mapie. Tworzy je MapController (poza szablonami Angulara), więc style są globalne, a nie w komponencie.
+ * Kolory wyłącznie z tokenów palety (styles.css).
+ */
+.stop-marker {
+  width: 46px; height: 46px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+  border: 3px solid var(--surface); background: var(--stop-color); cursor: pointer;
+  box-shadow: 0 4px 10px var(--shadow-strong); padding: 0; display: grid; place-items: center;
+}
+.stop-marker span { display: block; transform: rotate(45deg); font-size: 22px; line-height: 1; }
+.user-marker {
+  width: 18px; height: 18px; border-radius: 50%; background: var(--text);
+  border: 3px solid var(--surface); box-shadow: 0 0 0 8px color-mix(in srgb, var(--brand) 40%, transparent);
+}
+.enemy-marker {
+  width: 54px; height: 54px; border-radius: 50%; border: 3px solid var(--accent); background: var(--color-plum); cursor: pointer; padding: 0;
+  display: grid; place-items: center; box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 65%, transparent); animation: enemy-pulse 1.8s infinite;
+}
+.enemy-marker span { font-size: 28px; line-height: 1; }
+@keyframes enemy-pulse { 70% { box-shadow: 0 0 0 16px color-mix(in srgb, var(--accent) 0%, transparent); } 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); } }
+/* Pinezki różnią się nie tylko kolorem (dwa typy dzielą fiolet): zawsze ikona, a konsultacje także podwójnym obramowaniem. */
+.stop-marker { outline: 2px solid var(--color-plum); }
+.stop-marker[data-type='consultation'] { border-style: double; border-width: 7px; }

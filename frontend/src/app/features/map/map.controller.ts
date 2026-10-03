@@ -113,6 +113,7 @@ export class MapController implements OnDestroy {
     const meta = POKESTOP_TYPES[stop.type];
     const el = document.createElement('button');
     el.className = 'stop-marker';
+    el.dataset['type'] = stop.type;
     el.style.setProperty('--stop-color', meta.color);
     el.innerHTML = `<span>${stop.icon ?? meta.emoji}</span>`;
     el.setAttribute('aria-label', stop.title);

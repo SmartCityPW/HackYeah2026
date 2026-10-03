@@ -2,62 +2,58 @@
 .map { position: absolute; inset: 0; }
 
 .toolbar { position: absolute; top: 12px; right: 12px; z-index: 15; display: flex; gap: 8px; }
-.tool { background: #fff; border: 0; border-radius: 999px; padding: 10px 16px; font-weight: 700; box-shadow: 0 4px 14px rgb(0 0 0 / .25); cursor: pointer; }
-.tool.active { background: #111827; color: #fff; }
-.crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); font-size: 40px; z-index: 5; pointer-events: none; filter: drop-shadow(0 4px 4px rgb(0 0 0 / .4)); }
+.tool { background: var(--surface); border: 0; border-radius: 999px; padding: 10px 16px; font-weight: 700; box-shadow: 0 4px 14px var(--shadow); cursor: pointer; }
+.tool.active { background: var(--text); color: var(--on-dark); }
+.crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); font-size: 40px; z-index: 5; pointer-events: none; filter: drop-shadow(0 4px 4px var(--shadow-strong)); }
 
 .sheet {
   position: absolute; left: 0; right: 0; bottom: 0; z-index: 10;
-  background: #fff; border-radius: 24px 24px 0 0; padding: 20px 20px 28px;
-  box-shadow: 0 -8px 30px rgb(0 0 0 / .25); border-top: 6px solid var(--stop-color);
+  background: var(--surface); border-radius: 24px 24px 0 0; padding: 20px 20px 28px;
+  box-shadow: 0 -8px 30px var(--shadow); border-top: 6px solid var(--stop-color);
   max-width: 560px; margin: 0 auto;
 }
 .sheet.tall { max-height: 80dvh; overflow-y: auto; }
 .stop-photos { display: flex; gap: 8px; overflow-x: auto; margin: 8px 0; }
 .stop-photos img { height: 110px; border-radius: 12px; }
 .details { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 10px 0; font-size: .85rem; }
-.details dt { color: #6b7280; }
+.details dt { color: var(--text-muted); }
 .details dd { margin: 0; font-weight: 600; }
 .sheet h2 { margin: 4px 0 8px; font-size: 1.35rem; }
-.sheet-type { margin: 0; font-size: .85rem; font-weight: 700; color: var(--stop-color); }
+.sheet-type { margin: 0; font-size: .85rem; font-weight: 700; }
 .sheet-desc { margin: 0 0 8px; }
-.sheet-author { margin: 0; font-size: .8rem; color: #6b7280; }
+.sheet-author { margin: 0; font-size: .8rem; color: var(--text-muted); }
 .sheet-close { position: absolute; top: 10px; right: 14px; font-size: 1.8rem; line-height: 1; background: none; border: 0; cursor: pointer; }
 .votes { display: flex; gap: 16px; margin: 14px 0; font-weight: 700; }
 .actions { display: flex; gap: 10px; }
-.btn { flex: 1; padding: 12px; border: 0; border-radius: 14px; font-weight: 700; color: #fff; cursor: pointer; }
-.btn-for { background: #10b981; }
-.btn-against { background: #ef4444; }
-.voted { color: #059669; font-weight: 700; margin: 0; }
+.btn { flex: 1; padding: 12px; border: 0; border-radius: 14px; font-weight: 700; color: var(--surface); cursor: pointer; }
+.btn-for { background: var(--brand-strong); }
+.btn-against { background: var(--accent-strong); }
+.voted { color: var(--brand-strong); font-weight: 700; margin: 0; }
 
-:host ::ng-deep .stop-marker {
-  width: 46px; height: 46px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
-  border: 3px solid #fff; background: var(--stop-color); cursor: pointer;
-  box-shadow: 0 4px 10px rgb(0 0 0 / .4); padding: 0; display: grid; place-items: center;
-}
-:host ::ng-deep .stop-marker span { display: block; transform: rotate(45deg); font-size: 22px; line-height: 1; }
-:host ::ng-deep .user-marker {
-  width: 18px; height: 18px; border-radius: 50%; background: #2563eb;
-  border: 3px solid #fff; box-shadow: 0 0 0 8px rgb(37 99 235 / .25);
-}
 
 .sheet-type { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .comments-title { margin: 14px 0 6px; font-size: .95rem; }
 .comment { margin: 4px 0; font-size: .85rem; }
-.comment.mine { color: #4f46e5; }
+.comment.mine { color: var(--brand-strong); }
 .comment-form { display: flex; gap: 8px; margin-top: 8px; }
-.comment-form input { flex: 1; padding: 10px; border: 2px solid #e5e7eb; border-radius: 12px; font: inherit; }
+.comment-form input { flex: 1; padding: 10px; border: 2px solid var(--border); border-radius: 12px; font: inherit; }
 .comment-form .btn { flex: 0 0 auto; padding: 10px 16px; }
 .comment-form .btn:disabled { opacity: .4; cursor: not-allowed; }
 
-.xp { display: inline-flex; flex-direction: column; gap: 2px; align-items: stretch; background: #fff; border-radius: 999px; padding: 6px 14px; font-weight: 700; font-size: .85rem; box-shadow: 0 4px 14px rgb(0 0 0 / .25); }
-.xp-bar { display: block; height: 4px; background: #e5e7eb; border-radius: 99px; overflow: hidden; }
-.xp-bar > span { display: block; height: 100%; background: #6366f1; }
+.xp { display: inline-flex; flex-direction: column; gap: 2px; align-items: stretch; background: var(--surface); border-radius: 999px; padding: 6px 14px; font-weight: 700; font-size: .85rem; box-shadow: 0 4px 14px var(--shadow); }
+.xp-bar { display: block; height: 4px; background: var(--border); border-radius: 99px; overflow: hidden; }
+.xp-bar > span { display: block; height: 100%; background: var(--brand); }
 .toolbar { align-items: center; }
-.hint, .reply-to { margin: 8px 0; font-size: .8rem; color: #6b7280; }
-.reply-to, .link { color: #4f46e5; }
-.pokemon-pick { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; font-size: .8rem; color: #6b7280; }
-.pokemon-pick select { padding: 10px; border: 2px solid #e5e7eb; border-radius: 12px; font: inherit; background: #fff; }
-.comment.reply { margin-left: 18px; padding-left: 8px; border-left: 2px solid #e5e7eb; }
+.hint, .reply-to { margin: 8px 0; font-size: .8rem; color: var(--text-muted); }
+.hint.warn { color: var(--accent-strong); font-weight: 600; }
+.hint.warn::before { content: '⚠ '; }
+.reply-to, .link { color: var(--brand-strong); }
+.pokemon-pick { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; font-size: .8rem; color: var(--text-muted); }
+.pokemon-pick select { padding: 10px; border: 2px solid var(--border); border-radius: 12px; font: inherit; background: var(--surface); color: var(--text); }
+.comment.reply { margin-left: 18px; padding-left: 8px; border-left: 2px solid var(--border); }
 .link { background: none; border: 0; padding: 2px 0; font: inherit; font-size: .8rem; cursor: pointer; }
 .link:disabled { opacity: .5; }
+
+.enemy-action { margin: 6px 0; }
+.fight { width: 100%; margin-top: 6px; }
+.fight:disabled { opacity: .4; cursor: not-allowed; }

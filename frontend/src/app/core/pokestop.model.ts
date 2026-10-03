@@ -86,24 +86,29 @@ export interface VoteResult {
 export interface PokestopTypeMeta {
   label: string;
   emoji: string;
+  /** Kolor wypełnienia pinezki: token palety (zmienna CSS). Dwa typy dzielą barwę, więc rozróżnia je też ikona i kształt. */
   color: string;
   /** Etykiety przycisków głosowania: [za, przeciw]. */
   vote: [string, string];
 }
 
 export const POKESTOP_TYPES: Record<PokestopType, PokestopTypeMeta> = {
-  report: { label: 'Zgłoszenie problemu', emoji: '🚧', color: '#f59e0b', vote: ['Potwierdzam', 'Nie zgadzam się'] },
-  idea: { label: 'Pomysł mieszkańca', emoji: '✨', color: '#0ea5e9', vote: ['Popieram', 'Nie popieram'] },
-  place: { label: 'Cool miejsce', emoji: '😎', color: '#ec4899', vote: ['Polecam', 'Nie polecam'] },
-  ngo: { label: 'Pomysł NGO', emoji: '🌱', color: '#10b981', vote: ['Popieram', 'Nie popieram'] },
-  consultation: { label: 'Konsultacje miejskie', emoji: '🏛️', color: '#6366f1', vote: ['Jestem za', 'Jestem przeciw'] },
+  report: { label: 'Zgłoszenie problemu', emoji: '🚧', color: 'var(--color-pink)', vote: ['Potwierdzam', 'Nie zgadzam się'] },
+  idea: { label: 'Pomysł mieszkańca', emoji: '✨', color: 'var(--color-indigo)', vote: ['Popieram', 'Nie popieram'] },
+  place: { label: 'Cool miejsce', emoji: '😎', color: 'var(--color-lavender)', vote: ['Polecam', 'Nie polecam'] },
+  ngo: { label: 'Pomysł NGO', emoji: '🌱', color: 'var(--color-plum)', vote: ['Popieram', 'Nie popieram'] },
+  consultation: { label: 'Konsultacje miejskie', emoji: '🏛️', color: 'var(--color-indigo)', vote: ['Jestem za', 'Jestem przeciw'] },
 };
 
-export const STATUS_META: Record<PokestopStatus, { label: string; color: string }> = {
-  open: { label: 'Głosowanie trwa', color: '#2563eb' },
-  in_progress: { label: 'W realizacji', color: '#d97706' },
-  resolved: { label: 'Załatwione', color: '#059669' },
-  rejected: { label: 'Odrzucone', color: '#dc2626' },
+/**
+ * Status niesie ikona (a nie sam kolor), bo paleta projektu ma tylko pięć barw. `bg` i `fg` to tokeny z styles.css;
+ * pary mają kontrast co najmniej 4,5:1.
+ */
+export const STATUS_META: Record<PokestopStatus, { label: string; icon: string; bg: string; fg: string }> = {
+  open: { label: 'Głosowanie trwa', icon: '🗳️', bg: 'var(--brand-strong)', fg: 'var(--on-strong)' },
+  in_progress: { label: 'W realizacji', icon: '🔧', bg: 'var(--color-lavender)', fg: 'var(--color-plum)' },
+  resolved: { label: 'Załatwione', icon: '✔', bg: 'var(--color-plum)', fg: 'var(--on-dark)' },
+  rejected: { label: 'Odrzucone', icon: '✕', bg: 'var(--accent-strong)', fg: 'var(--on-strong)' },
 };
 
 export const CHARACTERS: Record<CharacterId, { label: string; emoji: string; category: string }> = {

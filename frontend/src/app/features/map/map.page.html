@@ -13,7 +13,7 @@
 </nav>
 
 @if (selectedEncounter(); as enc) {
-  <section class="sheet tall enemy" style="--stop-color: #dc2626">
+  <section class="sheet tall enemy" style="--stop-color: var(--color-pink)">
     <button class="sheet-close" (click)="close()" aria-label="Zamknij">×</button>
     <p class="sheet-type">⚔️ Przeciwnik · poziom {{ enc.level }}</p>
     <h2>{{ enc.emoji }} {{ enc.name }}</h2>
@@ -23,9 +23,9 @@
 
     @if (canParticipate()) {
       @if (encounterDistance() === null) {
-        <p class="hint">Włącz lokalizację, żeby walczyć. Musisz być na miejscu.</p>
+        <p class="hint warn">Włącz lokalizację, żeby walczyć. Musisz być na miejscu.</p>
       } @else if (!canAttack()) {
-        <p class="hint">Jesteś {{ encounterDistance() }} m od celu. Podejdź na mniej niż {{ attackRange }} m.</p>
+        <p class="hint warn">Jesteś {{ encounterDistance() }} m od celu. Podejdź na mniej niż {{ attackRange }} m.</p>
       }
       <button class="btn btn-against fight" [disabled]="!canAttack()" (click)="attack(enc.id)">
         {{ attacking() ? 'Walczysz…' : '⚔️ Walcz' }}
@@ -36,7 +36,7 @@
 
 @if (panelOpen()) {
   <div class="crosshair" aria-hidden="true">📍</div>
-  <section class="sheet tall" style="--stop-color: #f59e0b">
+  <section class="sheet tall" style="--stop-color: var(--color-indigo)">
     <button class="sheet-close" (click)="panelOpen.set(false)" aria-label="Zamknij">×</button>
     <app-report-panel (drafted)="onReportDrafted($event)" />
   </section>
@@ -88,8 +88,8 @@
           </label>
         }
         <div class="actions">
-          <button class="btn btn-for" (click)="vote(stop.id, 'for')">{{ types[stop.type].vote[0] }}</button>
-          <button class="btn btn-against" (click)="vote(stop.id, 'against')">{{ types[stop.type].vote[1] }}</button>
+          <button class="btn btn-for" (click)="vote(stop.id, 'for')">👍 {{ types[stop.type].vote[0] }}</button>
+          <button class="btn btn-against" (click)="vote(stop.id, 'against')">👎 {{ types[stop.type].vote[1] }}</button>
         </div>
       }
     }
