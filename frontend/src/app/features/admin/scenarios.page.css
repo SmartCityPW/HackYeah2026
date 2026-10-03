@@ -1,0 +1,6 @@
+h2 { font-size: 1.05rem; margin: 18px 0 8px; }
+details { background: #fff; border-radius: 18px; padding: 12px; box-shadow: 0 1px 4px rgb(0 0 0 / .08); }
+summary { cursor: pointer; }
+small { color: #6b7280; }
+.section { margin: 10px 0 2px; font-weight: 700; font-size: .8rem; text-transform: uppercase; color: #6b7280; }
+ul { margin: 0; padding-left: 20px; font-size: .9rem; }

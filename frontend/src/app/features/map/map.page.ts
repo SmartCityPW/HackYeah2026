@@ -1,45 +1,41 @@
-import { Component, ElementRef, OnDestroy, afterNextRender, computed, effect, inject, signal, viewChild } from '@angular/core';
-import * as maplibregl from 'maplibre-gl';
-import { CHARACTERS, CHARACTER_IDS, CharacterId, POKESTOP_TYPES, Pokestop } from '../../core/pokestop.model';
+import { Component, ElementRef, computed, effect, inject, input, signal, untracked, viewChild, afterNextRender, DestroyRef } from '@angular/core';
+import { CHARACTERS, POKESTOP_TYPES, STATUS_META } from '../../core/pokestop.model';
+import { GeolocationService } from '../../core/geolocation.service';
 import { PokestopService } from '../../core/pokestop.service';
 import { findScenario } from '../../core/scenario.catalog';
 import { describeDetails } from '../../core/scenario.utils';
 import { SessionService } from '../../core/session.service';
+import { ToastService } from '../../core/toast.service';
+import { StatusChip } from '../../shared/status-chip/status-chip';
+import { MapController } from './map.controller';
 import { ReportDraft, ReportPanel } from './report-panel/report-panel';
-import { CharactersLayer } from './three/characters-layer';
 
-// Worker serwujemy jako zasób statyczny (angular.json -> assets), bo bundler nie radzi sobie z workerem MapLibre.
-maplibregl.setWorkerUrl('/maplibre/maplibre-gl-worker.mjs');
-
-const KRAKOW: [number, number] = [19.9373, 50.0617];
-
+/** Ekran mapy ("home"): pinezki, głosowanie, komentarze i dodawanie zgłoszeń. Logikę MapLibre ma `MapController`. */
 @Component({
   selector: 'app-map-page',
-  imports: [ReportPanel],
+  imports: [ReportPanel, StatusChip],
+  providers: [MapController],
   templateUrl: './map.page.html',
   styleUrl: './map.page.css',
 })
-export class MapPage implements OnDestroy {
-  private readonly service = inject(PokestopService);
-  protected readonly session = inject(SessionService);
+export class MapPage {
+  private readonly pokestops = inject(PokestopService);
+  private readonly mapCtl = inject(MapController);
+  private readonly geo = inject(GeolocationService);
+  private readonly toast = inject(ToastService);
   private readonly container = viewChild.required<ElementRef<HTMLDivElement>>('mapContainer');
+  protected readonly session = inject(SessionService);
 
-  private map?: maplibregl.Map;
-  private markers = new Map<number, maplibregl.Marker>();
-  private watchId?: number;
-  private userMarker?: maplibregl.Marker;
-  private readonly mapReady = signal(false);
-  private readonly characters = new CharactersLayer();
+  /** Z parametru adresu `?stop=ID`, np. przy przejściu z listy inicjatyw. */
+  readonly stop = input<string>();
 
   protected readonly types = POKESTOP_TYPES;
   protected readonly selectedId = signal<number | null>(null);
-  protected readonly selected = computed(() => this.service.stops().find((s) => s.id === this.selectedId()) ?? null);
-  protected readonly reward = signal<string | null>(null);
-
-  protected readonly characterMeta = CHARACTERS;
-  protected readonly characterIds = CHARACTER_IDS;
-  protected readonly collection = this.service.collection;
-  protected readonly panel = signal<'none' | 'report' | 'collection'>('none');
+  protected readonly selected = computed(() => this.pokestops.stops().find((s) => s.id === this.selectedId()) ?? null);
+  protected readonly panelOpen = signal(false);
+  protected readonly commentDraft = signal('');
+  /** Administrator tylko przegląda: nie zgłasza, nie głosuje i nie komentuje. */
+  protected readonly canParticipate = computed(() => this.session.role() !== 'admin');
   protected readonly selectedDetails = computed(() => {
     const stop = this.selected();
     const scenario = findScenario(stop?.scenarioId);
@@ -47,113 +43,68 @@ export class MapPage implements OnDestroy {
   });
 
   constructor() {
-    afterNextRender(() => this.initMap());
+    afterNextRender(() => {
+      this.mapCtl.init(this.container().nativeElement);
+      this.geo.start();
+    });
+    inject(DestroyRef).onDestroy(() => this.geo.stop());
 
     effect(() => {
-      const stops = this.service.stops();
-      if (this.mapReady()) {
-        this.syncMarkers(stops);
-        void this.characters.setStops(stops);
-      }
+      if (this.mapCtl.ready()) this.mapCtl.showStops(this.pokestops.visibleStops(), (id) => this.select(id));
+    });
+    effect(() => {
+      const position = this.geo.position();
+      if (position && this.mapCtl.ready()) this.mapCtl.showUser(position);
+    });
+    effect(() => {
+      const id = Number(this.stop());
+      if (id && this.mapCtl.ready() && this.pokestops.loaded()) untracked(() => this.select(id));
     });
   }
 
-  protected vote(stop: Pokestop, vote: 'for' | 'against'): void {
-    const won = this.service.vote(stop.id, vote);
-    if (won) this.showReward(`Dziękujemy za głos! Zdobywasz: ${CHARACTERS[won].emoji} ${CHARACTERS[won].label}`);
-  }
-
-  protected openPanel(panel: 'report' | 'collection'): void {
-    this.selectedId.set(null);
-    this.panel.set(this.panel() === panel ? 'none' : panel);
-  }
-
-  protected onReportDrafted(draft: ReportDraft): void {
-    if (!this.map) return;
-    const center = this.map.getCenter();
-    const stop = this.service.addReport({ ...draft, lat: center.lat, lng: center.lng });
-    this.panel.set('none');
-    this.selectedId.set(stop.id);
-    this.showReward(
-      draft.type === 'ngo'
-        ? 'Inicjatywa opublikowana! Mieszkańcy mogą teraz głosować.'
-        : 'Zgłoszenie dodane! Gdy inni je potwierdzą, dostaniesz postać.',
-    );
-  }
-
-  protected toggleRole(): void {
-    this.session.toggleRole();
-    this.panel.set('none');
-    this.selectedId.set(null);
-  }
-
-  private showReward(text: string): void {
-    this.reward.set(text);
-    setTimeout(() => this.reward.set(null), 3000);
+  protected select(id: number): void {
+    const stop = this.pokestops.stops().find((s) => s.id === id);
+    if (!stop) return;
+    this.panelOpen.set(false);
+    this.selectedId.set(id);
+    this.mapCtl.focus(stop.lat, stop.lng);
   }
 
   protected close(): void {
     this.selectedId.set(null);
   }
 
-  ngOnDestroy(): void {
-    if (this.watchId !== undefined) navigator.geolocation.clearWatch(this.watchId);
-    this.map?.remove();
+  protected togglePanel(): void {
+    this.selectedId.set(null);
+    this.panelOpen.update((open) => !open);
   }
 
-  private initMap(): void {
-    this.map = new maplibregl.Map({
-      container: this.container().nativeElement,
-      style: 'https://tiles.openfreemap.org/styles/liberty',
-      center: KRAKOW,
-      zoom: 16.3,
-      pitch: 55,
-      bearing: -15,
-      attributionControl: { compact: true },
-    });
-    this.map.on('load', () => {
-      this.map!.addLayer(this.characters);
-      this.mapReady.set(true);
-    });
-    this.startGeolocation();
+  protected async vote(id: number, vote: 'for' | 'against'): Promise<void> {
+    const won = await this.pokestops.vote(id, vote);
+    if (won) this.toast.show(`Dziękujemy za głos! Zdobywasz: ${CHARACTERS[won].emoji} ${CHARACTERS[won].label}`);
   }
 
-  private syncMarkers(stops: Pokestop[]): void {
-    for (const stop of stops) {
-      if (this.markers.has(stop.id)) continue;
-      const meta = POKESTOP_TYPES[stop.type];
-      const el = document.createElement('button');
-      el.className = 'stop-marker';
-      el.style.setProperty('--stop-color', meta.color);
-      el.innerHTML = `<span>${stop.icon ?? meta.emoji}</span>`;
-      el.setAttribute('aria-label', stop.title);
-      el.addEventListener('click', () => {
-        this.selectedId.set(stop.id);
-        this.map?.easeTo({ center: [stop.lng, stop.lat], duration: 600 });
-      });
-      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom', offset: [0, -34] }).setLngLat([stop.lng, stop.lat]).addTo(this.map!);
-      this.markers.set(stop.id, marker);
-    }
+  protected async sendComment(id: number): Promise<void> {
+    const text = this.commentDraft().trim();
+    if (!text) return;
+    await this.pokestops.comment(id, text);
+    this.commentDraft.set('');
   }
 
-  private startGeolocation(): void {
-    if (!('geolocation' in navigator)) return;
-    this.watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        const lngLat: [number, number] = [pos.coords.longitude, pos.coords.latitude];
-        if (!this.userMarker) {
-          const el = document.createElement('div');
-          el.className = 'user-marker';
-          this.userMarker = new maplibregl.Marker({ element: el }).setLngLat(lngLat).addTo(this.map!);
-          this.map!.jumpTo({ center: lngLat });
-        } else {
-          this.userMarker.setLngLat(lngLat);
-        }
-      },
-      () => {
-        /* brak zgody lub brak GPS: zostajemy na domyślnym widoku (Kraków) */
-      },
-      { enableHighAccuracy: true },
+  protected onCommentInput(event: Event): void {
+    this.commentDraft.set((event.target as HTMLInputElement).value);
+  }
+
+  protected async onReportDrafted(draft: ReportDraft): Promise<void> {
+    const center = this.mapCtl.center();
+    if (!center) return;
+    const stop = await this.pokestops.addReport({ ...draft, lat: center.lat, lng: center.lng });
+    this.panelOpen.set(false);
+    this.selectedId.set(stop.id);
+    this.toast.show(
+      draft.type === 'ngo'
+        ? 'Inicjatywa opublikowana! Mieszkańcy mogą teraz głosować.'
+        : 'Zgłoszenie dodane! Gdy inni je potwierdzą, dostaniesz postać.',
     );
   }
 }

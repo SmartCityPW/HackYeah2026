@@ -1,0 +1,17 @@
+<div class="page">
+  <h1>Organizacje</h1>
+  <p class="lead">Tylko zweryfikowane organizacje mogą publikować szczegółowe inicjatywy.</p>
+
+  <div class="list">
+    @for (o of organizations(); track o.name) {
+      <div class="row">
+        <div>
+          <strong>{{ o.name }}</strong>
+          <small>{{ o.kind }}</small>
+        </div>
+        <span class="badge" [class.ok]="o.verified">{{ o.verified ? '✔ Zweryfikowana' : 'Oczekuje' }}</span>
+        <button (click)="toggle(o.name)">{{ o.verified ? 'Cofnij' : 'Zweryfikuj' }}</button>
+      </div>
+    }
+  </div>
+</div>

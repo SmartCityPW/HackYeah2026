@@ -1,16 +1,27 @@
-import { Injectable, effect, signal } from '@angular/core';
-import { Audience } from './scenario.model';
+import { Injectable, computed, effect, signal } from '@angular/core';
+
+export type Role = 'resident' | 'org' | 'admin';
+
+export interface Profile {
+  displayName: string;
+  /** Nazwa organizacji dla roli `org`, w pozostałych przypadkach null. */
+  organization: string | null;
+}
+
+// MOCK: profile przypisane do ról. Docelowo profil i rola przyjdą z API po zalogowaniu.
+const PROFILES: Record<Role, Profile> = {
+  resident: { displayName: 'Ty', organization: null },
+  org: { displayName: 'Fundacja Zielone Miasto', organization: 'Fundacja Zielone Miasto' },
+  admin: { displayName: 'Administrator', organization: null },
+};
 
 const STORAGE_KEY = 'scgo.role';
 
-/**
- * MOCK sesji: rola użytkownika przełączana ręcznie (do czasu logowania i ról z backendu).
- * Docelowo rola i organizacja przyjdą z API po zalogowaniu.
- */
+/** Rola zalogowanego użytkownika (przełączana ręcznie do czasu logowania z backendu). */
 @Injectable({ providedIn: 'root' })
 export class SessionService {
-  readonly role = signal<Audience>(this.load());
-  readonly organizationName = 'Fundacja Zielone Miasto';
+  readonly role = signal<Role>(this.load());
+  readonly profile = computed(() => PROFILES[this.role()]);
 
   constructor() {
     effect(() => {
@@ -22,13 +33,14 @@ export class SessionService {
     });
   }
 
-  toggleRole(): void {
-    this.role.update((r) => (r === 'resident' ? 'org' : 'resident'));
+  setRole(role: Role): void {
+    this.role.set(role);
   }
 
-  private load(): Audience {
+  private load(): Role {
     try {
-      return localStorage.getItem(STORAGE_KEY) === 'org' ? 'org' : 'resident';
+      const saved = localStorage.getItem(STORAGE_KEY);
+      return saved === 'org' || saved === 'admin' ? saved : 'resident';
     } catch {
       return 'resident';
     }

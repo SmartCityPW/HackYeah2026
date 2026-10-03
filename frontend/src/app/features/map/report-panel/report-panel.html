@@ -9,7 +9,7 @@
     (cancelled)="chosen.set(null)"
   />
 } @else {
-  <p class="kicker">{{ isOrg() ? '🏢 ' + organization : '🚧 Nowe zgłoszenie' }}</p>
+  <p class="kicker">{{ isOrg() ? '🏢 ' + organization() : '🚧 Nowe zgłoszenie' }}</p>
   <h2>{{ isOrg() ? 'Wybierz rodzaj inicjatywy' : 'Co chcesz zgłosić?' }}</h2>
   <div class="catalog">
     @for (s of catalog(); track s.id) {

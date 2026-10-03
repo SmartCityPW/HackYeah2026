@@ -1,0 +1,10 @@
+<div class="page">
+  <h1>🏢 {{ organization }}</h1>
+  <p class="lead"><span class="verified">✔ Zweryfikowana organizacja</span> Mieszkańcy widzą Wasze inicjatywy jako zaufane.</p>
+
+  <dl class="rows">
+    @for (r of rows; track r.label) {
+      <dt>{{ r.label }}</dt><dd>{{ r.value }}</dd>
+    }
+  </dl>
+</div>

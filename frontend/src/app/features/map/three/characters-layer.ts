@@ -36,8 +36,14 @@ export class CharactersLayer implements maplibregl.CustomLayerInterface {
     this.renderer?.dispose();
   }
 
-  /** Dodaje postacie dla nowych pokestopów (istniejące zostają). */
+  /** Dopasowuje postacie do listy pokestopów: dodaje nowe, usuwa brakujące. */
   async setStops(stops: Pokestop[]): Promise<void> {
+    const ids = new Set(stops.map((s) => s.id));
+    for (const [id, placed] of this.placed) {
+      if (ids.has(id)) continue;
+      this.scene.remove(placed.object);
+      this.placed.delete(id);
+    }
     await Promise.all(
       stops
         .filter((s) => !this.placed.has(s.id))

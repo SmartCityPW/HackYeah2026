@@ -1,0 +1,25 @@
+<div class="page">
+  <h1>Moderacja</h1>
+  <p class="lead">Przegląd zgłoszeń i inicjatyw. Odrzucone znikają z mapy mieszkańców.</p>
+
+  <div class="chip-row">
+    @for (f of filters; track f.id) {
+      <button [class.on]="filter() === f.id" (click)="filter.set(f.id)">{{ f.label }}</button>
+    }
+  </div>
+
+  <div class="list">
+    @for (s of items(); track s.id) {
+      <app-initiative-card [stop]="s" [showInteraction]="false" (opened)="showOnMap(s.id)">
+        <div class="card-actions">
+          @if (s.status !== 'in_progress') { <button (click)="setStatus(s.id, 'in_progress')">W realizacji</button> }
+          @if (s.status !== 'resolved') { <button class="good" (click)="setStatus(s.id, 'resolved')">Załatwione</button> }
+          @if (s.status !== 'open') { <button (click)="setStatus(s.id, 'open')">Wznów głosowanie</button> }
+          @if (s.status !== 'rejected') { <button class="danger" (click)="setStatus(s.id, 'rejected')">Odrzuć</button> }
+        </div>
+      </app-initiative-card>
+    } @empty {
+      <p class="empty">Brak zgłoszeń w tym statusie.</p>
+    }
+  </div>
+</div>

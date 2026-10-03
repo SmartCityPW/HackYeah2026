@@ -1,0 +1,26 @@
+<article>
+  <button type="button" class="head" (click)="opened.emit()">
+    <span class="icon">{{ stop().icon ?? type().emoji }}</span>
+    <span class="text">
+      <strong>{{ stop().title }}</strong>
+      <small>{{ type().label }} · {{ stop().organization ?? stop().author }}</small>
+    </span>
+    <app-status-chip [status]="stop().status" />
+  </button>
+
+  <div class="support" [attr.aria-label]="'Poparcie: ' + support() + '%'">
+    <div class="bar"><div class="fill" [style.width.%]="support()"></div></div>
+    <small>👍 {{ stop().votesFor }} · 👎 {{ stop().votesAgainst }} · 💬 {{ stop().comments.length }}</small>
+  </div>
+
+  @if (showInteraction()) {
+    <p class="mine">
+      @if (stop().mine) { <span>📌 Twoje zgłoszenie</span> }
+      @if (stop().myVote) { <span>{{ stop().myVote === 'for' ? '👍 Zagłosowano za' : '👎 Zagłosowano przeciw' }}</span> }
+      @if (myComments() > 0) { <span>💬 Skomentowano ({{ myComments() }})</span> }
+      @if (stop().myVote) { <span>{{ character().emoji }} {{ character().label }}</span> }
+    </p>
+  }
+
+  <ng-content />
+</article>

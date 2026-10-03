@@ -1,0 +1,16 @@
+<nav aria-label="Nawigacja główna">
+  @for (item of items(); track item.path) {
+    @if (item.soon) {
+      <span class="item soon" aria-disabled="true">
+        <span class="icon">{{ item.icon }}</span>
+        <span>{{ item.label }}</span>
+        <small>wkrótce</small>
+      </span>
+    } @else {
+      <a class="item" [routerLink]="item.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: !!item.exact }">
+        <span class="icon">{{ item.icon }}</span>
+        <span>{{ item.label }}</span>
+      </a>
+    }
+  }
+</nav>

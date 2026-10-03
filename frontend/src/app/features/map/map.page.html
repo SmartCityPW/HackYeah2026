@@ -1,27 +1,25 @@
 <div #mapContainer class="map"></div>
 
-<nav class="toolbar">
-  <button class="tool role" (click)="toggleRole()" title="Przełącz widok (tryb deweloperski)">
-    {{ session.role() === 'org' ? '🏢 Organizacja' : '👤 Mieszkaniec' }}
-  </button>
-  <button class="tool" [class.active]="panel() === 'report'" (click)="openPanel('report')">
-    {{ session.role() === 'org' ? '🏢 Nowa inicjatywa' : '➕ Zgłoś' }}
-  </button>
-  <button class="tool" [class.active]="panel() === 'collection'" (click)="openPanel('collection')">📖 Kolekcja</button>
-</nav>
-
-@if (panel() === 'report') {
-  <div class="crosshair" aria-hidden="true">📍</div>
+@if (canParticipate()) {
+  <nav class="toolbar">
+    <button class="tool" [class.active]="panelOpen()" (click)="togglePanel()">
+      {{ session.role() === 'org' ? '🏢 Nowa inicjatywa' : '➕ Zgłoś' }}
+    </button>
+  </nav>
 }
 
-@if (reward(); as text) {
-  <div class="toast" role="status">🎁 {{ text }}</div>
+@if (panelOpen()) {
+  <div class="crosshair" aria-hidden="true">📍</div>
+  <section class="sheet tall" style="--stop-color: #f59e0b">
+    <button class="sheet-close" (click)="panelOpen.set(false)" aria-label="Zamknij">×</button>
+    <app-report-panel (drafted)="onReportDrafted($event)" />
+  </section>
 }
 
 @if (selected(); as stop) {
   <section class="sheet tall" [style.--stop-color]="types[stop.type].color">
     <button class="sheet-close" (click)="close()" aria-label="Zamknij">×</button>
-    <p class="sheet-type">{{ types[stop.type].emoji }} {{ types[stop.type].label }}</p>
+    <p class="sheet-type">{{ types[stop.type].emoji }} {{ types[stop.type].label }} <app-status-chip [status]="stop.status" /></p>
     <h2>{{ stop.title }}</h2>
     <p class="sheet-desc">{{ stop.description }}</p>
     <p class="sheet-author">Dodał(a): {{ stop.organization ? '🏢 ' : '' }}{{ stop.author }}</p>
@@ -45,37 +43,26 @@
       <span>👎 {{ stop.votesAgainst }}</span>
     </div>
 
-    @if (stop.myVote) {
-      <p class="voted">Twój głos został zapisany ✔</p>
-    } @else {
-      <div class="actions">
-        <button class="btn btn-for" (click)="vote(stop, 'for')">Potwierdzam</button>
-        <button class="btn btn-against" (click)="vote(stop, 'against')">Nie zgadzam się</button>
-      </div>
-    }
-  </section>
-}
-
-@if (panel() === 'report') {
-  <section class="sheet tall" style="--stop-color: #f59e0b">
-    <button class="sheet-close" (click)="panel.set('none')" aria-label="Zamknij">×</button>
-    <app-report-panel (drafted)="onReportDrafted($event)" (closed)="panel.set('none')" />
-  </section>
-}
-
-@if (panel() === 'collection') {
-  <section class="sheet" style="--stop-color: #6366f1">
-    <button class="sheet-close" (click)="panel.set('none')" aria-label="Zamknij">×</button>
-    <p class="sheet-type">📖 Twoja kolekcja</p>
-    <h2>Zdobyte postacie</h2>
-    <div class="dex">
-      @for (id of characterIds; track id) {
-        <div class="dex-card" [class.locked]="collection()[id] === 0">
-          <span class="dex-emoji">{{ collection()[id] > 0 ? characterMeta[id].emoji : '❔' }}</span>
-          <strong>{{ collection()[id] > 0 ? characterMeta[id].label : '???' }}</strong>
-          <small>{{ collection()[id] > 0 ? '×' + collection()[id] : characterMeta[id].category }}</small>
+    @if (canParticipate()) {
+      @if (stop.myVote) {
+        <p class="voted">Twój głos został zapisany ✔</p>
+      } @else {
+        <div class="actions">
+          <button class="btn btn-for" (click)="vote(stop.id, 'for')">Potwierdzam</button>
+          <button class="btn btn-against" (click)="vote(stop.id, 'against')">Nie zgadzam się</button>
         </div>
       }
-    </div>
+    }
+
+    <h3 class="comments-title">Komentarze ({{ stop.comments.length }})</h3>
+    @for (c of stop.comments; track c.id) {
+      <p class="comment" [class.mine]="c.mine"><strong>{{ c.author }}:</strong> {{ c.text }}</p>
+    }
+    @if (canParticipate()) {
+      <div class="comment-form">
+        <input type="text" maxlength="300" placeholder="Dodaj komentarz…" [value]="commentDraft()" (input)="onCommentInput($event)" (keydown.enter)="sendComment(stop.id)" />
+        <button class="btn btn-for" [disabled]="!commentDraft().trim()" (click)="sendComment(stop.id)">Wyślij</button>
+      </div>
+    }
   </section>
 }

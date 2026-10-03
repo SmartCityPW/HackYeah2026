@@ -1,4 +1,5 @@
 import { FieldDef, FieldOption, Scenario, ScenarioSection } from './scenario.model';
+import { Role } from './session.service';
 
 const yes = (key: string, label: string, extra: Partial<FieldDef> = {}): FieldDef => ({ key, label, type: 'boolean', ...extra });
 const opts = (...pairs: [string, string][]): FieldOption[] => pairs.map(([value, label]) => ({ value, label }));
@@ -197,8 +198,10 @@ export const ORG_SCENARIOS: Scenario[] = [
   },
 ];
 
-export function scenariosFor(audience: 'resident' | 'org'): Scenario[] {
-  return audience === 'org' ? ORG_SCENARIOS : RESIDENT_SCENARIOS;
+/** Katalog scenariuszy dostępny dla roli (administrator niczego nie zgłasza). */
+export function scenariosFor(role: Role): Scenario[] {
+  if (role === 'org') return ORG_SCENARIOS;
+  return role === 'resident' ? RESIDENT_SCENARIOS : [];
 }
 
 export function findScenario(id: string | undefined): Scenario | undefined {

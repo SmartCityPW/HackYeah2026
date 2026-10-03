@@ -2,3 +2,21 @@
 @import 'maplibre-gl/dist/maplibre-gl.css';
 
 html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
+
+/* Wspólny układ stron "nie-mapowych" (górny odstęp na przełącznik widoku deweloperskiego). */
+.page { max-width: 720px; margin: 0 auto; padding: 52px 16px 24px; box-sizing: border-box; }
+.page h1 { margin: 0 0 4px; font-size: 1.5rem; }
+.page .lead { margin: 0 0 16px; color: #6b7280; }
+.page .list { display: grid; gap: 10px; }
+.page .empty { text-align: center; color: #6b7280; padding: 32px 12px; background: #fff; border-radius: 18px; }
+.chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.chip-row button { border: 2px solid #e5e7eb; background: #fff; border-radius: 999px; padding: 6px 12px; cursor: pointer; font: inherit; font-size: .85rem; }
+.chip-row button.on { border-color: #6366f1; background: #eef2ff; font-weight: 700; }
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.stat { background: #fff; border-radius: 18px; padding: 14px; box-shadow: 0 1px 4px rgb(0 0 0 / .08); }
+.stat strong { display: block; font-size: 1.6rem; }
+.stat span { color: #6b7280; font-size: .8rem; }
+.card-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.card-actions button { border: 0; border-radius: 10px; padding: 6px 12px; font: inherit; font-size: .8rem; font-weight: 700; cursor: pointer; background: #f3f4f6; }
+.card-actions button.danger { background: #fee2e2; color: #b91c1c; }
+.card-actions button.good { background: #d1fae5; color: #047857; }

@@ -1,0 +1,4 @@
+.verified { display: inline-block; margin-right: 8px; padding: 2px 10px; border-radius: 99px; background: #d1fae5; color: #047857; font-weight: 700; font-size: .8rem; }
+.rows { display: grid; grid-template-columns: auto 1fr; gap: 8px 16px; background: #fff; padding: 16px; border-radius: 18px; }
+dt { color: #6b7280; }
+dd { margin: 0; font-weight: 600; }

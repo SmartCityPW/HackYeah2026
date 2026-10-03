@@ -1,0 +1,23 @@
+<div class="page">
+  <h1>Scenariusze</h1>
+  <p class="lead">Katalogi formularzy, z których korzystają mieszkańcy i organizacje.</p>
+
+  @for (g of groups; track g.title) {
+    <h2>{{ g.title }} ({{ g.scenarios.length }})</h2>
+    <div class="list">
+      @for (s of g.scenarios; track s.id) {
+        <details>
+          <summary>{{ s.emoji }} <strong>{{ s.label }}</strong> <small>{{ fieldCount(s) }} pól</small></summary>
+          @for (section of s.sections; track section.title) {
+            <p class="section">{{ section.title }}</p>
+            <ul>
+              @for (f of section.fields; track f.key) {
+                <li>{{ f.label }} <small>({{ f.type }}{{ f.required ? ', wymagane' : '' }})</small></li>
+              }
+            </ul>
+          }
+        </details>
+      }
+    </div>
+  }
+</div>

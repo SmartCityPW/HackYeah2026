@@ -1,0 +1,19 @@
+<div class="page">
+  <h1>Inicjatywy organizacji</h1>
+  <p class="lead">Jak mieszkańcy odbierają Wasze propozycje.</p>
+
+  <div class="stat-grid">
+    <div class="stat"><strong>{{ items().length }}</strong><span>inicjatyw</span></div>
+    <div class="stat"><strong>{{ totalVotes() }}</strong><span>oddanych głosów</span></div>
+    <div class="stat"><strong>{{ averageSupport() }}%</strong><span>średnie poparcie</span></div>
+    <div class="stat"><strong>{{ totalComments() }}</strong><span>komentarzy</span></div>
+  </div>
+
+  <div class="list">
+    @for (s of items(); track s.id) {
+      <app-initiative-card [stop]="s" [showInteraction]="false" (opened)="showOnMap(s.id)" />
+    } @empty {
+      <p class="empty">Nie opublikowano jeszcze żadnej inicjatywy. Dodaj pierwszą z poziomu mapy.</p>
+    }
+  </div>
+</div>

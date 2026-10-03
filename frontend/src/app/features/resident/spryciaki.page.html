@@ -1,0 +1,15 @@
+<div class="page">
+  <h1>Moje Spryciaki</h1>
+  <p class="lead">Zdobyto {{ collection.unlocked() }} z {{ total }}. Głosuj i komentuj inicjatywy, żeby poznać kolejne.</p>
+
+  <div class="dex">
+    @for (c of characters; track c.id) {
+      @let count = collection.counts()[c.id];
+      <div class="card" [class.locked]="count === 0">
+        <span class="emoji">{{ count > 0 ? c.emoji : '❔' }}</span>
+        <strong>{{ count > 0 ? c.label : '???' }}</strong>
+        <small>{{ count > 0 ? 'Zdobyty ×' + count : 'Wskazówka: ' + c.category }}</small>
+      </div>
+    }
+  </div>
+</div>

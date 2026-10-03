@@ -19,15 +19,14 @@ export class ReportPanel {
   private readonly session = inject(SessionService);
 
   readonly drafted = output<ReportDraft>();
-  readonly closed = output<void>();
 
   protected readonly isOrg = computed(() => this.session.role() === 'org');
-  protected readonly organization = this.session.organizationName;
+  protected readonly organization = computed(() => this.session.profile().organization);
   protected readonly catalog = computed(() => scenariosFor(this.session.role()));
   protected readonly chosen = signal<Scenario | null>(null);
 
   protected submit(scenario: Scenario, values: FieldValues): void {
-    this.drafted.emit(toReport(scenario, values, this.isOrg() ? this.organization : null));
+    this.drafted.emit(toReport(scenario, values, this.organization()));
     this.chosen.set(null);
   }
 }

@@ -1,0 +1,14 @@
+<main>
+  <router-outlet />
+</main>
+<app-navbar [items]="navItems()" />
+
+<div class="dev-role" title="Tryb deweloperski: przełącznik widoku">
+  @for (r of roles; track r.role) {
+    <button [class.on]="role() === r.role" (click)="switchRole(r.role)">{{ r.label }}</button>
+  }
+</div>
+
+@if (toast.message(); as text) {
+  <div class="toast" role="status">🎁 {{ text }}</div>
+}
