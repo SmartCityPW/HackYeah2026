@@ -36,3 +36,11 @@ def test_demo_data_refuses_to_run_outside_debug(monkeypatch):
     monkeypatch.setattr(settings, 'APP', replace(settings.APP, app=replace(settings.APP.app, debug=False)))
     with pytest.raises(CommandError, match='debug'):
         call_command('seed_demo')
+
+
+def test_demo_initiative_has_a_timeline_custom_fields_and_a_survey(monkeypatch):
+    monkeypatch.setenv('DEMO_PASSWORD', 'demo-haslo-1234')
+    call_command('seed_demo')
+    stop = Pokestop.objects.get(type='ngo')
+    assert [f['label'] for f in stop.custom_fields] == ['Liczba drzew', 'Budżet']
+    assert stop.updates.count() == 2 and stop.questions.count() == 3

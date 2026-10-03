@@ -21,7 +21,7 @@
   </button>
 }
 
-@if (canParticipate() && !panelOpen() && !selected() && !selectedEncounter() && !battleEncounter()) {
+@if (canParticipate() && !panelOpen() && !selected() && !selectedEncounter() && !battleEncounter() && !surveyStop()) {
   @if (session.canPublishInitiatives()) {
     <button class="fab" (click)="togglePanel()"><app-icon name="plus" /> {{ session.role() === 'org' ? 'Nowa inicjatywa' : 'Zgłoś' }}</button>
   } @else {
@@ -54,6 +54,10 @@
       <button class="btn btn-against fight" [disabled]="!canAttack()" (click)="startBattle(enc)"><app-icon name="swords" /> Walcz</button>
     }
   </section>
+}
+
+@if (surveyStop(); as survey) {
+  <app-survey [stop]="survey" (closed)="closeSurvey()" />
 }
 
 @if (battleEncounter(); as enc) {
@@ -128,6 +132,24 @@
           <button class="btn btn-against" (click)="vote(stop.id, 'against')">{{ types[stop.type].vote[1] }}</button>
         </div>
       }
+    }
+
+    @if (canAnswerSurvey() && isTrusted(stop.type) && stop.questions?.length) {
+      <div class="survey-cta">
+        @if (stop.surveyAnswered) {
+          <p class="voted">Ankieta wypełniona. Dziękujemy!</p>
+        } @else if (stop.status === 'resolved') {
+          <p class="hint">Ankieta jest już zamknięta.</p>
+        } @else {
+          <p class="hint">Ankieta ({{ stop.questions!.length }} pytań). Za jej wypełnienie dostajesz nowego Spryciaka; jakiego, zobaczysz dopiero po wysłaniu.</p>
+          @if (stopDistance() === null) {
+            <p class="hint warn">Włącz lokalizację, żeby wypełnić ankietę. Musisz być na miejscu.</p>
+          } @else if (!stopInRange()) {
+            <p class="hint warn">Jesteś {{ stopDistance() }} m stąd. Podejdź na mniej niż {{ interactionRadius }} m, żeby wypełnić ankietę.</p>
+          }
+          <button class="btn btn-for" [disabled]="!stopInRange()" (click)="openSurvey(stop)">Wypełnij ankietę</button>
+        }
+      </div>
     }
 
     <h3 class="comments-title">Komentarze ({{ commentTotal(stop) }})</h3>

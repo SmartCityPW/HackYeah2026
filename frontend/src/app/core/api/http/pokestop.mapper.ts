@@ -1,8 +1,8 @@
 import { Me } from '../account.api';
 import { AttackResult, Encounter, Position, TypeCode } from '../../game.model';
 import { Pokemon } from '../../pokemon.model';
-import { CharacterId, NewReport, Pokestop, PokestopComment, VoteResult } from '../../pokestop.model';
-import { AttackResultDto, CommentDto, EncounterDto, MeDto, NewPokestopDto, PokemonDto, PokestopDto, VoteResultDto } from './contract.types';
+import { CharacterId, NewReport, Pokestop, PokestopComment, SurveyResult, SurveyResults, TimelineEntry, VoteResult } from '../../pokestop.model';
+import { AttackResultDto, CommentDto, EncounterDto, MeDto, NewPokestopDto, PokemonDto, PokestopDto, SurveyResultDto, SurveyResultsDto, TimelineEntryDto, VoteResultDto } from './contract.types';
 
 /**
  * Odpowiedź backendu -> model frontendu. Jedyne miejsce, które zna oba kształty:
@@ -26,6 +26,11 @@ export function toPokestop(dto: PokestopDto): Pokestop {
     organization: dto.organization ?? undefined,
     photos: dto.photos?.map((p) => p.url) ?? [],
     details: dto.details ?? {},
+    customFields: dto.customFields ?? [],
+    updateCount: dto.updateCount ?? 0,
+    // Pytania i flaga wypełnienia przychodzą tylko w szczegółach pinezki, nie na liście: wtedy zostają `undefined`.
+    questions: dto.questions?.map((q) => ({ ...q, options: q.options ?? [], min: q.min ?? null, max: q.max ?? null })),
+    surveyAnswered: dto.surveyAnswered,
     comments: [],
     commentCount: dto.commentCount,
     lat: dto.lat,
@@ -34,6 +39,18 @@ export function toPokestop(dto: PokestopDto): Pokestop {
     votesAgainst: dto.votesAgainst,
     myVote: dto.myVote,
   };
+}
+
+export function toSurveyResult(dto: SurveyResultDto): SurveyResult {
+  return { stop: toPokestop(dto.stop), pokemon: toPokemon(dto.pokemon) };
+}
+
+export function toSurveyResults(dto: SurveyResultsDto): SurveyResults {
+  return { ...dto };
+}
+
+export function toTimelineEntry(dto: TimelineEntryDto): TimelineEntry {
+  return { ...dto };
 }
 
 export function toPokemon(dto: PokemonDto): Pokemon {
@@ -82,6 +99,7 @@ export function toNewPokestop(report: NewReport, position: Position): NewPokesto
     lng: report.lng,
     position: { lat: position.lat, lng: position.lng },
     details: report.details,
+    ...(report.questions?.length ? { questions: report.questions } : {}),
   };
 }
 

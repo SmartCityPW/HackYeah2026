@@ -170,7 +170,7 @@ Wykonuje się w kroku 1: każda operacja z `docs/openapi.yaml` ma trasę, tabele
 |---|---|
 | Wartości zmienne backendu (zasięgi, nagrody, limity, adresy, wybór agenta moderującego) | [`backend/config/default.yaml`](backend/config/default.yaml), nadpisania przez `APP_CONFIG_OVERRIDE` |
 | Wartości zmienne frontendu (adres backendu, tryb mock/http, mapa, limity zdjęć) | [`frontend/public/config/app-config.yaml`](frontend/public/config/app-config.yaml) |
-| **Sekrety**: `DJANGO_SECRET_KEY`, `DB_PASSWORD`, `AI_API_KEY`, `DEMO_PASSWORD` | wyłącznie zmienne środowiskowe ([`.env.example`](.env.example), plik `.env` jest ignorowany przez git) |
+| **Sekrety**: `DJANGO_SECRET_KEY`, `DB_PASSWORD`, `AI_API_KEY`, `ADMIN_PASSWORD`, `DEMO_PASSWORD` | wyłącznie zmienne środowiskowe ([`.env.example`](.env.example), plik `.env` jest ignorowany przez git) |
 
 Kod nie zawiera wartości zmiennych na stałe, a testy pilnują, że w plikach YAML nie ma kluczy wyglądających na sekrety.
 
@@ -217,7 +217,8 @@ Kod nie zawiera wartości zmiennych na stałe, a testy pilnują, że w plikach Y
 | `Brak wymaganej zmiennej środowiskowej DJANGO_SECRET_KEY` lub `DB_PASSWORD` | Nowy terminal nie ma zmiennych: wykonaj `source config/local.env` (krok 2). Sekrety są tylko w środowisku, nigdy w plikach YAML. |
 | `Nie można połączyć się z http://localhost:8000` (skrypt) | Backend nie działa: uruchom `manage.py runserver` w osobnym terminalu. |
 | Mapa pusta, w konsoli błąd CORS lub sieci | Tryb `http` bez działającego backendu albo inny adres w `api.baseUrl`. Backend zezwala na `http://localhost:4200` (`app.cors_allowed_origins`). |
-| Mapa pusta w trybie `http` | Brak danych: uruchom `manage.py seed_demo`. |
+| Mapa pusta w trybie `http` | Brak danych: lokalnie `manage.py seed_demo`; w Dockerze w `.env` ustaw `APP_CONFIG_OVERRIDE=config/demo.example.yaml` i `DEMO_PASSWORD`, a potem `docker compose up --build`. |
+| Nie ma jak wejść do widoku administratora | Konto administratora IT zakłada `bootstrap` z adresu `admin.email` (`backend/config/default.yaml`) i hasła `ADMIN_PASSWORD` z `.env`. Zaloguj się na ten adres na ekranie `/logowanie`. |
 | `Dane demo można ładować tylko w trybie debug` | Użyj `config/local.yaml` (krok 2) albo `config/demo.example.yaml` w Dockerze. |
 | Port 4200 lub 8000 zajęty | Zatrzymaj poprzedni proces (`ng serve` / `runserver`) albo zmień port (`server.port` w YAML-u backendu). |
 | `Konfiguracja: brak sekcji ...` w przeglądarce | Błąd w `app-config.yaml`: komunikat wskazuje dokładny klucz. |

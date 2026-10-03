@@ -172,6 +172,21 @@ Walka: zostaje wariant A (przeciwników generuje i walki rozstrzyga backend, jak
 - [x] 10.8 Mniej „czatowy” interfejs: bez dekoracyjnych emoji w przyciskach, nagłówkach, kartach i komunikatach (zostały emoji postaci, przeciwników i kategorii), mniejsze zaokrąglenia, przełączniki segmentowe. Testy: frontend 160 ✔, `ng build` ✔, backend `test_seed_demo` ✔. **Niesprawdzone w przeglądarce** (wygląd, modele 3D w miniaturach i na mapie, telefon)
 - [ ] 10.9 Do decyzji/dalej: przegląd pozostałych ekranów (organizacja, administrator, formularze) w tym samym stylu; więcej gatunków Spryciaków wymaga nowych modeli
 
+## Etap 11: uwagi po pierwszym uruchomieniu w Dockerze (2026-10-03)
+
+Pięć uwag użytkownika. Decyzje projektowe są przy punktach.
+
+- [x] 11.1 **Konto administratora IT:** `bootstrap` zakłada je z `admin.email` (YAML) i `ADMIN_PASSWORD` (env); `manage.py ensure_admin`; istniejącemu kontu nie zmienia hasła. 5 testów
+- [x] 11.2 **Pusty ekran inicjatyw w trybie `http`:** to nie błąd przepięcia, tylko pusta baza w Dockerze (mock miał dane w kodzie). Dane demo ładują się przy starcie, gdy `seed.demo_on_start: true` (`APP_CONFIG_OVERRIDE=config/demo.example.yaml` + `DEMO_PASSWORD`)
+- [x] 11.3 **Rejestracja zaufanego podmiotu widoczna:** w Profilu gościa osobny blok „Reprezentujesz organizację albo urząd?” z przyciskiem; ekran nazwany „Konto zaufanego podmiotu”. Wejścia były też w logowaniu i rejestracji. Zatwierdza administrator na ekranie „Organizacje”
+- [x] 11.4 **Losy inicjatywy (oś czasu), backend:** tabela `pokestops_update`, `Pokestop.custom_fields`, `GET /pokestops/{id}/timeline`, `POST/PATCH/DELETE .../updates`, `PATCH /pokestops/{id}` (status z notatką, tytuł, opis, pola własne). Organizator-właściciel `open/in_progress/resolved`, odrzuca tylko administrator. Decyzje 29–31 w `api-contract.md`, limity w YAML (`pokestops.timeline`). 14 nowych testów, razem 141 ✔. Naprawiony przy okazji błąd `core/pagination.py` dla list
+- [x] 11.5 **Ekran „Inicjatywy” mieszkańca:** karta rozwijana (`InitiativeCard`): objaśnienie statusu, opis, pola własne, oś czasu pobierana przy pierwszym rozwinięciu; legenda „Co znaczą statusy?”. Moderacja administratora zachowuje stare zachowanie (`[expandable]=false`)
+- [x] 11.6 **Panel zarządzania inicjatywami organizatora** (`features/org/initiative-manager`): status z komentarzem, wpisy osi czasu (dodaj, edytuj w tym samym formularzu, usuń z potwierdzeniem), pola własne (do 10), treść. Atrapa ma te same reguły i dane przykładowe. Frontend 177 testów ✔, `ng build` ✔. **Niesprawdzone w przeglądarce**
+- [x] 11.7 **Ankiety (backend):** `POST /pokestops/{id}/survey-responses` (`{position, answers}`: walidacja 7 typów pytań, zasięg 50 m, 1 na użytkownika, nowy pokemon gatunku inicjatywy, zamknięcie statusem `resolved`) i `GET /pokestops/{id}/survey-results` (organizator-autor, administrator). Limity pytań w YAML (`pokestops.survey`). Decyzje 32–33. 17 testów; backend razem 159 ✔, kontrakt 33/40 operacji
+- [x] 11.8 **Inicjatywy zaufanych podmiotów na mapie:** generyczny model 3D wykrzyknika (z prymitywów, w kolorach palety) zamiast postaci, a znacznik „!” zamiast ikony kategorii. **Niesprawdzone w przeglądarce** (wygląd modelu)
+- [x] 11.9 **Ankieta w aplikacji:** formularz 7 typów pytań (`features/map/survey`), po wysłaniu ekran „Wpadł Ci nowy Spryciak!” z modelem 3D, typem, mocą i poziomem; do wysłania gatunek jest tajemnicą. Kreator pytań dla organizacji (`shared/question-builder`, w panelu nowej inicjatywy `ngo`/`consultation`) i wyniki ankiety w panelu organizatora. Dane demo backendu mają ankietę, wpisy osi czasu i pola własne. Frontend 194 testy ✔, `ng build` ✔. **Niesprawdzone w przeglądarce**
+- [x] 11.10 **Gdzie jest HTML+CSS przycisków nawigacji:** `frontend/src/app/shared/navbar/navbar.html` i `navbar.css`; lista przycisków (etykiety, ikony, ścieżki) per rola w `core/navigation.ts`, ikony w `shared/icon/`
+
 ## Etap 4: brakujące operacje backendu (`501`) i ich ekrany
 - [ ] `POST /photos`
 - [x] walka: `GET /encounters`, `POST /encounters/{id}/attack` (Etap 8.8)

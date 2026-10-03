@@ -25,6 +25,13 @@
         }
       </label>
     }
+    @if (canHaveSurvey()) {
+      <details class="survey">
+        <summary>Ankieta dla mieszkańców (opcjonalna)</summary>
+        <p class="hint">Mieszkańcy, którzy ją wypełnią, dostają w nagrodę nowego Spryciaka, a Ty zbiorcze wyniki (to, co zbierałaby konsultacja społeczna).</p>
+        <app-question-builder [(questions)]="questions" [(valid)]="questionsValid" />
+      </details>
+    }
     <app-scenario-form
       [scenario]="scenario"
       [submitLabel]="isOrg() ? 'Opublikuj inicjatywę' : 'Dodaj na mapę'"

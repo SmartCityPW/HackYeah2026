@@ -7,7 +7,7 @@ from apps.accounts.models import MemberRole, Organization, OrganizationMember, U
 from apps.collection.models import Character, PokemonOrigin
 from apps.collection.services import grant_pokemon, grant_starter
 from apps.game.models import PlayerProgress
-from apps.pokestops.models import Pokestop
+from apps.pokestops.models import Pokestop, Update
 from apps.pokestops.services import create_pokestop
 from core.secrets import secret
 
@@ -32,9 +32,20 @@ class Command(BaseCommand):
                 'lat': row['lat'], 'lng': row['lng'], 'details': row.get('details', {}), 'character': row.get('character'),
                 'position': {'lat': row['lat'], 'lng': row['lng']},  # dane demo powstają "na miejscu", w kółku autora
             }
+            if row.get('questions'):
+                payload['questions'] = row['questions']
             if author.pokemons.exists() and row['scenario'].startswith(('res-', 'idea-')):
-                payload['staked_pokemon_id'] = author.pokemons.filter(is_staked=False).first().id
-            create_pokestop(author, payload)
+                free = author.pokemons.filter(is_staked=False).first()
+                if free is None:  # np. stara baza lokalna, w której autor zastawił już wszystkie pokemony
+                    self.stdout.write(f'Pominięto "{row["title"]}": autor nie ma wolnego pokemona do zastawu')
+                    continue
+                payload['staked_pokemon_id'] = free.id
+            stop = create_pokestop(author, payload)
+            if row.get('custom_fields'):
+                stop.custom_fields = row['custom_fields']
+                stop.save(update_fields=['custom_fields', 'updated_at'])
+            for update in row.get('updates', []):
+                Update.objects.create(pokestop=stop, author=author, title=update['title'], body=update.get('body', ''))
             created += 1
         self.stdout.write(f'Konta demo: {len(users)}, nowe pinezki: {created} (hasło kont z DEMO_PASSWORD)')
 

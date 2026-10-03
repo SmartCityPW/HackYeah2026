@@ -14,3 +14,7 @@ h2 { margin: 4px 0 8px; font-size: 1.3rem; }
 .stake small { font-weight: 400; color: var(--text-muted); }
 .pin-hint.out { color: var(--accent-ink); font-weight: 700; }
 .pin-hint.out::before { content: '⚠ '; }
+
+.survey { margin: 0 0 14px; padding: 10px 12px; border-radius: 14px; background: var(--tint); }
+.survey summary { cursor: pointer; font-weight: 700; color: var(--brand-strong); }
+.survey .hint { margin: 8px 0; font-size: .85rem; color: var(--text-muted); }

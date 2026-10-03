@@ -1,4 +1,7 @@
-# Dane demo w Dockerze: skopiuj do config/demo.yaml i ustaw w .env  APP_CONFIG_OVERRIDE=config/demo.yaml
-# (tryb debug jest wymagany przez `manage.py seed_demo`; na produkcji tego nie używaj).
+# Dane demo w Dockerze: w .env ustaw  APP_CONFIG_OVERRIDE=config/demo.example.yaml  (albo skopiuj ten plik do config/demo.yaml
+# i wskaż jego), a także DEMO_PASSWORD. Przy każdym starcie backendu `bootstrap` doładuje konta i pinezki demo (idempotentnie).
+# Tryb debug jest wymagany przez `manage.py seed_demo`; na produkcji tego nie używaj.
 app:
   debug: true
+seed:
+  demo_on_start: true

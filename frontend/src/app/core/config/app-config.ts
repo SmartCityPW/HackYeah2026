@@ -30,6 +30,10 @@ export interface AppConfig {
     battleClashMs: number;
   };
   upload: { enabled: boolean; maxPhotos: number; maxPhotoBytes: number };
+  /** Limity formularzy losów inicjatywy (tylko do podpowiedzi i licznika znaków; decyduje backend: pokestops.timeline). */
+  timeline: { titleMaxLength: number; bodyMaxLength: number; maxCustomFields: number; customFieldLabelMaxLength: number; customFieldValueMaxLength: number };
+  /** Limity kreatora ankiet (decyduje backend: pokestops.survey). */
+  survey: { maxQuestions: number; maxOptions: number };
   ui: { toastMs: number; commentsPageSize: number; mapReloadDebounceMs: number };
   dev: { tools: boolean };
 }
@@ -80,6 +84,8 @@ export function parseAppConfig(raw: unknown): AppConfig {
   const map = section(root, 'map', 'map');
   const game = section(root, 'game', 'game');
   const upload = section(root, 'upload', 'upload');
+  const timeline = section(root, 'timeline', 'timeline');
+  const survey = section(root, 'survey', 'survey');
   const ui = section(root, 'ui', 'ui');
   const dev = section(root, 'dev', 'dev');
   return {
@@ -121,6 +127,17 @@ export function parseAppConfig(raw: unknown): AppConfig {
       enabled: flag(upload, 'enabled', 'upload.enabled'),
       maxPhotos: num(upload, 'maxPhotos', 'upload.maxPhotos'),
       maxPhotoBytes: num(upload, 'maxPhotoBytes', 'upload.maxPhotoBytes'),
+    },
+    timeline: {
+      titleMaxLength: num(timeline, 'titleMaxLength', 'timeline.titleMaxLength'),
+      bodyMaxLength: num(timeline, 'bodyMaxLength', 'timeline.bodyMaxLength'),
+      maxCustomFields: num(timeline, 'maxCustomFields', 'timeline.maxCustomFields'),
+      customFieldLabelMaxLength: num(timeline, 'customFieldLabelMaxLength', 'timeline.customFieldLabelMaxLength'),
+      customFieldValueMaxLength: num(timeline, 'customFieldValueMaxLength', 'timeline.customFieldValueMaxLength'),
+    },
+    survey: {
+      maxQuestions: num(survey, 'maxQuestions', 'survey.maxQuestions'),
+      maxOptions: num(survey, 'maxOptions', 'survey.maxOptions'),
     },
     ui: {
       toastMs: num(ui, 'toastMs', 'ui.toastMs'),

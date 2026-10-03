@@ -18,12 +18,27 @@ export interface PokestopDto {
   organization: string | null;
   photos?: { id: number; url: string }[];
   details?: Record<string, unknown>;
+  customFields?: { label: string; value: string }[];
+  updateCount?: number;
+  questions?: QuestionDto[];
+  surveyAnswered?: boolean;
   lat: number;
   lng: number;
   votesFor: number;
   votesAgainst: number;
   myVote: 'for' | 'against' | null;
   commentCount: number;
+}
+
+export interface QuestionDto {
+  id: number;
+  key: string;
+  label: string;
+  type: 'text' | 'textarea' | 'number' | 'select' | 'multiselect' | 'boolean' | 'choice' | 'rating';
+  required: boolean;
+  options?: { value: string; label: string }[];
+  min?: number | null;
+  max?: number | null;
 }
 
 export interface PlayerProgressDto {
@@ -89,6 +104,26 @@ export interface NewPokestopDto {
   /** Pozycja gracza: serwer sprawdza, czy pinezka leży w jego kółku interakcji. */
   position: { lat: number; lng: number };
   details: Record<string, unknown>;
+  questions?: { key: string; label: string; type: string; required?: boolean; options?: { value: string; label: string }[]; min?: number | null; max?: number | null }[];
+}
+
+export interface SurveyResultDto {
+  stop: PokestopDto;
+  pokemon: PokemonDto;
+}
+
+export interface SurveyResultsDto {
+  responseCount: number;
+  questions: {
+    questionId: number;
+    key: string;
+    label: string;
+    type: QuestionDto['type'];
+    answered: number;
+    counts?: Record<string, number>;
+    average?: number | null;
+    texts?: string[];
+  }[];
 }
 
 export interface EncounterDto {
@@ -126,3 +161,16 @@ export type AttackResultDto =
     }
   | { outcome: 'lost'; enemyPower: number; pokemonPowerTotal: number; pokemons: AttackPokemonResultDto[] }
   | { outcome: 'too_far'; distanceM: number };
+
+export interface TimelineEntryDto {
+  kind: 'created' | 'update' | 'status';
+  id: number;
+  title: string;
+  body: string;
+  fromStatus?: 'open' | 'in_progress' | 'resolved' | 'rejected';
+  toStatus?: 'open' | 'in_progress' | 'resolved' | 'rejected';
+  author: string;
+  createdAt: string;
+  updatedAt: string | null;
+  editable: boolean;
+}

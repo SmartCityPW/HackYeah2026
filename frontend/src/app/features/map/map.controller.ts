@@ -4,7 +4,7 @@ import { AppConfigService } from '../../core/config/app-config.service';
 import * as maplibregl from 'maplibre-gl';
 import { Encounter } from '../../core/game.model';
 import { circleRing } from '../../core/geo.utils';
-import { Bbox, POKESTOP_TYPES, Pokestop } from '../../core/pokestop.model';
+import { Bbox, POKESTOP_TYPES, Pokestop, isTrustedType } from '../../core/pokestop.model';
 import { CharactersLayer } from './three/characters-layer';
 
 const RANGE_SOURCE = 'interaction-range';
@@ -209,8 +209,11 @@ export class MapController implements OnDestroy {
     el.className = 'stop-marker';
     el.dataset['type'] = stop.type;
     el.style.setProperty('--stop-color', meta.color);
-    el.innerHTML = `<span>${stop.icon ?? meta.emoji}</span>`;
-    el.setAttribute('aria-label', stop.title);
+    // Zaufane podmioty: zawsze wykrzyknik (bez ikony scenariusza), tak jak model 3D.
+    const trusted = isTrustedType(stop.type);
+    if (trusted) el.dataset['trusted'] = 'true';
+    el.innerHTML = `<span>${trusted ? '!' : (stop.icon ?? meta.emoji)}</span>`;
+    el.setAttribute('aria-label', trusted ? `Inicjatywa zaufanego podmiotu: ${stop.title}` : stop.title);
     el.addEventListener('click', () => onSelect(stop.id));
     return new maplibregl.Marker({ element: el, anchor: 'bottom', offset: [0, -34] }).setLngLat([stop.lng, stop.lat]).addTo(this.map!);
   }

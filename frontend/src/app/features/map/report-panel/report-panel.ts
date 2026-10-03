@@ -1,12 +1,13 @@
-import { Component, computed, inject, input, linkedSignal, output, signal } from '@angular/core';
+import { Component, computed, inject, input, linkedSignal, output, signal, viewChild } from '@angular/core';
 import { CatalogService } from '../../../core/catalog/catalog.service';
 import { RESIDENT_CATEGORIES, scenariosFor, scenariosInCategory } from '../../../core/scenario.catalog';
 import { FieldValues, Scenario, ScenarioCategory } from '../../../core/scenario.model';
 import { toReport } from '../../../core/scenario.utils';
-import { NewReport } from '../../../core/pokestop.model';
+import { NewQuestion, NewReport, isTrustedType } from '../../../core/pokestop.model';
 import { PokemonService } from '../../../core/pokemon.service';
 import { ToastService } from '../../../core/toast.service';
 import { SessionService } from '../../../core/session.service';
+import { QuestionBuilder } from '../../../shared/question-builder/question-builder';
 import { ScenarioForm } from '../../../shared/scenario-form/scenario-form';
 
 export type ReportDraft = Omit<NewReport, 'lat' | 'lng'>;
@@ -14,7 +15,7 @@ export type ReportDraft = Omit<NewReport, 'lat' | 'lng'>;
 /** Panel tworzenia pinezki: krok 1 wybór scenariusza z katalogu, krok 2 formularz scenariusza. */
 @Component({
   selector: 'app-report-panel',
-  imports: [ScenarioForm],
+  imports: [ScenarioForm, QuestionBuilder],
   templateUrl: './report-panel.html',
   styleUrl: './report-panel.css',
 })
@@ -27,6 +28,10 @@ export class ReportPanel {
   /** Czy celownik stoi w kółku interakcji gracza (tylko tam można dodać pinezkę). */
   readonly pinInRange = input(true);
 
+  /** Pytania ankiety dopisane przez organizację (tylko kompletne) i to, czy wszystkie rozpoczęte pytania są kompletne. */
+  protected readonly questions = signal<NewQuestion[]>([]);
+  protected readonly questionsValid = signal(true);
+  protected readonly builder = viewChild(QuestionBuilder);
   protected readonly isOrg = computed(() => this.session.role() === 'org');
   protected readonly organization = computed(() => this.session.profile().organization);
   protected readonly categories = RESIDENT_CATEGORIES;
@@ -51,7 +56,11 @@ export class ReportPanel {
   /** Kroki: 'category' -> 'scenario' -> 'form'. */
   protected readonly step = computed(() => (this.chosen() ? 'form' : this.isOrg() || this.category() ? 'scenario' : 'category'));
 
+  /** Ankietę można dodać do inicjatywy zaufanego podmiotu (pomysł NGO, konsultacje). */
+  protected readonly canHaveSurvey = computed(() => this.isOrg() && !!this.chosen() && isTrustedType(this.chosen()!.pokestopType));
+
   protected back(): void {
+    this.clearSurvey();
     if (this.chosen()) this.chosen.set(null);
     else this.category.set(null);
   }
@@ -62,17 +71,29 @@ export class ReportPanel {
 
   protected submit(scenario: Scenario, values: FieldValues): void {
     if (!this.pinInRange()) return;
+    if (!this.questionsValid()) {
+      this.toast.show('Dokończ albo usuń niekompletne pytania ankiety.', '⚠️');
+      return;
+    }
     const report = toReport(scenario, values, this.organization());
     const staked = this.needsStake();
     if (staked && this.stakedId() === null) {
       this.toast.show('Nie masz wolnego pokemona do zostawienia na zgłoszeniu. Odzyskasz go, gdy inne zgłoszenie zdobędzie poparcie.');
       return;
     }
-    this.drafted.emit(staked ? { ...report, stakedPokemonId: this.stakedId()! } : report);
+    const questions = this.canHaveSurvey() ? this.questions() : [];
+    this.drafted.emit({ ...report, ...(staked ? { stakedPokemonId: this.stakedId()! } : {}), ...(questions.length ? { questions } : {}) });
+  }
+
+  private clearSurvey(): void {
+    this.builder()?.reset();
+    this.questions.set([]);
+    this.questionsValid.set(true);
   }
 
   /** Wraca do wyboru rodzaju zgłoszenia. Rodzic woła to po udanym dodaniu, a po błędzie zostawia formularz z wpisanymi danymi. */
   reset(): void {
+    this.clearSurvey();
     this.chosen.set(null);
     this.category.set(null);
   }

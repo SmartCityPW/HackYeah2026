@@ -21,9 +21,10 @@ services:
       context: ./backend
       args:
         PYTHON_VERSION: ${PYTHON_VERSION:-3.13}
-    env_file: .env                      # sekrety: DJANGO_SECRET_KEY, DB_PASSWORD, AI_API_KEY
-    environment:
-      APP_CONFIG_OVERRIDE: ${APP_CONFIG_OVERRIDE:-}
+    # Sekrety i APP_CONFIG_OVERRIDE (np. config/demo.yaml) pochodzą wyłącznie z .env. Nie przekazujemy ich przez
+    # `environment: ${...}`, bo wtedy Compose podstawiłby zmienną z powłoki (np. po `source config/local.env`
+    # w backend/ wskazałaby nieistniejący w obrazie config/local.yaml).
+    env_file: .env
     depends_on:
       db:
         condition: service_healthy

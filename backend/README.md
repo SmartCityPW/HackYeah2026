@@ -37,6 +37,8 @@ source config/local.env      # DJANGO_SECRET_KEY, APP_CONFIG_OVERRIDE, DEMO_PASS
 .venv/bin/python manage.py runserver     # http://localhost:8000/api/v1/
 ```
 
+Konto administratora IT zakłada `bootstrap` (a ręcznie `manage.py ensure_admin`) z adresu `admin.email` w YAML i hasła `ADMIN_PASSWORD` ze środowiska.
+
 Dane demo (konta, zweryfikowana organizacja i 6 pinezek wokół Rynku w Krakowie; tylko tryb debug, hasło z `DEMO_PASSWORD`):
 `DEMO_PASSWORD=... .venv/bin/python manage.py seed_demo`. Test "z zewnątrz" na działającym serwerze: `.venv/bin/python scripts/api_walkthrough.py`.
 

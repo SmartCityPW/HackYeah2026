@@ -39,6 +39,7 @@ class Pokestop(models.Model):
     lat = models.FloatField()
     lng = models.FloatField()
     details = models.JSONField(default=dict)
+    custom_fields = models.JSONField(default=list)  # pola własne organizatora: [{"label": ..., "value": ...}]
     votes_for = models.IntegerField(default=0)
     votes_against = models.IntegerField(default=0)
     votes_required = models.SmallIntegerField()
@@ -143,6 +144,22 @@ class StatusChange(models.Model):
     class Meta:
         db_table = 'pokestops_status_change'
         constraints = [models.CheckConstraint(condition=~Q(from_status=models.F('to_status')), name='status_change_differs')]
+
+
+class Update(models.Model):
+    """Wpis organizatora na osi czasu inicjatywy (np. "Dziś rada miasta spotkała się w sprawie ...")."""
+
+    pokestop = models.ForeignKey(Pokestop, on_delete=models.CASCADE, related_name='updates')
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='+')
+    title = models.CharField(max_length=120)
+    body = models.TextField(blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'pokestops_update'
+        indexes = [models.Index(fields=['pokestop', '-created_at'], name='pokestops_update_stop_idx')]
+        constraints = [models.CheckConstraint(condition=Q(title__length__gte=1), name='update_title_not_blank')]
 
 
 class Verdict(models.TextChoices):

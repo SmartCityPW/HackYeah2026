@@ -5,7 +5,7 @@ import { Pokemon } from './pokemon.model';
 import { PokemonService } from './pokemon.service';
 import { ProgressService } from './progress.service';
 import { Position } from './game.model';
-import { Bbox, NewReport, Pokestop, PokestopStatus, VoteContext } from './pokestop.model';
+import { Bbox, NewReport, Pokestop, PokestopPatch, PokestopStatus, SurveyAnswers, SurveyResults, TimelineEntry, UpdateDraft, VoteContext, isTrustedType } from './pokestop.model';
 import { hasInteraction } from './pokestop.utils';
 
 /**
@@ -26,6 +26,8 @@ export class PokestopService {
   readonly visibleStops = computed(() => this.stops().filter((s) => s.status !== 'rejected'));
   /** Inicjatywy, z którymi użytkownik miał styczność (zgłosił, zagłosował, skomentował). */
   readonly interactions = computed(() => this.stops().filter(hasInteraction));
+  /** Losy inicjatyw (oś czasu) pobrane dotąd, po id pinezki. */
+  readonly timelines = signal<Record<number, TimelineEntry[]>>({});
   /** Liczba komentarzy nadrzędnych w całej dyskusji pinezki (znana po pierwszym pobraniu komentarzy). */
   private readonly commentTotals = signal<Record<number, number>>({});
 
@@ -50,13 +52,14 @@ export class PokestopService {
   /** Pinezka z pamięci podręcznej albo, gdy jej jeszcze nie pobrano (np. link `?stop=ID`), z serwera. */
   async open(id: number): Promise<Pokestop | null> {
     const known = this.stops().find((s) => s.id === id);
-    if (known) return known;
+    // Pytania ankiety są tylko w szczegółach pinezki, a lista ich nie niesie: dla inicjatywy zaufanego podmiotu dociągamy je raz.
+    if (known && !(isTrustedType(known.type) && known.questions === undefined)) return known;
     try {
       const stop = await this.api.get(id);
       this.merge([stop]);
-      return stop;
+      return this.stops().find((s) => s.id === id) ?? stop;
     } catch {
-      return null;
+      return known ?? null;
     }
   }
 
@@ -91,6 +94,22 @@ export class PokestopService {
     return pokemon;
   }
 
+  /**
+   * Ankieta zaufanego podmiotu: zwraca nowego pokemona (nagrodę), którego gatunek gracz poznaje dopiero teraz.
+   * Błędy (za daleko, już wypełniona, zamknięta, nieprawidłowe odpowiedzi) przechodzą do wywołującego.
+   */
+  async answerSurvey(id: number, answers: SurveyAnswers, position: Position): Promise<Pokemon> {
+    const { stop, pokemon } = await this.api.answerSurvey(id, answers, position);
+    this.merge([stop]);
+    void this.pokemons.refresh();
+    void this.progress.refresh();
+    return pokemon;
+  }
+
+  surveyResults(id: number): Promise<SurveyResults> {
+    return this.api.surveyResults(id);
+  }
+
   async comment(id: number, text: string, parentId?: number): Promise<void> {
     const created = await this.api.comment(id, text, parentId);
     this.commentTotals.update((t) => (parentId || t[id] === undefined ? t : { ...t, [id]: t[id] + 1 }));
@@ -114,6 +133,33 @@ export class PokestopService {
     this.merge([await this.api.setStatus(id, status)]);
   }
 
+  async loadTimeline(id: number): Promise<void> {
+    const entries = await this.api.listTimeline(id);
+    this.timelines.update((t) => ({ ...t, [id]: entries }));
+    this.patch(id, (s) => ({ ...s, updateCount: entries.filter((e) => e.kind === 'update').length }));
+  }
+
+  /** Prowadzenie inicjatywy: status (z komentarzem), treść, pola własne. Zmiana statusu dopisuje się też do osi czasu. */
+  async manage(id: number, patch: PokestopPatch): Promise<void> {
+    this.merge([await this.api.manage(id, patch)]);
+    if (patch.status !== undefined) await this.loadTimeline(id);
+  }
+
+  async addUpdate(id: number, draft: UpdateDraft): Promise<void> {
+    await this.api.addUpdate(id, draft);
+    await this.loadTimeline(id);
+  }
+
+  async editUpdate(id: number, updateId: number, draft: Partial<UpdateDraft>): Promise<void> {
+    await this.api.editUpdate(id, updateId, draft);
+    await this.loadTimeline(id);
+  }
+
+  async deleteUpdate(id: number, updateId: number): Promise<void> {
+    await this.api.deleteUpdate(id, updateId);
+    await this.loadTimeline(id);
+  }
+
   /**
    * Dopisuje lub aktualizuje pinezki. Odpowiedzi HTTP nie niosą treści komentarzy (tylko `commentCount`),
    * więc przy takiej odpowiedzi zachowujemy już pobrane komentarze zamiast je kasować.
@@ -124,7 +170,9 @@ export class PokestopService {
       for (const stop of incoming) {
         const existing = byId.get(stop.id);
         const keepComments = existing && stop.commentCount !== undefined && stop.comments.length === 0;
-        byId.set(stop.id, keepComments ? { ...stop, comments: existing.comments } : stop);
+        // Lista pinezek nie niesie pytań ankiety ani flagi wypełnienia: zachowujemy to, co już pobrano ze szczegółów.
+        const detail = existing && stop.questions === undefined ? { questions: existing.questions, surveyAnswered: existing.surveyAnswered } : {};
+        byId.set(stop.id, { ...stop, ...detail, ...(keepComments ? { comments: existing.comments } : {}) });
       }
       return [...byId.values()];
     });

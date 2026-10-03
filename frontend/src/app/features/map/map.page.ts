@@ -7,7 +7,7 @@ import { Encounter, Position, TYPES } from '../../core/game.model';
 import { distanceMeters } from '../../core/geo.utils';
 import { describeError } from '../../core/http/api-error';
 import { PROFILE_PATH } from '../../core/navigation';
-import { POKESTOP_TYPES, Pokestop } from '../../core/pokestop.model';
+import { POKESTOP_TYPES, Pokestop, isTrustedType } from '../../core/pokestop.model';
 import { PokemonService } from '../../core/pokemon.service';
 import { GeolocationService } from '../../core/geolocation.service';
 import { PokestopService } from '../../core/pokestop.service';
@@ -19,13 +19,14 @@ import { ToastService } from '../../core/toast.service';
 import { Icon } from '../../shared/icon/icon';
 import { StatusChip } from '../../shared/status-chip/status-chip';
 import { Battle } from './battle/battle';
+import { Survey } from './survey/survey';
 import { MapController } from './map.controller';
 import { ReportDraft, ReportPanel } from './report-panel/report-panel';
 
 /** Ekran mapy ("home"): pinezki, głosowanie, komentarze, zgłoszenia i tryb walki. Logikę MapLibre ma `MapController`. */
 @Component({
   selector: 'app-map-page',
-  imports: [Battle, ReportPanel, StatusChip, RouterLink, Icon],
+  imports: [Battle, Survey, ReportPanel, StatusChip, RouterLink, Icon],
   providers: [MapController],
   templateUrl: './map.page.html',
   styleUrl: './map.page.css',
@@ -62,6 +63,7 @@ export class MapPage {
   readonly stop = input<string>();
 
   protected readonly types = POKESTOP_TYPES;
+  protected readonly isTrusted = isTrustedType;
   protected readonly catalog = inject(CatalogService);
   protected readonly selectedId = signal<number | null>(null);
   protected readonly selected = computed(() => this.pokestops.stops().find((s) => s.id === this.selectedId()) ?? null);
@@ -117,6 +119,10 @@ export class MapPage {
     const stop = this.selected();
     return !!stop && this.pokestops.hasMoreComments(stop);
   });
+  /** Ankietę zaufanego podmiotu (nagroda: nowy Spryciak) wypełniają mieszkańcy. */
+  protected readonly canAnswerSurvey = computed(() => this.session.role() === 'resident');
+  private readonly surveyId = signal<number | null>(null);
+  protected readonly surveyStop = computed(() => this.pokestops.stops().find((s) => s.id === this.surveyId()) ?? null);
   /** Administrator tylko przegląda: nie zgłasza, nie głosuje i nie komentuje. */
   protected readonly canParticipate = computed(() => this.session.role() !== 'admin');
   protected readonly selectedDetails = computed(() => {
@@ -243,6 +249,16 @@ export class MapPage {
     // Celownik startuje na graczu, czyli w środku kółka.
     const me = this.encounterService.userPosition();
     if (this.panelOpen() && me) this.mapCtl.focus(me.lat, me.lng);
+  }
+
+  /** Ankieta zasłania kartę pinezki; po jej zamknięciu (z nagrodą albo bez) wracamy na mapę. */
+  protected openSurvey(stop: Pokestop): void {
+    this.selectedId.set(null);
+    this.surveyId.set(stop.id);
+  }
+
+  protected closeSurvey(): void {
+    this.surveyId.set(null);
   }
 
   protected close(): void {

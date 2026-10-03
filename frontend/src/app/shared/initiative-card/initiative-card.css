@@ -10,3 +10,13 @@ article { background: var(--surface); border-radius: 14px; padding: 12px; box-sh
 .fill { height: 100%; background: var(--brand-strong); }
 .mine { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; font-size: .75rem; }
 .mine span { background: var(--tint); color: var(--brand-strong); padding: 2px 8px; border-radius: 99px; font-weight: 600; }
+.head .chevron { flex: none; transition: transform .15s; transform: rotate(90deg); color: var(--text-muted); }
+.head .chevron.up { transform: rotate(-90deg); }
+.details { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); display: grid; gap: 12px; }
+.details h3 { margin: 0; font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); }
+.meaning, .description { margin: 0; font-size: .9rem; }
+.meaning { padding: 8px 10px; border-radius: 10px; background: var(--tint); }
+.fields { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 0; font-size: .9rem; }
+.fields dt { color: var(--text-muted); }
+.fields dd { margin: 0; font-weight: 600; }
+.map-link { justify-self: start; border: 0; background: none; padding: 0; font: inherit; font-weight: 700; color: var(--brand-strong); text-decoration: underline; cursor: pointer; }

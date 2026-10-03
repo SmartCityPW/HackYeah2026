@@ -10,7 +10,7 @@
 
   <div class="list">
     @for (s of items(); track s.id) {
-      <app-initiative-card [stop]="s" [showInteraction]="false" (opened)="showOnMap(s.id)">
+      <app-initiative-card [stop]="s" [showInteraction]="false" [expandable]="false" (opened)="showOnMap(s.id)">
         <div class="card-actions">
           @if (s.status !== 'in_progress') { <button (click)="setStatus(s.id, 'in_progress')">W realizacji</button> }
           @if (s.status !== 'resolved') { <button class="good" (click)="setStatus(s.id, 'resolved')">Załatwione</button> }

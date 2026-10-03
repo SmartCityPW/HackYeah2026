@@ -1,0 +1,111 @@
+<div class="manager">
+  <h3>Prowadzenie inicjatywy</h3>
+
+  <section>
+    <h4>Status</h4>
+    <div class="status-row" role="group" aria-label="Zmień status inicjatywy">
+      @for (s of statuses; track s) {
+        <button type="button" [class.on]="stop().status === s" [attr.aria-pressed]="stop().status === s" [disabled]="busy()" (click)="setStatus(s)">
+          <span aria-hidden="true">{{ meta[s].icon }}</span> {{ meta[s].label }}
+        </button>
+      }
+    </div>
+    <p class="hint">{{ meaning[stop().status] }}</p>
+    <label class="field">
+      <span>Komentarz do zmiany statusu (widoczny na osi czasu, opcjonalny)</span>
+      <input type="text" [attr.maxlength]="limits.bodyMaxLength" [value]="note()" (input)="note.set(value($event))" placeholder="np. Przetarg rozstrzygnięty, prace ruszają w poniedziałek" />
+    </label>
+    @if (statusError(); as message) { <small class="error">{{ message }}</small> }
+  </section>
+
+  <section>
+    <h4>Wpisy na osi czasu</h4>
+    <p class="hint">Mieszkańcy widzą je jako losy inicjatywy, np. „Dzisiaj rada miasta spotkała się w sprawie ...” albo „Jutro sadzimy pierwsze drzewko”.</p>
+    <form (submit)="$event.preventDefault(); saveUpdate()">
+      <label class="field" [class.invalid]="updateErrors()['title']">
+        <span>{{ editing() ? 'Edytujesz wpis' : 'Nowy wpis' }}: tytuł</span>
+        <input type="text" [attr.maxlength]="limits.titleMaxLength" [value]="draftTitle()" (input)="draftTitle.set(value($event))" />
+        @if (updateErrors()['title']; as message) { <small class="error">{{ message }}</small> }
+      </label>
+      <label class="field" [class.invalid]="updateErrors()['body']">
+        <span>Treść (opcjonalna)</span>
+        <textarea rows="3" [attr.maxlength]="limits.bodyMaxLength" [value]="draftBody()" (input)="draftBody.set(value($event))"></textarea>
+        <small class="counter">{{ draftBody().length }} / {{ limits.bodyMaxLength }}</small>
+        @if (updateErrors()['body']; as message) { <small class="error">{{ message }}</small> }
+      </label>
+      <div class="buttons">
+        <button type="submit" class="primary" [disabled]="busy() || !draftTitle().trim()">{{ editing() ? 'Zapisz zmiany' : 'Dodaj wpis' }}</button>
+        @if (editing()) { <button type="button" (click)="cancelEdit()">Anuluj</button> }
+      </div>
+    </form>
+
+    @if (pendingDelete(); as entry) {
+      <p class="confirm" role="alert">
+        Usunąć wpis „{{ entry.title }}”?
+        <button type="button" class="danger" [disabled]="busy()" (click)="confirmDelete()">Tak, usuń</button>
+        <button type="button" (click)="pendingDelete.set(null)">Nie</button>
+      </p>
+    }
+    <app-initiative-timeline [entries]="entries()" [manageable]="true" (edit)="startEdit($event)" (remove)="pendingDelete.set($event)" />
+  </section>
+
+  @if (hasSurvey()) {
+    <section>
+      <h4>Ankieta mieszkańców</h4>
+      <p class="hint">{{ stop().questions!.length }} pytań. Ankieta zamyka się, gdy ustawisz status „Załatwione”.</p>
+      <div class="buttons"><button type="button" [disabled]="busy()" (click)="loadResults()">{{ results() ? 'Odśwież wyniki' : 'Pokaż wyniki' }}</button></div>
+      @if (results(); as r) {
+        <p class="hint"><strong>{{ r.responseCount }}</strong> wypełnień</p>
+        @for (q of r.questions; track q.questionId) {
+          <div class="result">
+            <strong>{{ q.label }}</strong>
+            <small>{{ q.answered }} odpowiedzi</small>
+            @if (q.counts) {
+              @for (b of bars(q); track b.label) {
+                <div class="bar-row"><span>{{ b.label }}</span><div class="bar"><div [style.width.%]="b.percent"></div></div><b>{{ b.count }}</b></div>
+              }
+            }
+            @if (q.average !== undefined) { <p class="avg">Średnia: <strong>{{ q.average ?? '-' }}</strong></p> }
+            @if (q.texts?.length) {
+              <ul class="texts">@for (t of q.texts; track $index) { <li>{{ t }}</li> }</ul>
+            }
+          </div>
+        }
+      }
+    </section>
+  }
+
+  <section>
+    <h4>Pola własne</h4>
+    <p class="hint">Dodatkowe informacje o inicjatywie, np. budżet, termin, osoba kontaktowa (do {{ limits.maxCustomFields }} pól).</p>
+    @for (f of fields(); track $index; let i = $index) {
+      <div class="pair" [class.invalid]="fieldErrors()['customFields.' + i]">
+        <input type="text" aria-label="Nazwa pola" placeholder="Nazwa (np. Budżet)" [attr.maxlength]="limits.customFieldLabelMaxLength" [value]="f.label" (input)="setField(i, 'label', value($event))" />
+        <input type="text" aria-label="Wartość pola" placeholder="Wartość" [attr.maxlength]="limits.customFieldValueMaxLength" [value]="f.value" (input)="setField(i, 'value', value($event))" />
+        <button type="button" class="icon-btn" aria-label="Usuń pole" (click)="removeField(i)">×</button>
+        @if (fieldErrors()['customFields.' + i]; as message) { <small class="error">{{ message }}</small> }
+      </div>
+    }
+    @if (fieldErrors()['customFields']; as message) { <small class="error">{{ message }}</small> }
+    <div class="buttons">
+      <button type="button" [disabled]="!canAddField()" (click)="addField()">Dodaj pole</button>
+      <button type="button" class="primary" [disabled]="busy()" (click)="saveFields()">Zapisz pola</button>
+    </div>
+  </section>
+
+  <section>
+    <h4>Treść inicjatywy</h4>
+    <form (submit)="$event.preventDefault(); saveContent()">
+      <label class="field" [class.invalid]="contentErrors()['title']">
+        <span>Tytuł</span>
+        <input type="text" maxlength="80" [value]="title()" (input)="title.set(value($event))" />
+        @if (contentErrors()['title']; as message) { <small class="error">{{ message }}</small> }
+      </label>
+      <label class="field">
+        <span>Opis</span>
+        <textarea rows="4" [value]="description()" (input)="description.set(value($event))"></textarea>
+      </label>
+      <div class="buttons"><button type="submit" class="primary" [disabled]="busy()">Zapisz treść</button></div>
+    </form>
+  </section>
+</div>

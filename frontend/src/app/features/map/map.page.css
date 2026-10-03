@@ -42,6 +42,7 @@
 
 .sheet-type { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .comments-title { margin: 14px 0 6px; font-size: .95rem; }
+.survey-cta { display: grid; gap: 6px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
 .comment { margin: 4px 0; font-size: .85rem; }
 .comment.mine { color: var(--brand-strong); }
 .comment-form { display: flex; gap: 8px; margin-top: 8px; }

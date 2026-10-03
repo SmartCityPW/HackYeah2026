@@ -1,0 +1,30 @@
+<div class="builder">
+  @for (d of drafts(); track d.uid; let i = $index) {
+    <fieldset class="q" [class.invalid]="problems()[i]">
+      <legend>Pytanie {{ i + 1 }}</legend>
+      <label class="field">
+        <span>Treść pytania</span>
+        <input type="text" maxlength="300" [value]="d.label" (input)="change(d.uid, { label: value($event) })" />
+      </label>
+      <div class="row">
+        <label class="field">
+          <span>Rodzaj odpowiedzi</span>
+          <select (change)="change(d.uid, { type: $any(value($event)) })">
+            @for (t of types; track t.type) { <option [value]="t.type" [selected]="t.type === d.type">{{ t.label }}</option> }
+          </select>
+        </label>
+        <label class="check"><input type="checkbox" [checked]="d.required" (change)="change(d.uid, { required: !d.required })" /> Wymagane</label>
+      </div>
+      @if (hasOptions(d.type)) {
+        <label class="field">
+          <span>Opcje odpowiedzi (każda w osobnym wierszu)</span>
+          <textarea rows="3" [value]="d.options" (input)="change(d.uid, { options: value($event) })"></textarea>
+        </label>
+      }
+      @if (problems()[i]; as message) { <small class="error">{{ message }}</small> }
+      <button type="button" class="remove" (click)="remove(d.uid)">Usuń pytanie</button>
+    </fieldset>
+  }
+  <button type="button" class="add" [disabled]="!canAdd()" (click)="add()">Dodaj pytanie</button>
+  @if (!canAdd()) { <small class="hint">Osiągnięto limit {{ limits.maxQuestions }} pytań.</small> }
+</div>

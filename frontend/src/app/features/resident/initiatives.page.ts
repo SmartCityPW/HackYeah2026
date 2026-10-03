@@ -2,11 +2,12 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { MAP_PATH } from '../../core/navigation';
 import { PokestopService } from '../../core/pokestop.service';
-import { Pokestop } from '../../core/pokestop.model';
+import { Pokestop, PokestopStatus, STATUS_MEANING } from '../../core/pokestop.model';
 import { describeError } from '../../core/http/api-error';
 import { SessionService } from '../../core/session.service';
 import { ToastService } from '../../core/toast.service';
 import { InitiativeCard } from '../../shared/initiative-card/initiative-card';
+import { StatusChip } from '../../shared/status-chip/status-chip';
 
 type Filter = 'all' | 'mine' | 'voted' | 'resolved';
 
@@ -20,8 +21,14 @@ const FILTERS: { id: Filter; label: string; matches: (s: Pokestop) => boolean }[
 /** Stan inicjatyw, z którymi użytkownik miał styczność (zgłosił, zagłosował, skomentował). */
 @Component({
   selector: 'app-initiatives-page',
-  imports: [InitiativeCard],
+  imports: [InitiativeCard, StatusChip],
   templateUrl: './initiatives.page.html',
+  styles: `
+    .legend { margin: 0 0 14px; padding: 10px 12px; border-radius: 12px; background: var(--surface); font-size: .9rem; }
+    .legend summary { cursor: pointer; font-weight: 700; color: var(--brand-strong); }
+    .legend dl { display: grid; grid-template-columns: max-content 1fr; gap: 8px 12px; margin: 10px 0 0; align-items: start; }
+    .legend dd { margin: 0; }
+  `,
 })
 export class InitiativesPage {
   private readonly pokestops = inject(PokestopService);
@@ -34,6 +41,7 @@ export class InitiativesPage {
   }
 
   protected readonly filters = FILTERS;
+  protected readonly statuses = (Object.keys(STATUS_MEANING) as PokestopStatus[]).map((status) => ({ status, meaning: STATUS_MEANING[status] }));
   protected readonly filter = signal<Filter>('all');
   protected readonly items = computed(() => {
     const matches = FILTERS.find((f) => f.id === this.filter())!.matches;

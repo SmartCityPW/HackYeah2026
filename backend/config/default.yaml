@@ -36,6 +36,11 @@ storage:
 seed:
   dir: config/seed
   on_start: true        # `manage.py bootstrap` ładuje słowniki i scenariusze (idempotentnie)
+  demo_on_start: false  # `manage.py bootstrap` ładuje też dane demo (wymaga app.debug: true i DEMO_PASSWORD; patrz demo.example.yaml)
+
+admin:                  # konto administratora IT zakładane przy starcie, gdy ustawiono sekret ADMIN_PASSWORD (hasła tu nie wpisujemy)
+  email: admin@smartcity.local
+  display_name: Administrator IT
 
 auth:
   access_token_minutes: 30
@@ -77,6 +82,17 @@ pokestops:
     max_per_pokestop: 3
     max_bytes: 5242880
     allowed_content_types: [image/jpeg, image/png, image/webp]
+  timeline:                      # losy inicjatywy: wpisy organizatora i pola własne
+    title_max_length: 120
+    body_max_length: 1000
+    max_updates_per_pokestop: 200
+    max_custom_fields: 10
+    custom_field_label_max_length: 40
+    custom_field_value_max_length: 300
+  survey:                        # ankiety zaufanych podmiotów: limity przy tworzeniu inicjatywy i długość odpowiedzi tekstowej
+    max_questions: 12
+    max_options: 10
+    text_max_length: 2000
 
 moderation:
   provider: stub                 # stub | http | gemini

@@ -248,6 +248,7 @@ CREATE TABLE pokestops_pokestop (
     description     text            NOT NULL DEFAULT '',
     location        geography(Point, 4326) NOT NULL,
     details         jsonb           NOT NULL DEFAULT '{}'::jsonb,  -- pola scenariusza; walidowane aplikacyjnie względem definicji
+    custom_fields   jsonb           NOT NULL DEFAULT '[]'::jsonb,  -- pola własne dopisywane przez organizatora: [{"label": ..., "value": ...}]
     votes_for       integer         NOT NULL DEFAULT 0,            -- liczniki utrzymywane triggerem
     votes_against   integer         NOT NULL DEFAULT 0,
     votes_required  smallint        NOT NULL,                      -- migawka scenarios_scenario.votes_required z chwili zgłoszenia
@@ -260,6 +261,7 @@ CREATE TABLE pokestops_pokestop (
     FOREIGN KEY (scenario_id, type) REFERENCES scenarios_scenario (id, pokestop_type),  -- typ pinezki = typ scenariusza
     CONSTRAINT pokestop_title_not_blank   CHECK (char_length(btrim(title)) >= 3),
     CONSTRAINT pokestop_details_is_object CHECK (jsonb_typeof(details) = 'object'),
+    CONSTRAINT pokestop_custom_fields_is_array CHECK (jsonb_typeof(custom_fields) = 'array'),
     CONSTRAINT pokestop_votes_non_negative CHECK (votes_for >= 0 AND votes_against >= 0),
     CONSTRAINT pokestop_votes_required_positive CHECK (votes_required > 0),
     CONSTRAINT pokestop_org_for_org_types CHECK ((type IN ('ngo', 'consultation')) = (organization_id IS NOT NULL)),
@@ -330,6 +332,18 @@ CREATE TABLE pokestops_status_change (                 -- ślad audytowy zmian s
     CONSTRAINT status_change_differs CHECK (from_status <> to_status)
 );
 CREATE INDEX pokestops_status_change_pokestop_idx ON pokestops_status_change (pokestop_id, created_at);
+
+CREATE TABLE pokestops_update (                        -- wpisy organizatora na osi czasu inicjatywy ("Dziś rada miasta zajęła się sprawą ...")
+    id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    pokestop_id bigint       NOT NULL REFERENCES pokestops_pokestop (id) ON DELETE CASCADE,
+    author_id   bigint       REFERENCES accounts_user (id) ON DELETE SET NULL,
+    title       varchar(120) NOT NULL,
+    body        text         NOT NULL DEFAULT '',
+    created_at  timestamptz  NOT NULL DEFAULT now(),
+    updated_at  timestamptz  NOT NULL DEFAULT now(),
+    CONSTRAINT update_title_not_blank CHECK (char_length(btrim(title)) >= 1)
+);
+CREATE INDEX pokestops_update_stop_idx ON pokestops_update (pokestop_id, created_at DESC);
 
 CREATE TABLE pokestops_moderation_log (                -- werdykty agenta AI przy tworzeniu zgłoszeń mieszkańców (także odrzuconych, które nie trafiają do pokestops_pokestop)
     id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,

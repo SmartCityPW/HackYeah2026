@@ -1,0 +1,35 @@
+<ol class="timeline" aria-label="Losy inicjatywy">
+  @for (e of entries(); track e.kind + e.id) {
+    <li [attr.data-kind]="e.kind">
+      <div class="meta">
+        <time [attr.datetime]="e.createdAt">{{ format(e.createdAt) }}</time>
+        <span>{{ e.author }}</span>
+        @if (e.updatedAt) { <span>edytowano {{ format(e.updatedAt) }}</span> }
+      </div>
+      @switch (e.kind) {
+        @case ('status') {
+          <p class="change">
+            Status: <app-status-chip [status]="e.fromStatus!" /> <span aria-hidden="true">→</span> <app-status-chip [status]="e.toStatus!" />
+          </p>
+          @if (e.body) { <p class="body">{{ e.body }}</p> }
+        }
+        @case ('update') {
+          <strong class="title">{{ e.title }}</strong>
+          @if (e.body) { <p class="body">{{ e.body }}</p> }
+          @if (manageable() && e.editable) {
+            <div class="actions">
+              <button type="button" (click)="edit.emit(e)">Edytuj</button>
+              <button type="button" class="danger" (click)="remove.emit(e)">Usuń</button>
+            </div>
+          }
+        }
+        @default {
+          <strong class="title">{{ e.title }}</strong>
+        }
+      }
+    </li>
+  } @empty {
+    @if (!loading()) { <li class="empty-line">Brak wpisów.</li> }
+  }
+  @if (loading()) { <li class="empty-line" role="status">Wczytuję losy inicjatywy…</li> }
+</ol>

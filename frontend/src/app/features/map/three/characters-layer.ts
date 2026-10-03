@@ -1,7 +1,10 @@
 import * as THREE from 'three';
 import * as maplibregl from 'maplibre-gl';
-import { CharacterId, Pokestop } from '../../../core/pokestop.model';
-import { createCharacter } from './character-factory';
+import { CharacterId, Pokestop, isTrustedType } from '../../../core/pokestop.model';
+import { createCharacter, createTrustedMarker } from './character-factory';
+
+/** Klucz wspólnego modelu inicjatyw zaufanych podmiotów w pamięci podręcznej (nie jest kodem postaci). */
+const TRUSTED_KEY = '!trusted';
 
 interface Placed {
   object: THREE.Object3D;
@@ -57,8 +60,10 @@ export class CharactersLayer implements maplibregl.CustomLayerInterface {
       stops
         .filter((s) => !this.placed.has(s.id))
         .map(async (stop) => {
-          if (!this.cache.has(stop.character)) this.cache.set(stop.character, createCharacter(this.modelPathOf(stop.character)));
-          const template = await this.cache.get(stop.character)!;
+          // Inicjatywa zaufanego podmiotu to wykrzyknik, a nie postać: gatunek nagrody za ankietę jest tajemnicą do jej wypełnienia.
+          const key = isTrustedType(stop.type) ? TRUSTED_KEY : stop.character;
+          if (!this.cache.has(key)) this.cache.set(key, key === TRUSTED_KEY ? Promise.resolve(createTrustedMarker()) : createCharacter(this.modelPathOf(stop.character)));
+          const template = await this.cache.get(key)!;
           const object = template.clone(true);
           object.visible = false;
           this.scene.add(object);

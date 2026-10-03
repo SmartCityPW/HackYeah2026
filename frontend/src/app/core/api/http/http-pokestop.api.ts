@@ -5,10 +5,10 @@ import { AppConfigService } from '../../config/app-config.service';
 import { toApiError } from '../../http/api-error';
 import { Position } from '../../game.model';
 import { Pokemon } from '../../pokemon.model';
-import { Bbox, CharacterId, CommentPage, NewReport, Pokestop, PokestopComment, PokestopStatus, VoteContext, VoteResult } from '../../pokestop.model';
+import { Bbox, CharacterId, CommentPage, NewReport, Pokestop, PokestopComment, PokestopPatch, PokestopStatus, SurveyAnswers, SurveyResult, SurveyResults, TimelineEntry, UpdateDraft, VoteContext, VoteResult } from '../../pokestop.model';
 import { PokestopApi } from '../pokestop.api';
-import { CommentDto, PageDto, PokemonDto, PokestopDto, VoteResultDto } from './contract.types';
-import { toComment, toNewPokestop, toPokemon, toPokestop, toVoteResult } from './pokestop.mapper';
+import { CommentDto, PageDto, PokemonDto, PokestopDto, SurveyResultDto, SurveyResultsDto, TimelineEntryDto, VoteResultDto } from './contract.types';
+import { toComment, toNewPokestop, toPokemon, toPokestop, toSurveyResult, toSurveyResults, toTimelineEntry, toVoteResult } from './pokestop.mapper';
 
 /** Maksymalny rozmiar strony akceptowany przez backend (pokestops.max_page_size w backend/config/default.yaml). */
 const PAGE_SIZE = 200;
@@ -50,6 +50,36 @@ export class HttpPokestopApi extends PokestopApi {
     return toPokestop(dto);
   }
 
+  async manage(id: number, patch: PokestopPatch): Promise<Pokestop> {
+    return toPokestop(await this.send<PokestopDto>('PATCH', `/pokestops/${id}`, patch));
+  }
+
+  async listTimeline(id: number): Promise<TimelineEntry[]> {
+    const page = await this.send<PageDto<TimelineEntryDto>>('GET', `/pokestops/${id}/timeline?pageSize=${PAGE_SIZE}`);
+    return page.results.map(toTimelineEntry);
+  }
+
+  async addUpdate(id: number, draft: UpdateDraft): Promise<TimelineEntry> {
+    return toTimelineEntry(await this.send<TimelineEntryDto>('POST', `/pokestops/${id}/updates`, draft));
+  }
+
+  async editUpdate(id: number, updateId: number, draft: Partial<UpdateDraft>): Promise<TimelineEntry> {
+    return toTimelineEntry(await this.send<TimelineEntryDto>('PATCH', `/pokestops/${id}/updates/${updateId}`, draft));
+  }
+
+  async deleteUpdate(id: number, updateId: number): Promise<void> {
+    await this.send<void>('DELETE', `/pokestops/${id}/updates/${updateId}`);
+  }
+
+  async answerSurvey(id: number, answers: SurveyAnswers, position: Position): Promise<SurveyResult> {
+    const dto = await this.send<SurveyResultDto>('POST', `/pokestops/${id}/survey-responses`, { position: { lat: position.lat, lng: position.lng }, answers });
+    return toSurveyResult(dto);
+  }
+
+  async surveyResults(id: number): Promise<SurveyResults> {
+    return toSurveyResults(await this.send<SurveyResultsDto>('GET', `/pokestops/${id}/survey-results`));
+  }
+
   async vote(id: number, vote: 'for' | 'against', { pokemonId, position }: VoteContext): Promise<VoteResult> {
     const dto = await this.send<VoteResultDto>('POST', `/pokestops/${id}/vote`, { vote, pokemonId, position: { lat: position.lat, lng: position.lng } });
     return toVoteResult(dto);
@@ -80,7 +110,7 @@ export class HttpPokestopApi extends PokestopApi {
     }
   }
 
-  private async send<T>(method: 'GET' | 'POST' | 'PATCH', path: string, body?: unknown, params?: HttpParams): Promise<T> {
+  private async send<T>(method: 'GET' | 'POST' | 'PATCH' | 'DELETE', path: string, body?: unknown, params?: HttpParams): Promise<T> {
     try {
       return await firstValueFrom(this.http.request<T>(method, `${this.base}${path}`, { body, params }));
     } catch (error) {

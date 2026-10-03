@@ -17,6 +17,9 @@
 /* Pinezki różnią się nie tylko kolorem (dwa typy dzielą fiolet): zawsze ikona, a konsultacje także podwójnym obramowaniem. */
 .stop-marker { outline: 2px solid var(--color-plum); }
 .stop-marker[data-type='consultation'] { border-style: double; border-width: 7px; }
+/* Zaufane podmioty (ngo, konsultacje): wykrzyknik na różowym tle zamiast ikony kategorii. */
+.stop-marker[data-trusted] { --stop-color: var(--color-pink); }
+.stop-marker[data-trusted] span { font-size: 28px; font-weight: 900; color: var(--surface); }
 
 /* Cele poza kółkiem interakcji: widoczne, ale przygaszone, bo trzeba do nich podejść. */
 .stop-marker.out-of-range, .enemy-marker.out-of-range { opacity: .45; filter: grayscale(.6); }

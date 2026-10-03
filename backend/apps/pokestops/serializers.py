@@ -49,6 +49,8 @@ class PokestopSerializer(CamelSerializer):
     organization_id = serializers.IntegerField(allow_null=True)
     photos = serializers.SerializerMethodField()
     details = serializers.JSONField()
+    custom_fields = serializers.JSONField()
+    update_count = serializers.SerializerMethodField()
     lat = serializers.FloatField()
     lng = serializers.FloatField()
     votes_for = serializers.IntegerField()
@@ -75,6 +77,10 @@ class PokestopSerializer(CamelSerializer):
 
     def get_my_vote(self, obj):
         return self.context.get('my_votes', {}).get(obj.id)
+
+    def get_update_count(self, obj):
+        annotated = getattr(obj, 'update_count', None)
+        return annotated if annotated is not None else obj.updates.count()
 
     def get_comment_count(self, obj):
         annotated = getattr(obj, 'comment_count', None)
@@ -149,6 +155,17 @@ class NewPokestopSerializer(CamelSerializer):
     staked_pokemon_id = serializers.IntegerField(required=False)
     questions = NewQuestionSerializer(many=True, required=False)
 
+    def validate_questions(self, questions):
+        cfg = settings.APP.pokestops.survey
+        if len(questions) > cfg.max_questions:
+            raise serializers.ValidationError(f'Maksymalnie {cfg.max_questions} pytań')
+        keys = [q['key'] for q in questions]
+        if len(keys) != len(set(keys)):
+            raise serializers.ValidationError('Klucze pytań muszą być unikalne')
+        if any(len(q.get('options') or []) > cfg.max_options for q in questions):
+            raise serializers.ValidationError(f'Maksymalnie {cfg.max_options} opcji w pytaniu')
+        return questions
+
 
 class VoteRequestSerializer(CamelSerializer):
     vote = serializers.ChoiceField(choices=['for', 'against'])
@@ -156,9 +173,45 @@ class VoteRequestSerializer(CamelSerializer):
     position = PositionSerializer()
 
 
-class StatusChangeSerializer(CamelSerializer):
-    status = serializers.ChoiceField(choices=Status.choices)
+class SurveyResponseRequestSerializer(CamelSerializer):
+    position = PositionSerializer()
+    answers = serializers.DictField()
+
+
+class CustomFieldSerializer(serializers.Serializer):
+    label = serializers.CharField(allow_blank=True)
+    value = serializers.CharField(allow_blank=True)
+
+
+class PokestopPatchSerializer(CamelSerializer):
+    """Prowadzenie inicjatywy: status (z notatką widoczną na osi czasu) i, dla organizatora, treść oraz pola własne."""
+
+    status = serializers.ChoiceField(choices=Status.choices, required=False)
     note = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    title = serializers.CharField(required=False)
+    description = serializers.CharField(required=False, allow_blank=True)
+    custom_fields = CustomFieldSerializer(many=True, required=False)
+
+    def validate(self, data):
+        if not data:
+            raise serializers.ValidationError('Podaj co najmniej jedno pole do zmiany')
+        return data
+
+
+class UpdateRequestSerializer(CamelSerializer):
+    title = serializers.CharField()
+    body = serializers.CharField(required=False, allow_blank=True, default='')
+
+
+class UpdatePatchSerializer(CamelSerializer):
+    title = serializers.CharField(required=False)
+    body = serializers.CharField(required=False, allow_blank=True)
+
+    def validate(self, data):
+        if not data:
+            raise serializers.ValidationError('Podaj co najmniej jedno pole do zmiany')
+        return data
+
 
 
 class CommentRequestSerializer(CamelSerializer):

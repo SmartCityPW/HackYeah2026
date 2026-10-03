@@ -20,6 +20,28 @@ export async function createCharacter(modelPath: string | null): Promise<THREE.O
   }
 }
 
+/** Kolor z tokenu palety (styles.css): materiały three.js wymagają konkretnej wartości, nie zmiennej CSS. */
+const token = (name: string, fallback: string): THREE.Color =>
+  new THREE.Color(getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback);
+
+/**
+ * Wykrzyknik: wspólny model inicjatyw zaufanych podmiotów (organizacje, urzędy). Celowo generyczny, żeby z mapy nie dało się
+ * odgadnąć, jaki Spryciak czeka za ankietą. Zbudowany z prymitywów (bez zewnętrznych assetów), w kolorach palety.
+ */
+export function createTrustedMarker(): THREE.Object3D {
+  const body = new THREE.MeshStandardMaterial({ color: token('--color-pink', '#ea638c'), flatShading: true, roughness: 0.6 });
+  const dot = new THREE.MeshStandardMaterial({ color: token('--color-plum', '#4f345a'), flatShading: true, roughness: 0.6 });
+  const group = new THREE.Group();
+  const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.36, 2.5, 6), body);
+  bar.position.y = 2.15;
+  const cap = new THREE.Mesh(new THREE.SphereGeometry(0.62, 6, 4), body);
+  cap.position.y = 3.4;
+  const point = new THREE.Mesh(new THREE.SphereGeometry(0.46, 6, 5), dot);
+  point.position.y = 0.46;
+  group.add(bar, cap, point);
+  return normalize(group);
+}
+
 function normalize(object: THREE.Object3D): THREE.Object3D {
   const box = new THREE.Box3().setFromObject(object);
   const size = box.getSize(new THREE.Vector3());

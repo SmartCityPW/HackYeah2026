@@ -22,6 +22,6 @@ def page_params(request: Request) -> tuple[int, int]:
 def paginate(request: Request, queryset_or_list):
     """Zwraca (count, wycinek strony)."""
     page, size = page_params(request)
-    count = queryset_or_list.count() if hasattr(queryset_or_list, 'count') and callable(queryset_or_list.count) else len(queryset_or_list)
+    count = len(queryset_or_list) if isinstance(queryset_or_list, (list, tuple)) else queryset_or_list.count()
     start = (page - 1) * size
     return count, queryset_or_list[start:start + size]

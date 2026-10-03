@@ -7,11 +7,12 @@ import { describeError } from '../../core/http/api-error';
 import { SessionService } from '../../core/session.service';
 import { ToastService } from '../../core/toast.service';
 import { InitiativeCard } from '../../shared/initiative-card/initiative-card';
+import { InitiativeManager } from './initiative-manager/initiative-manager';
 
 /** Inicjatywy opublikowane przez organizację wraz z podsumowaniem poparcia mieszkańców. */
 @Component({
   selector: 'app-org-initiatives-page',
-  imports: [InitiativeCard],
+  imports: [InitiativeCard, InitiativeManager],
   templateUrl: './org-initiatives.page.html',
 })
 export class OrgInitiativesPage {

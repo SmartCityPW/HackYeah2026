@@ -61,6 +61,13 @@ class StorageSection:
 class SeedSection:
     dir: str
     on_start: bool
+    demo_on_start: bool
+
+
+@dataclass(frozen=True)
+class AdminSection:
+    email: str
+    display_name: str
 
 
 @dataclass(frozen=True)
@@ -121,6 +128,23 @@ class PhotosSection:
 
 
 @dataclass(frozen=True)
+class TimelineSection:
+    title_max_length: int
+    body_max_length: int
+    max_updates_per_pokestop: int
+    max_custom_fields: int
+    custom_field_label_max_length: int
+    custom_field_value_max_length: int
+
+
+@dataclass(frozen=True)
+class SurveySection:
+    max_questions: int
+    max_options: int
+    text_max_length: int
+
+
+@dataclass(frozen=True)
 class PokestopsSection:
     votes_required_default: int
     default_page_size: int
@@ -128,6 +152,8 @@ class PokestopsSection:
     comment_max_length: int
     withdraw_reason: str
     photos: PhotosSection
+    timeline: TimelineSection
+    survey: SurveySection
 
 
 @dataclass(frozen=True)
@@ -174,6 +200,7 @@ class Config:
     database: DatabaseSection
     storage: StorageSection
     seed: SeedSection
+    admin: AdminSection
     auth: AuthSection
     game: GameSection
     pokestops: PokestopsSection

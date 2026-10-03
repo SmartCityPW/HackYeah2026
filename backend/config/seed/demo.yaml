@@ -54,3 +54,17 @@ pokestops:
     lng: 19.9896
     character: tree
     details: {plantingType: new, species: linden, count: 20, rationale: Cień i mniej hałasu przy drodze do Areny, contactPerson: Anna Kowalska, contactEmail: kontakt@zielonemiasto.example}
+    custom_fields:      # pola własne organizatora (widoczne na rozwiniętej karcie inicjatywy)
+      - {label: Liczba drzew, value: 20 lip}
+      - {label: Budżet, value: "18 000 zł (grant dzielnicy)"}
+    updates:            # wpisy organizatora na osi czasu (od najstarszego)
+      - {title: "Dziś rada dzielnicy zajęła się sprawą", body: "Radni jednogłośnie poparli projekt i przyznali grant na zakup sadzonek."}
+      - {title: "Jutro sadzimy pierwsze drzewko", body: "Spotkajmy się o 10:00 przy ul. Lema. Sadzonki dostarczy dzielnica, łopaty mamy my."}
+    questions:          # ankieta: za wypełnienie mieszkaniec dostaje nowego Spryciaka (tu: drzewko)
+      - {key: support, label: "Czy chcesz więcej drzew przy ulicy Lema?", type: boolean}
+      - key: priorities
+        label: "Co jest dla Ciebie najważniejsze?"
+        type: multiselect
+        required: false
+        options: [{value: shade, label: Cień}, {value: noise, label: Mniej hałasu}, {value: air, label: Czystsze powietrze}]
+      - {key: volunteer, label: "Ile godzin możesz pomóc przy sadzeniu?", type: number, required: false, min: 0, max: 40}

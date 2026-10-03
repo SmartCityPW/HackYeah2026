@@ -222,15 +222,69 @@ paths:
         '200': { description: Pinezka, content: { application/json: { schema: { $ref: '#/components/schemas/PokestopDetail' } } } }
         '404': { $ref: '#/components/responses/NotFound' }
     patch:
-      tags: [admin]
-      summary: Zmień status pinezki (moderacja)
+      tags: [pokestops, admin]
+      summary: Prowadzenie inicjatywy (status, treść, pola własne)
       description: |
-        Tylko administrator. Zapisuje wpis w historii zmian statusu.
-        `resolved` zwraca zastawionego pokemona autorowi z premią exp (jak osiągnięcie progu głosów),
-        `rejected` zwraca go bez premii. `note` jest wymagane przy `rejected`.
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/StatusChange' } } } }
+        Wszystkie pola opcjonalne, ale co najmniej jedno jest wymagane. Zmiany statusu zapisują wpis w historii (widoczny na osi czasu,
+        `GET /pokestops/{id}/timeline`), a `note` to komentarz do zmiany.
+
+        **Kto:** administrator (dowolna pinezka, ale tylko `status`) oraz członek **zweryfikowanej organizacji, która opublikowała inicjatywę**
+        (`ngo`/`consultation`): `status` w zakresie `open`, `in_progress`, `resolved`, a także `title`, `description` i `customFields`.
+        Odrzucić (`rejected`) może wyłącznie administrator (z `note`).
+        `resolved` zwraca zastawionego pokemona autorowi z premią exp (jak osiągnięcie progu głosów), `rejected` zwraca go bez premii.
+        `customFields` zastępuje całą listę pól własnych (max 10; etykiety unikalne).
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PokestopPatch' } } } }
       responses:
         '200': { description: Zaktualizowana pinezka, content: { application/json: { schema: { $ref: '#/components/schemas/PokestopDetail' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /pokestops/{id}/timeline:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [pokestops]
+      summary: Losy inicjatywy (oś czasu)
+      description: |
+        Najnowsze pierwsze. Trzy rodzaje wpisów: `created` (inicjatywa dodana), `update` (wpis organizatora, np. "Dziś rada miasta spotkała się w sprawie ...")
+        i `status` (zmiana statusu z `fromStatus`, `toStatus` i notatką w `body`). Pole `editable` mówi, czy zalogowany użytkownik może
+        wpis edytować lub usunąć (tylko `update`, tylko organizator i administrator).
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PageSize' }
+      responses:
+        '200': { description: Oś czasu, content: { application/json: { schema: { $ref: '#/components/schemas/TimelinePage' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /pokestops/{id}/updates:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      tags: [pokestops]
+      summary: Dodaj wpis na osi czasu inicjatywy
+      description: 'Organizator inicjatywy (zweryfikowana organizacja) albo administrator. Tytuł do 120 znaków, treść do 1000, najwyżej 200 wpisów na inicjatywę (`409`).'
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/NewUpdate' } } } }
+      responses:
+        '201': { description: Dodany wpis, content: { application/json: { schema: { $ref: '#/components/schemas/TimelineEntry' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /pokestops/{id}/updates/{updateId}:
+    parameters:
+      - { $ref: '#/components/parameters/Id' }
+      - { name: updateId, in: path, required: true, schema: { type: integer } }
+    patch:
+      tags: [pokestops]
+      summary: Edytuj wpis na osi czasu
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UpdatePatch' } } } }
+      responses:
+        '200': { description: Zmieniony wpis, content: { application/json: { schema: { $ref: '#/components/schemas/TimelineEntry' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+    delete:
+      tags: [pokestops]
+      summary: Usuń wpis z osi czasu
+      responses:
+        '204': { description: Usunięto }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
   /pokestops/{id}/vote:
@@ -307,10 +361,13 @@ paths:
       tags: [pokestops]
       summary: Wypełnij ankietę przy pinezce
       description: |
-        Dotyczy pinezek `ngo`/`consultation` z pytaniami (`questions`). Jedna odpowiedź na użytkownika (`409`, kod
-        `already_answered`). Wypełniać można tylko w kółku interakcji (jak przy głosowaniu: `422` z kodem `too_far`).
+        Dotyczy pinezek `ngo`/`consultation` z pytaniami (`questions`); inne dają `404`. Wypełniają mieszkańcy (organizacja i administrator: `403`).
+        Jedna odpowiedź na użytkownika (`409`, kod `already_answered`). Gdy organizator zamknął inicjatywę (`resolved`):
+        `409` z kodem `survey_closed`. Wypełniać można tylko w kółku interakcji, jak przy głosowaniu: `position`,
+        a dalej `422` z kodem `too_far`.
         Odpowiedzi walidowane względem pytań (wymagane, typ, zakres, dozwolone opcje): błędy w `fields` pod kluczem
-        pytania. Za wypełnioną ankietę serwer przyznaje **nowego pokemona** gatunku pinezki (`pokemon` w odpowiedzi).
+        pytania. Za wypełnioną ankietę serwer przyznaje **nowego pokemona** gatunku pinezki (`pokemon` w odpowiedzi);
+        mieszkaniec dowiaduje się, jaki to gatunek, dopiero z tej odpowiedzi (aplikacja nie pokazuje go wcześniej).
       requestBody:
         required: true
         content:
@@ -321,7 +378,7 @@ paths:
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
-        '422': { $ref: '#/components/responses/ValidationError' }
+        '422': { $ref: '#/components/responses/ValidationErrorOrTooFar' }
   /pokestops/{id}/survey-results:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     get:
@@ -674,7 +731,7 @@ components:
         results: { type: array, items: { $ref: '#/components/schemas/Comment' } }
     Pokestop:
       type: object
-      required: [id, type, status, scenarioCode, character, icon, title, author, mine, lat, lng, votesFor, votesAgainst, myVote, commentCount, createdAt]
+      required: [id, type, status, scenarioCode, character, icon, title, author, mine, customFields, updateCount, lat, lng, votesFor, votesAgainst, myVote, commentCount, createdAt]
       properties:
         id: { type: integer }
         type: { $ref: '#/components/schemas/PokestopType' }
@@ -690,6 +747,11 @@ components:
         organizationId: { type: integer, nullable: true }
         photos: { type: array, items: { $ref: '#/components/schemas/Photo' } }
         details: { type: object, additionalProperties: true, description: Pola scenariusza (klucz = `key` pola) }
+        customFields:
+          type: array
+          description: 'Pola własne dopisane przez organizatora inicjatywy (np. budżet, termin)'
+          items: { $ref: '#/components/schemas/CustomField' }
+        updateCount: { type: integer, description: 'Liczba wpisów organizatora na osi czasu' }
         lat: { type: number, format: double }
         lng: { type: number, format: double }
         votesFor: { type: integer }
@@ -745,12 +807,53 @@ components:
           description: 'Ankieta (tylko `ngo`/`consultation`, tylko zweryfikowana organizacja)'
           maxItems: 20
           items: { $ref: '#/components/schemas/NewQuestion' }
-    StatusChange:
+    CustomField:
       type: object
-      required: [status]
+      required: [label, value]
+      properties:
+        label: { type: string, maxLength: 40 }
+        value: { type: string, maxLength: 300 }
+    PokestopPatch:
+      type: object
+      minProperties: 1
       properties:
         status: { $ref: '#/components/schemas/PokestopStatus' }
-        note: { type: string, description: Powód (wymagany przy `rejected`) }
+        note: { type: string, description: 'Komentarz do zmiany statusu (wymagany przy `rejected`), widoczny na osi czasu' }
+        title: { type: string, minLength: 3, maxLength: 80 }
+        description: { type: string }
+        customFields: { type: array, maxItems: 10, items: { $ref: '#/components/schemas/CustomField' } }
+    NewUpdate:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        body: { type: string, maxLength: 1000 }
+    UpdatePatch:
+      type: object
+      minProperties: 1
+      properties:
+        title: { type: string, minLength: 1, maxLength: 120 }
+        body: { type: string, maxLength: 1000 }
+    TimelineEntry:
+      type: object
+      required: [kind, id, title, body, author, createdAt, editable]
+      properties:
+        kind: { type: string, enum: [created, update, status] }
+        id: { type: integer, description: 'Id wpisu (dla `update` to id do PATCH/DELETE, dla `created` zawsze 0)' }
+        title: { type: string, description: 'Tytuł wpisu organizatora (pusty dla `status`)' }
+        body: { type: string, description: 'Treść wpisu organizatora albo notatka do zmiany statusu' }
+        fromStatus: { $ref: '#/components/schemas/PokestopStatus' }
+        toStatus: { $ref: '#/components/schemas/PokestopStatus' }
+        author: { type: string, description: 'Organizacja (głos urzędowy), `Administrator` albo `System`' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time, nullable: true, description: 'Ustawione, gdy wpis edytowano' }
+        editable: { type: boolean }
+    TimelinePage:
+      type: object
+      required: [count, results]
+      properties:
+        count: { type: integer }
+        results: { type: array, items: { $ref: '#/components/schemas/TimelineEntry' } }
     VoteResult:
       type: object
       required: [stop, pokemon]
@@ -888,15 +991,14 @@ components:
         lng: { type: number, format: double }
         accuracyM: { type: number, description: 'Deklarowana dokładność GPS w metrach' }
     SurveyResponseRequest:
-      allOf:
-        - $ref: '#/components/schemas/PositionRequest'
-        - type: object
-          required: [answers]
-          properties:
-            answers:
-              type: object
-              description: 'Klucz pytania -> odpowiedź (tekst, liczba, wartość opcji, tablica opcji lub boolean)'
-              additionalProperties: true
+      type: object
+      required: [position, answers]
+      properties:
+        position: { $ref: '#/components/schemas/PositionRequest' }
+        answers:
+          type: object
+          description: 'Klucz pytania -> odpowiedź (tekst, liczba, wartość opcji, tablica opcji, boolean albo ocena 1-5)'
+          additionalProperties: true
     SurveyResponseResult:
       type: object
       required: [stop, pokemon]

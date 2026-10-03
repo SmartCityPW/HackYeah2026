@@ -1,6 +1,6 @@
 <div class="page">
   <h1>Inicjatywy organizacji</h1>
-  <p class="lead">Jak mieszkańcy odbierają Wasze propozycje.</p>
+  <p class="lead">Jak mieszkańcy odbierają Wasze propozycje. Rozwiń inicjatywę, żeby prowadzić jej losy: zmieniać status, dodawać wpisy i pola własne.</p>
 
   <div class="stat-grid">
     <div class="stat"><strong>{{ items().length }}</strong><span>inicjatyw</span></div>
@@ -11,7 +11,9 @@
 
   <div class="list">
     @for (s of items(); track s.id) {
-      <app-initiative-card [stop]="s" [showInteraction]="false" (opened)="showOnMap(s.id)" />
+      <app-initiative-card [stop]="s" [showInteraction]="false" [showTimeline]="false" (opened)="showOnMap(s.id)">
+        <app-initiative-manager manage [stop]="s" />
+      </app-initiative-card>
     } @empty {
       <p class="empty">Nie opublikowano jeszcze żadnej inicjatywy. Dodaj pierwszą z poziomu mapy.</p>
     }

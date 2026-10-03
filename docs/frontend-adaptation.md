@@ -56,7 +56,9 @@ Reszta aplikacji (strony, komponenty) rozmawia tylko z abstrakcjami `PokestopApi
 | Komentarze | działa: lista stronicowana (najnowsze pierwsze), odpowiedzi w wątku, „Pokaż starsze” | brak |
 | Zmiana statusu (admin) | działa | pole powodu przy odrzuceniu (dziś stały tekst) |
 | Przeciwnicy i walka | `NotAdaptedYet` | backend zwraca jeszcze 501; ekran wyboru 3 pokemonów, wynik `lost` |
-| Ankiety, wydarzenia | brak | nowe ekrany (backend: 501) |
+| Losy inicjatywy (oś czasu, pola własne, status z komentarzem) | działa: `GET /pokestops/{id}/timeline`, `POST/PATCH/DELETE .../updates`, `PATCH /pokestops/{id}`; karta inicjatywy rozwija się, a organizator ma panel prowadzenia (`features/org/initiative-manager`) | brak |
+| Ankiety zaufanych podmiotów | działa: formularz i ekran nagrody (`features/map/survey`), kreator pytań (`shared/question-builder`), wyniki w panelu organizatora | brak |
+| Wydarzenia | brak | nowe ekrany (backend: 501) |
 
 Pełna lista rozbieżności z numerami: [`api-contract.md`](api-contract.md), sekcja "Co musi zmienić frontend".
 `NotAdaptedYet` rzuca czytelny komunikat z odwołaniem do punktu, więc po przełączeniu trybu widać dokładnie, czego jeszcze brakuje.

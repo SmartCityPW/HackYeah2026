@@ -1,16 +1,17 @@
 <article>
-  <button type="button" class="head" (click)="opened.emit()">
+  <button type="button" class="head" [attr.aria-expanded]="expandable() ? open() : null" (click)="toggle()">
     <span class="icon">{{ stop().icon ?? type().emoji }}</span>
     <span class="text">
       <strong>{{ stop().title }}</strong>
       <small>{{ type().label }} · {{ stop().organization ?? stop().author }}</small>
     </span>
     <app-status-chip [status]="stop().status" />
+    @if (expandable()) { <app-icon class="chevron" [class.up]="open()" name="chevron" /> }
   </button>
 
   <div class="support" [attr.aria-label]="'Poparcie: ' + support() + '%'">
     <div class="bar"><div class="fill" [style.width.%]="support()"></div></div>
-    <small>{{ stop().votesFor }} za · {{ stop().votesAgainst }} przeciw · {{ stop().commentCount ?? stop().comments.length }} kom.</small>
+    <small>{{ stop().votesFor }} za · {{ stop().votesAgainst }} przeciw · {{ stop().commentCount ?? stop().comments.length }} kom.@if (stop().updateCount) { · {{ stop().updateCount }} wpisów organizatora }</small>
   </div>
 
   @if (showInteraction()) {
@@ -19,6 +20,24 @@
       @if (stop().myVote) { <span>{{ stop().myVote === 'for' ? 'Głos za' : 'Głos przeciw' }}</span> }
       @if (myComments() > 0) { <span>Twoje komentarze: {{ myComments() }}</span> }
     </p>
+  }
+
+  @if (expandable() && open()) {
+    <section class="details">
+      <p class="meaning"><strong>{{ meaning().label }}.</strong> {{ meaning().text }}</p>
+      @if (stop().description) { <p class="description">{{ stop().description }}</p> }
+      @if (stop().customFields?.length) {
+        <dl class="fields">
+          @for (f of stop().customFields; track f.label) { <dt>{{ f.label }}</dt><dd>{{ f.value }}</dd> }
+        </dl>
+      }
+      <ng-content select="[manage]" />
+      @if (showTimeline()) {
+        <h3>Losy inicjatywy</h3>
+        <app-initiative-timeline [entries]="entries()" [loading]="loading()" />
+      }
+      <button type="button" class="map-link" (click)="opened.emit()">Pokaż na mapie</button>
+    </section>
   }
 
   <ng-content />

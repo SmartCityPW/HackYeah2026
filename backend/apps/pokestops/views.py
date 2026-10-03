@@ -5,15 +5,18 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import Role
-from apps.pokestops import services
-from apps.pokestops.models import Comment, Pokestop, Status, Vote
+from apps.pokestops import services, survey, timeline
+from apps.pokestops.models import Comment, Pokestop, Status, Update, Vote
 from apps.pokestops.serializers import (
     CommentRequestSerializer,
     CommentSerializer,
     NewPokestopSerializer,
     PokestopDetailSerializer,
     PokestopSerializer,
-    StatusChangeSerializer,
+    PokestopPatchSerializer,
+    SurveyResponseRequestSerializer,
+    UpdatePatchSerializer,
+    UpdateRequestSerializer,
     VoteRequestSerializer,
 )
 from core.errors import ApiError
@@ -26,10 +29,14 @@ def _base_queryset():
     visible_comments = (
         Comment.objects.filter(pokestop=OuterRef('pk'), hidden_at__isnull=True).values('pokestop').annotate(c=Count('pk')).values('c')
     )
+    updates = Update.objects.filter(pokestop=OuterRef('pk')).values('pokestop').annotate(c=Count('pk')).values('c')
     return (
         Pokestop.objects.select_related('scenario', 'character', 'author', 'organization')
         .prefetch_related('photos')
-        .annotate(comment_count=Coalesce(Subquery(visible_comments, output_field=IntegerField()), 0))
+        .annotate(
+            comment_count=Coalesce(Subquery(visible_comments, output_field=IntegerField()), 0),
+            update_count=Coalesce(Subquery(updates, output_field=IntegerField()), 0),
+        )
     )
 
 
@@ -91,12 +98,43 @@ class PokestopDetailView(APIView):
         return Response(PokestopDetailSerializer(stop, context=_context(request, [stop])).data)
 
     def patch(self, request, pk):
-        if request.user.role != Role.ADMIN:
-            raise ApiError(http.HTTP_403_FORBIDDEN, 'forbidden', 'Tylko administrator zmienia status')
-        s = StatusChangeSerializer(data=request.data)
+        """Prowadzenie inicjatywy: status (administrator, organizator), treść i pola własne (organizator)."""
+        s = PokestopPatchSerializer(data=request.data)
         s.is_valid(raise_exception=True)
-        services.set_status(request.user, pk, s.validated_data['status'], s.validated_data.get('note'))
+        timeline.manage(request.user, pk, dict(s.validated_data))
         return _detail(request, pk)
+
+
+class TimelineView(APIView):
+    """GET /pokestops/{id}/timeline: losy inicjatywy (najnowsze pierwsze)."""
+
+    def get(self, request, pk):
+        count, page = paginate(request, timeline.timeline(request.user, pk))
+        return Response({'count': count, 'results': list(page)})
+
+
+def _entry(request, pk: int, update: Update) -> dict:
+    return next(e for e in timeline.timeline(request.user, pk) if e['kind'] == 'update' and e['id'] == update.id)
+
+
+class UpdatesView(APIView):
+    def post(self, request, pk):
+        s = UpdateRequestSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        update = timeline.add_update(request.user, pk, s.validated_data['title'], s.validated_data['body'])
+        return Response(_entry(request, pk, update), status=http.HTTP_201_CREATED)
+
+
+class UpdateDetailView(APIView):
+    def patch(self, request, pk, update_id):
+        s = UpdatePatchSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        update = timeline.edit_update(request.user, pk, update_id, s.validated_data.get('title'), s.validated_data.get('body'))
+        return Response(_entry(request, pk, update))
+
+    def delete(self, request, pk, update_id):
+        timeline.delete_update(request.user, pk, update_id)
+        return Response(status=http.HTTP_204_NO_CONTENT)
 
 
 class VoteView(APIView):
@@ -111,6 +149,26 @@ class VoteView(APIView):
 
         stop_data = _detail(request, stop.id).data
         return Response({'stop': stop_data, 'pokemon': PokemonSerializer(pokemon).data})
+
+
+class SurveyResponsesView(APIView):
+    """POST /pokestops/{id}/survey-responses: odpowiedzi na ankietę; nagrodą jest nowy pokemon gatunku inicjatywy."""
+
+    def post(self, request, pk):
+        s = SurveyResponseRequestSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        d = s.validated_data
+        stop, pokemon = survey.answer_survey(user=request.user, pokestop_id=pk, lat=d['position']['lat'], lng=d['position']['lng'], answers=d['answers'])
+        from apps.collection.serializers import PokemonSerializer
+
+        response = Response({'stop': _detail(request, stop.id).data, 'pokemon': PokemonSerializer(pokemon).data})
+        response.status_code = http.HTTP_201_CREATED
+        return response
+
+
+class SurveyResultsView(APIView):
+    def get(self, request, pk):
+        return Response(survey.results(request.user, pk))
 
 
 class WithdrawView(APIView):

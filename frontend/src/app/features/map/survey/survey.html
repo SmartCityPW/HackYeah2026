@@ -1,0 +1,89 @@
+@let s = stop();
+<section class="survey" role="dialog" [attr.aria-label]="reward() ? 'Nowy Spryciak' : 'Ankieta'">
+  @if (reward(); as pokemon) {
+    @let sp = species()!;
+    <div class="reward" aria-live="polite">
+      <p class="kicker">Dziękujemy za wypełnienie ankiety</p>
+      <h2>Wpadł Ci nowy Spryciak!</h2>
+      <div class="model"><app-spryciak-model [character]="pokemon.character" /></div>
+      <h3>{{ sp.emoji }} {{ sp.label }}</h3>
+      <p class="chips">
+        <span class="chip">{{ types[pokemon.typeCode].emoji }} {{ types[pokemon.typeCode].label }}</span>
+        @if (sp.categoryLabel) { <span class="chip">{{ sp.categoryLabel }}</span> }
+        <span class="chip power">Moc {{ pokemon.power }}</span>
+        <span class="chip">Poziom {{ pokemon.level }}</span>
+      </p>
+      <p class="note">Dołączył do Twoich Spryciaków. Zdobywa exp, gdy głosujesz, i pomaga w walkach.</p>
+      <div class="actions">
+        <a class="btn primary" routerLink="/spryciaki" (click)="closed.emit()">Zobacz moje Spryciaki</a>
+        <button type="button" class="btn" (click)="closed.emit()">Wróć na mapę</button>
+      </div>
+    </div>
+  } @else {
+    <button type="button" class="close" (click)="closed.emit()" aria-label="Zamknij ankietę"><app-icon name="close" /></button>
+    <header>
+      <span class="mystery" aria-hidden="true">!</span>
+      <div>
+        <p class="kicker">Ankieta · {{ s.organization ?? s.author }}</p>
+        <h2>{{ s.title }}</h2>
+      </div>
+    </header>
+    <p class="prize">Za wypełnienie dostajesz nowego Spryciaka. Jakiego, dowiesz się po wysłaniu ankiety.</p>
+
+    <form (submit)="submit($event)" novalidate>
+      @for (q of questions(); track q.key) {
+        <fieldset class="question" [class.invalid]="errors()[q.key]">
+          <legend>{{ q.label }} @if (q.required) { <b aria-label="wymagane">*</b> }</legend>
+          @switch (q.type) {
+            @case ('boolean') {
+              <div class="choices">
+                <button type="button" [class.on]="answer(q.key) === true" [attr.aria-pressed]="answer(q.key) === true" (click)="set(q.key, true)">Tak</button>
+                <button type="button" [class.on]="answer(q.key) === false" [attr.aria-pressed]="answer(q.key) === false" (click)="set(q.key, false)">Nie</button>
+              </div>
+            }
+            @case ('rating') {
+              <div class="choices">
+                @for (n of scale(q); track n) {
+                  <button type="button" class="round" [class.on]="answer(q.key) === n" [attr.aria-pressed]="answer(q.key) === n" (click)="set(q.key, n)">{{ n }}</button>
+                }
+              </div>
+            }
+            @case ('choice') {
+              <div class="options">
+                @for (o of q.options; track o.value) {
+                  <label class="option"><input type="radio" [name]="q.key" [checked]="answer(q.key) === o.value" (change)="set(q.key, o.value)" /> {{ o.label }}</label>
+                }
+              </div>
+            }
+            @case ('select') {
+              <div class="options">
+                @for (o of q.options; track o.value) {
+                  <label class="option"><input type="radio" [name]="q.key" [checked]="answer(q.key) === o.value" (change)="set(q.key, o.value)" /> {{ o.label }}</label>
+                }
+              </div>
+            }
+            @case ('multiselect') {
+              <div class="options">
+                @for (o of q.options; track o.value) {
+                  <label class="option"><input type="checkbox" [checked]="isPicked(q.key, o.value)" (change)="toggle(q.key, o.value)" /> {{ o.label }}</label>
+                }
+              </div>
+            }
+            @case ('number') {
+              <input type="number" inputmode="decimal" [attr.min]="q.min" [attr.max]="q.max" [value]="answer(q.key) ?? ''" (input)="setNumber(q.key, $event)" />
+            }
+            @case ('textarea') {
+              <textarea rows="3" [value]="answer(q.key) ?? ''" (input)="setText(q.key, $event)"></textarea>
+            }
+            @default {
+              <input type="text" [value]="answer(q.key) ?? ''" (input)="setText(q.key, $event)" />
+            }
+          }
+          @if (errors()[q.key]; as message) { <small class="error">{{ message }}</small> }
+        </fieldset>
+      }
+      @if (formError(); as message) { <p class="form-error" role="alert">{{ message }}</p> }
+      <button class="btn primary" type="submit" [disabled]="busy()">{{ busy() ? 'Wysyłanie…' : 'Wyślij ankietę' }}</button>
+    </form>
+  }
+</section>

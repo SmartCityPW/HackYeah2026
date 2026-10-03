@@ -1,6 +1,6 @@
 import { Position } from '../game.model';
 import { Pokemon } from '../pokemon.model';
-import { Bbox, CharacterId, CommentPage, NewReport, Pokestop, PokestopComment, PokestopStatus, VoteContext, VoteResult } from '../pokestop.model';
+import { Bbox, CharacterId, CommentPage, NewReport, Pokestop, PokestopComment, PokestopPatch, PokestopStatus, SurveyAnswers, SurveyResult, SurveyResults, TimelineEntry, UpdateDraft, VoteContext, VoteResult } from '../pokestop.model';
 
 /**
  * Kontrakt z backendem. Frontend zależy tylko od tej klasy: mock (`MockPokestopApi`)
@@ -15,6 +15,13 @@ import { Bbox, CharacterId, CommentPage, NewReport, Pokestop, PokestopComment, P
  *   comment          POST  /pokestops/{id}/comments            { text, parentCommentId? }
  *   create           POST  /pokestops                          { ..., lat, lng, position }
  *   setStatus        PATCH /pokestops/{id}                     { status }   (administrator)
+ *   manage           PATCH /pokestops/{id}                     { status?, note?, title?, description?, customFields? }  (organizator, administrator)
+ *   listTimeline     GET   /pokestops/{id}/timeline
+ *   addUpdate        POST  /pokestops/{id}/updates             { title, body }
+ *   editUpdate       PATCH /pokestops/{id}/updates/{updateId}
+ *   deleteUpdate     DELETE /pokestops/{id}/updates/{updateId}
+ *   answerSurvey     POST  /pokestops/{id}/survey-responses    { position, answers }
+ *   surveyResults    GET   /pokestops/{id}/survey-results      (organizator, administrator)
  *   listCollection   GET   /me/collection
  *   listPokemons     GET   /me/pokemons
  */
@@ -36,6 +43,16 @@ export abstract class PokestopApi {
    */
   abstract create(report: NewReport, position: Position): Promise<Pokestop>;
   abstract setStatus(id: number, status: PokestopStatus): Promise<Pokestop>;
+  /** Prowadzenie inicjatywy przez organizatora (status z komentarzem, treść, pola własne). */
+  abstract manage(id: number, patch: PokestopPatch): Promise<Pokestop>;
+  /** Losy inicjatywy, najnowsze pierwsze: wpisy organizatora i zmiany statusu. */
+  abstract listTimeline(id: number): Promise<TimelineEntry[]>;
+  abstract addUpdate(id: number, draft: UpdateDraft): Promise<TimelineEntry>;
+  abstract editUpdate(id: number, updateId: number, draft: Partial<UpdateDraft>): Promise<TimelineEntry>;
+  abstract deleteUpdate(id: number, updateId: number): Promise<void>;
+  /** Ankieta przy inicjatywie zaufanego podmiotu. Tylko w kółku interakcji (inaczej `TooFarError`); nagroda: nowy pokemon. */
+  abstract answerSurvey(id: number, answers: SurveyAnswers, position: Position): Promise<SurveyResult>;
+  abstract surveyResults(id: number): Promise<SurveyResults>;
   abstract listCollection(): Promise<Record<CharacterId, number>>;
   /** Pokemony użytkownika. `availableOnly` pomija zastawione na zgłoszeniach (do wyboru zastawu). */
   abstract listPokemons(availableOnly?: boolean): Promise<Pokemon[]>;
