@@ -15,11 +15,11 @@
 @if (selectedEncounter(); as enc) {
   <section class="sheet tall enemy" style="--stop-color: #dc2626">
     <button class="sheet-close" (click)="close()" aria-label="Zamknij">×</button>
-    <p class="sheet-type">⚔️ Przeciwnik · poziom {{ enc.level }}</p>
+    <p class="sheet-type">⚔️ Przeciwnik · poziom {{ enc.level }} · {{ enemyTypes[enc.typeCode].emoji }} {{ enemyTypes[enc.typeCode].label }} · 💪 {{ enc.power }}</p>
     <h2>{{ enc.emoji }} {{ enc.name }}</h2>
     <p class="sheet-desc">{{ enc.description }}</p>
     <p class="enemy-action"><strong>Jak go pokonać:</strong> {{ enc.actionLabel }}</p>
-    <p class="sheet-author">Nagroda: {{ enc.xpReward }} XP</p>
+    <p class="sheet-author">Nagroda: {{ enc.xpReward }} exp dla każdego Spryciaka w drużynie i nowy Spryciak</p>
 
     @if (canParticipate()) {
       @if (encounterDistance() === null) {
@@ -27,11 +27,19 @@
       } @else if (!canAttack()) {
         <p class="hint">Jesteś {{ encounterDistance() }} m od celu. Podejdź na mniej niż {{ interactionRadius }} m.</p>
       }
-      <button class="btn btn-against fight" [disabled]="!canAttack()" (click)="attack(enc.id)">
-        {{ attacking() ? 'Walczysz…' : '⚔️ Walcz' }}
-      </button>
+      <button class="btn btn-against fight" [disabled]="!canAttack()" (click)="startBattle(enc)">⚔️ Walcz</button>
     }
   </section>
+}
+
+@if (battleEncounter(); as enc) {
+  <app-battle
+    [encounter]="enc"
+    [inRange]="battleInRange()"
+    (closed)="endBattle()"
+    (interrupted)="endBattle('Wyszedłeś z kółka: walka przerwana.')"
+    (failed)="endBattle($event)"
+  />
 }
 
 @if (panelOpen()) {

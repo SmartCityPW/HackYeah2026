@@ -3,6 +3,8 @@ import { GameApi } from './api/game.api';
 import { AttackResult, Encounter, INTERACTION_RADIUS_M, Position } from './game.model';
 import { distanceMeters } from './geo.utils';
 import { GeolocationService } from './geolocation.service';
+import { CollectionService } from './collection.service';
+import { PokemonService } from './pokemon.service';
 import { ProgressService } from './progress.service';
 
 /** Po tylu metrach ruchu pytamy serwer o przeciwników na nowo (żeby nie pytać przy każdym odczycie GPS). */
@@ -16,6 +18,8 @@ export class EncounterService {
   private readonly api = inject(GameApi);
   private readonly geo = inject(GeolocationService);
   private readonly progress = inject(ProgressService);
+  private readonly pokemons = inject(PokemonService);
+  private readonly collection = inject(CollectionService);
   private lastFetchedAt?: Position;
 
   readonly encounters = signal<Encounter[]>([]);
@@ -47,16 +51,21 @@ export class EncounterService {
     if (this.lastFetchedAt === position) this.encounters.set(encounters);
   }
 
-  /** Zwraca null, gdy nie znamy pozycji użytkownika (nie ma czego wysłać). */
-  async attack(id: number): Promise<AttackResult | null> {
+  /**
+   * Atakuje przeciwnika wybraną drużyną (1–3 pokemony). Zwraca null, gdy nie znamy pozycji użytkownika
+   * albo atak już trwa. Po wygranej przeciwnik znika, a exp pokemonów, XP i kolekcja się aktualizują.
+   */
+  async attack(id: number, pokemonIds: number[]): Promise<AttackResult | null> {
     const position = this.userPosition();
     if (!position || this.attacking()) return null;
     this.attacking.set(true);
     try {
-      const result = await this.api.attack(id, position);
+      const result = await this.api.attack(id, position, pokemonIds);
       if (result.outcome === 'won') {
         this.encounters.update((list) => list.filter((e) => e.id !== id));
         this.progress.update(result.progress);
+        if (result.awardedCharacter) this.collection.grant(result.awardedCharacter);
+        await this.pokemons.refresh();
       }
       return result;
     } finally {

@@ -5,10 +5,19 @@ import { EncounterService } from './encounter.service';
 import { INTERACTION_RADIUS_M, MAX_ENEMIES_IN_RANGE } from './game.model';
 import { distanceMeters } from './geo.utils';
 import { GeolocationService } from './geolocation.service';
+import { PokemonService } from './pokemon.service';
 import { ProgressService } from './progress.service';
+import { CollectionService } from './collection.service';
+import { PokestopApi } from './api/pokestop.api';
+import { MockPokestopApi } from './api/pokestop.api.mock';
 
 const RYNEK: [number, number] = [19.9373, 50.0617];
 const RYNEK_POS = { lat: RYNEK[1], lng: RYNEK[0] };
+
+/** Ustawia moc przeciwnika po stronie "serwera" (atrapy), żeby wynik walki był przewidywalny. */
+function setEnemyPower(api: MockGameApi, id: number, power: number): void {
+  (api as unknown as { encounters: { id: number; power: number }[] }).encounters.find((e) => e.id === id)!.power = power;
+}
 
 describe('EncounterService', () => {
   let service: EncounterService;
@@ -19,7 +28,7 @@ describe('EncounterService', () => {
   beforeEach(async () => {
     api = new MockGameApi();
     api.random = () => 0.99; // zawsze maksymalna liczba przeciwników
-    TestBed.configureTestingModule({ providers: [{ provide: GameApi, useValue: api }] });
+    TestBed.configureTestingModule({ providers: [{ provide: GameApi, useValue: api }, { provide: PokestopApi, useClass: MockPokestopApi }] });
     geo = TestBed.inject(GeolocationService);
     progress = TestBed.inject(ProgressService);
     service = TestBed.inject(EncounterService);
@@ -58,22 +67,47 @@ describe('EncounterService', () => {
   it('does not attack without a known position', async () => {
     const id = service.encounters()[0].id;
     geo.simulate(null);
-    expect(await service.attack(id)).toBeNull();
+    expect(await service.attack(id, [1])).toBeNull();
   });
 
   it('server answers too_far from outside the circle and keeps the enemy', async () => {
     const far = service.encounters()[0];
-    const result = await api.attack(far.id, { lat: 50.07, lng: 19.95 });
+    const result = await api.attack(far.id, { lat: 50.07, lng: 19.95 }, [1]);
     expect(result.outcome).toBe('too_far');
     expect((await api.listEncounters(RYNEK_POS, INTERACTION_RADIUS_M)).some((e) => e.id === far.id)).toBe(true);
   });
 
-  it('wins inside the circle, removes the enemy and adds XP', async () => {
-    const near = service.encounters()[0];
+  it('wins with a strong enough team: enemy gone, XP, exp for the team and a new pokemon', async () => {
+    const pokemons = TestBed.inject(PokemonService);
+    const collection = TestBed.inject(CollectionService);
+    await pokemons.refresh();
+    await collection.refresh();
+    const enemy = service.encounters()[0];
+    setEnemyPower(api, enemy.id, 1);
+    const team = pokemons.available().slice(0, 2);
     const xpBefore = progress.progress().xp;
-    const result = await service.attack(near.id);
+    const ownedBefore = pokemons.pokemons().length;
+
+    const result = await service.attack(enemy.id, team.map((p) => p.id));
+
     expect(result?.outcome).toBe('won');
-    expect(service.encounters().some((e) => e.id === near.id)).toBe(false);
-    expect(progress.progress().xp).toBe(xpBefore + near.xpReward);
+    expect(service.encounters().some((e) => e.id === enemy.id)).toBe(false);
+    expect(progress.progress().xp).toBe(xpBefore + enemy.xpReward);
+    expect(pokemons.pokemons().length).toBe(ownedBefore + 1);
+    for (const p of team) expect(pokemons.pokemons().find((x) => x.id === p.id)!.exp).toBe(p.exp + enemy.xpReward);
+  });
+
+  it('loses when the team is too weak and the enemy stays', async () => {
+    const enemy = service.encounters()[0];
+    setEnemyPower(api, enemy.id, 10_000);
+    const result = await service.attack(enemy.id, [1]);
+    expect(result?.outcome).toBe('lost');
+    expect(service.encounters().some((e) => e.id === enemy.id)).toBe(true);
+  });
+
+  it('server rejects an empty or oversized team', async () => {
+    const id = service.encounters()[0].id;
+    await expect(api.attack(id, RYNEK_POS, [])).rejects.toThrow();
+    await expect(api.attack(id, RYNEK_POS, [1, 2, 3, 1])).rejects.toThrow();
   });
 });

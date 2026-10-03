@@ -1,0 +1,80 @@
+:host {
+  position: absolute; inset: 0; z-index: 20; display: flex; align-items: flex-end; justify-content: center;
+  background: linear-gradient(to bottom, rgb(15 23 42 / .15), rgb(15 23 42 / .75));
+}
+.battle {
+  position: relative; width: 100%; max-width: 560px; max-height: 88dvh; overflow-y: auto; box-sizing: border-box;
+  background: #fff; border-radius: 24px 24px 0 0; padding: 18px 18px 24px; border-top: 6px solid #dc2626;
+  box-shadow: 0 -8px 30px rgb(0 0 0 / .35);
+}
+
+.enemy { display: flex; gap: 14px; align-items: center; }
+.enemy-emoji {
+  font-size: 54px; width: 84px; height: 84px; flex: none; display: grid; place-items: center;
+  background: #fee2e2; border-radius: 50%; box-shadow: 0 0 0 4px #fecaca;
+}
+.kicker { margin: 0; font-size: .8rem; font-weight: 700; color: #dc2626; }
+h2 { margin: 2px 0 6px; font-size: 1.3rem; }
+h3 { margin: 0 0 8px; font-size: 1.05rem; }
+.meta { display: flex; gap: 6px; flex-wrap: wrap; margin: 0; }
+.chip { background: #f3f4f6; border-radius: 999px; padding: 3px 10px; font-size: .78rem; font-weight: 700; }
+.chip.power { background: #fee2e2; color: #b91c1c; }
+
+.panel { margin-top: 14px; }
+.task { margin: 0 0 12px; font-weight: 600; }
+.hint { margin: 8px 0 0; font-size: .82rem; color: #6b7280; }
+
+.dwell {
+  --progress: 0;
+  width: 112px; height: 112px; margin: 6px auto; border-radius: 50%; display: grid; place-items: center;
+  background: conic-gradient(#38bdf8 calc(var(--progress) * 360deg), #e0f2fe 0);
+  transition: background 1s linear;
+}
+.dwell span { width: 84px; height: 84px; border-radius: 50%; background: #fff; display: grid; place-items: center; font-size: 1.5rem; font-weight: 800; color: #0369a1; }
+
+.clash { display: grid; gap: 6px; margin-bottom: 12px; }
+.bar { position: relative; height: 26px; background: #f3f4f6; border-radius: 999px; overflow: hidden; }
+.bar > span { position: absolute; inset: 0 auto 0 0; border-radius: 999px; transition: width .5s ease; }
+.bar.ours > span { background: linear-gradient(90deg, #38bdf8, #2563eb); }
+.bar.theirs > span { background: linear-gradient(90deg, #f87171, #dc2626); }
+.bar b { position: relative; display: block; padding: 0 12px; line-height: 26px; font-size: .8rem; color: #111827; }
+
+.roster { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.pokemon {
+  position: relative; display: grid; gap: 2px; justify-items: start; text-align: left; padding: 10px 12px;
+  border: 2px solid #e5e7eb; background: #fff; border-radius: 16px; cursor: pointer; font: inherit;
+}
+.pokemon.picked { border-color: #2563eb; background: #eff6ff; }
+.pokemon:disabled { opacity: .4; cursor: not-allowed; }
+.p-emoji { font-size: 1.6rem; }
+.pokemon small { color: #6b7280; }
+.bonus { position: absolute; top: 8px; right: 8px; background: #fef3c7; color: #b45309; border-radius: 999px; padding: 1px 7px; font-size: .72rem; font-weight: 800; }
+
+.verdict { margin: 10px 0; font-size: .85rem; font-weight: 700; color: #b45309; }
+.verdict.ok { color: #047857; }
+
+.btn { width: 100%; padding: 13px; border: 0; border-radius: 14px; font: inherit; font-weight: 800; color: #fff; cursor: pointer; }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn.fight { background: #dc2626; }
+.btn.go { background: #2563eb; }
+.btn.ghost { background: #f3f4f6; color: #111827; }
+.actions { display: grid; gap: 8px; }
+.flee { margin-top: 12px; width: 100%; border: 0; background: none; color: #6b7280; font: inherit; font-weight: 700; cursor: pointer; padding: 6px; }
+
+.result h3 { font-size: 1.4rem; }
+.result.won { animation: pop .4s ease-out; }
+.rewards { list-style: none; padding: 0; margin: 10px 0 14px; display: grid; gap: 6px; }
+.rewards li { background: #f9fafb; border-radius: 12px; padding: 8px 12px; }
+.rewards li.new { background: #ecfdf5; }
+
+.fighting-label { text-align: center; font-weight: 800; color: #dc2626; margin: 10px 0 0; }
+.fighting .enemy-emoji { animation: shake .25s infinite; }
+.fighting .bar > span { animation: surge .8s ease-in-out infinite alternate; }
+
+@keyframes shake { 25% { transform: translate(-3px, 1px) rotate(-6deg); } 75% { transform: translate(3px, -1px) rotate(6deg); } }
+@keyframes surge { from { filter: brightness(1); } to { filter: brightness(1.35); } }
+@keyframes pop { from { transform: scale(.94); opacity: .4; } to { transform: scale(1); opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .fighting .enemy-emoji, .fighting .bar > span, .result.won { animation: none; }
+}

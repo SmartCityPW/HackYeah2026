@@ -30,6 +30,8 @@ export class MapController implements OnDestroy {
   private readonly enemyMarkers = new Map<number, maplibregl.Marker>();
   private userMarker?: maplibregl.Marker;
   private pulseFrame?: number;
+  /** Widok sprzed trybu walki, przywracany po jej zakończeniu. */
+  private beforeBattle?: { zoom: number; pitch: number };
 
   init(container: HTMLElement): void {
     this.map = new maplibregl.Map({
@@ -109,6 +111,19 @@ export class MapController implements OnDestroy {
 
   focus(lat: number, lng: number): void {
     this.map?.easeTo({ center: [lng, lat], duration: 600 });
+  }
+
+  /** Tryb walki: kamera najeżdża nisko na przeciwnika. */
+  enterBattle(lat: number, lng: number): void {
+    if (!this.map) return;
+    this.beforeBattle ??= { zoom: this.map.getZoom(), pitch: this.map.getPitch() };
+    this.map.easeTo({ center: [lng, lat], zoom: 18.6, pitch: 65, duration: 900 });
+  }
+
+  exitBattle(): void {
+    if (!this.map || !this.beforeBattle) return;
+    this.map.easeTo({ ...this.beforeBattle, duration: 700 });
+    this.beforeBattle = undefined;
   }
 
   /** Przygasza pinezki i przeciwników spoza kółka interakcji (z nimi nie da się nic zrobić, trzeba podejść). */

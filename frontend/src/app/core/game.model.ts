@@ -1,9 +1,26 @@
+import { CharacterId } from './pokestop.model';
+
+/** Typ postaci i przeciwnika: pokemon tego samego typu co przeciwnik bije mocniej (TYPE_MULTIPLIER). */
+export type TypeCode = 'transport' | 'clean' | 'green' | 'energy' | 'air' | 'infra';
+
+export const TYPES: Record<TypeCode, { label: string; emoji: string }> = {
+  transport: { label: 'Transport', emoji: '🚦' },
+  clean: { label: 'Czystość', emoji: '🧹' },
+  green: { label: 'Zieleń', emoji: '🌿' },
+  energy: { label: 'Energia', emoji: '💡' },
+  air: { label: 'Powietrze', emoji: '🌫️' },
+  infra: { label: 'Infrastruktura', emoji: '🧱' },
+};
+
 /** Losowy przeciwnik na mapie. Generuje go backend, frontend tylko go wyświetla. */
 export interface Encounter {
   id: number;
   name: string;
   emoji: string;
   level: number;
+  typeCode: TypeCode;
+  /** Moc, którą muszą przewyższyć wybrane pokemony (po mnożniku typu). */
+  power: number;
   description: string;
   /** Co trzeba zrobić na miejscu, żeby go pokonać. */
   actionLabel: string;
@@ -26,13 +43,50 @@ export interface Position {
   lng: number;
 }
 
+/** Posiadany egzemplarz postaci (GET /me/pokemons). Poziom i moc wylicza serwer z `exp`. */
+export interface Pokemon {
+  id: number;
+  character: CharacterId;
+  typeCode: TypeCode;
+  level: number;
+  exp: number;
+  power: number;
+  /** Zostawiony na własnym zgłoszeniu: niedostępny do walki. */
+  isStaked: boolean;
+}
+
+export interface AttackPokemonResult {
+  pokemonId: number;
+  /** Moc pokemona przed mnożnikiem. */
+  powerUsed: number;
+  typeMultiplierApplied: number;
+  /** Tylko przy wygranej. */
+  expGained?: number;
+}
+
 /**
- * Wynik ataku. O zwycięstwie decyduje wyłącznie backend (sprawdza odległość i wiarygodność pozycji),
- * a klient tylko wysyła swoją pozycję i wyświetla odpowiedź.
+ * Wynik ataku. O zwycięstwie decyduje wyłącznie backend (sprawdza odległość, liczy moc drużyny od nowa),
+ * a klient tylko wysyła pozycję i wybrane pokemony, po czym wyświetla odpowiedź.
  */
 export type AttackResult =
-  | { outcome: 'won'; xpGained: number; progress: PlayerProgress }
+  | {
+      outcome: 'won';
+      enemyPower: number;
+      pokemonPowerTotal: number;
+      pokemons: AttackPokemonResult[];
+      awardedCharacter: CharacterId | null;
+      xpGained: number;
+      progress: PlayerProgress;
+    }
+  | { outcome: 'lost'; enemyPower: number; pokemonPowerTotal: number; pokemons: AttackPokemonResult[] }
   | { outcome: 'too_far'; distanceM: number };
+
+/** Ilu pokemonów można najwyżej wystawić do jednej walki. */
+export const MAX_BATTLE_TEAM = 3;
+/** Mnożnik mocy pokemona, którego typ = typ przeciwnika. */
+export const TYPE_MULTIPLIER = 1.2;
+/** "Akcja na miejscu": tyle sekund trzeba wytrwać w kółku przy przeciwniku, zanim można wybrać drużynę. */
+export const ACTION_DWELL_S = 20;
 
 /**
  * Promień kółka interakcji wokół gracza (w metrach, jak w Pokémon GO). Tylko w nim można walczyć z przeciwnikami

@@ -1,6 +1,6 @@
 import { Component, ElementRef, computed, effect, inject, input, signal, untracked, viewChild, afterNextRender, DestroyRef } from '@angular/core';
 import { EncounterService } from '../../core/encounter.service';
-import { INTERACTION_RADIUS_M, Position, TooFarError } from '../../core/game.model';
+import { Encounter, INTERACTION_RADIUS_M, Position, TYPES, TooFarError } from '../../core/game.model';
 import { distanceMeters } from '../../core/geo.utils';
 import { CHARACTERS, POKESTOP_TYPES } from '../../core/pokestop.model';
 import { GeolocationService } from '../../core/geolocation.service';
@@ -11,13 +11,14 @@ import { describeDetails } from '../../core/scenario.utils';
 import { SessionService } from '../../core/session.service';
 import { ToastService } from '../../core/toast.service';
 import { StatusChip } from '../../shared/status-chip/status-chip';
+import { Battle } from './battle/battle';
 import { MapController } from './map.controller';
 import { ReportDraft, ReportPanel } from './report-panel/report-panel';
 
-/** Ekran mapy ("home"): pinezki, głosowanie, komentarze i dodawanie zgłoszeń. Logikę MapLibre ma `MapController`. */
+/** Ekran mapy ("home"): pinezki, głosowanie, komentarze, zgłoszenia i tryb walki. Logikę MapLibre ma `MapController`. */
 @Component({
   selector: 'app-map-page',
-  imports: [ReportPanel, StatusChip],
+  imports: [Battle, ReportPanel, StatusChip],
   providers: [MapController],
   templateUrl: './map.page.html',
   styleUrl: './map.page.css',
@@ -37,6 +38,7 @@ export class MapPage {
   readonly stop = input<string>();
 
   protected readonly types = POKESTOP_TYPES;
+  protected readonly enemyTypes = TYPES;
   protected readonly selectedId = signal<number | null>(null);
   protected readonly selected = computed(() => this.pokestops.stops().find((s) => s.id === this.selectedId()) ?? null);
   protected readonly selectedEncounterId = signal<number | null>(null);
@@ -45,7 +47,16 @@ export class MapPage {
   protected readonly encounterDistance = computed(() => this.distanceTo(this.selectedEncounter()));
   protected readonly canAttack = computed(() => {
     const d = this.encounterDistance();
-    return this.canParticipate() && d !== null && d <= INTERACTION_RADIUS_M && !this.encounterService.attacking();
+    return this.canParticipate() && d !== null && d <= INTERACTION_RADIUS_M;
+  });
+  /**
+   * Przeciwnik w trybie walki. Trzymamy kopię, bo po wygranej znika z listy przeciwników,
+   * a ekran wyniku ma go jeszcze pokazać.
+   */
+  protected readonly battleEncounter = signal<Encounter | null>(null);
+  protected readonly battleInRange = computed(() => {
+    const d = this.distanceTo(this.battleEncounter());
+    return d !== null && d <= INTERACTION_RADIUS_M;
   });
   /** Odległość użytkownika od wybranej pinezki w metrach; null, gdy nie znamy pozycji. */
   protected readonly stopDistance = computed(() => this.distanceTo(this.selected()));
@@ -61,7 +72,6 @@ export class MapPage {
   });
   private readonly stopsInRange = computed(() => this.idsInRange(this.pokestops.visibleStops()));
   private readonly encountersInRange = computed(() => this.idsInRange(this.encounterService.encounters()));
-  protected readonly attacking = this.encounterService.attacking;
   protected readonly panelOpen = signal(false);
   protected readonly commentDraft = signal('');
   /** Administrator tylko przegląda: nie zgłasza, nie głosuje i nie komentuje. */
@@ -115,24 +125,28 @@ export class MapPage {
     this.mapCtl.focus(stop.lat, stop.lng);
   }
 
+  /** Przeciwnik w kółku od razu wciąga w tryb walki; dalszy pokazuje tylko kartę z odległością. */
   protected selectEncounter(id: number): void {
     const enc = this.encounterService.encounters().find((e) => e.id === id);
-    if (!enc) return;
+    if (!enc || this.battleEncounter()) return;
     this.panelOpen.set(false);
     this.selectedId.set(null);
     this.selectedEncounterId.set(id);
-    this.mapCtl.focus(enc.lat, enc.lng);
+    if (this.canAttack()) this.startBattle(enc);
+    else this.mapCtl.focus(enc.lat, enc.lng);
   }
 
-  protected async attack(id: number): Promise<void> {
-    const result = await this.encounterService.attack(id);
-    if (!result) return;
-    if (result.outcome === 'won') {
-      this.selectedEncounterId.set(null);
-      this.toast.show(`Pokonano! +${result.xpGained} XP`);
-    } else {
-      this.toast.show(`Za daleko: ${result.distanceM} m od celu`);
-    }
+  protected startBattle(enc: Encounter): void {
+    this.selectedEncounterId.set(null);
+    this.battleEncounter.set(enc);
+    this.mapCtl.enterBattle(enc.lat, enc.lng);
+  }
+
+  /** Koniec walki; `message` (np. powód przerwania) pokazujemy jako komunikat. */
+  protected endBattle(message?: string): void {
+    this.battleEncounter.set(null);
+    this.mapCtl.exitBattle();
+    if (message) this.toast.show(message);
   }
 
   protected close(): void {

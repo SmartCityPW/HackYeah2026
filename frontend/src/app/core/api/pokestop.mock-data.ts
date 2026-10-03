@@ -16,5 +16,5 @@ export const MOCK_STOPS: Pokestop[] = [
     details: { shopKind: 'veg', whoBenefits: ['seniors', 'parents'] }, comments: [] },
 ];
 
-/** Postacie zdobyte przez zalogowanego użytkownika (zgodne z głosami w MOCK_STOPS). */
-export const MOCK_COLLECTION: Record<CharacterId, number> = { cyclist: 1, bin: 0, tree: 0, train: 0, lamp: 1 };
+/** Postacie zdobyte przez zalogowanego użytkownika (zgodne z drużyną STARTING_POKEMONS w game.api.mock.ts). */
+export const MOCK_COLLECTION: Record<CharacterId, number> = { cyclist: 1, bin: 0, tree: 1, train: 0, lamp: 1 };

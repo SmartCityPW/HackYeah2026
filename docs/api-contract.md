@@ -80,13 +80,20 @@ Dzisiejsze atrapy (`core/api/*.mock.ts`) działają inaczej w kilku miejscach. T
 10. **Pozycja gracza w akcjach na pinezkach:** atrapa (`MockPokestopApi`) już wymaga `position` i rzuca
     `TooFarError` poza kółkiem — implementacja HTTP ma wysyłać `position` w `POST /pokestops`, `/vote` i `/comments`
     oraz zamieniać odpowiedź `422 too_far` na `TooFarError`.
-11. **Ekran walki:** wybór do 3 pokemonów z `/me/pokemons` (z podglądem mocy/typu i mnożnika, jeśli typ = typ przeciwnika z `GET /encounters`) zamiast samego przycisku "atakuj"; obsłużyć nowy wynik `lost` (dziś atrapa znała tylko `won`/`too_far`).
+11. **Ekran walki:** ✔ zrobione na atrapie (`features/map/battle`). Przebieg: kliknięcie przeciwnika w kółku →
+    tryb walki (kamera najeżdża na przeciwnika) → akcja na miejscu (20 s w kółku) → wybór 1–3 pokemonów z
+    `/me/pokemons` z podglądem mocy i mnożnika ×1.2 → `POST /encounters/{id}/attack` → wynik `won` (exp dla drużyny,
+    nowa postać, XP) albo `lost` (ponowna próba innym składem). Wyjście z kółka przed starciem przerywa walkę.
+    Przy podmianie na HTTP: `MockGameApi` → implementacja HTTP, kształty odpowiedzi są już zgodne z `openapi.yaml`.
 
 ## Pytania otwarte (do rozmowy o backendzie)
 
 1. **Wiele miast?** Schemat zakłada jedno wdrożenie. Jeśli aplikacja ma obsługiwać kilka miast, potrzebna jest tabela `city` i zakres (tenant) na pinezkach, organizacjach i przeciwnikach. To najtańsze zrobić teraz.
 2. **Antyoszustwo w walce:** jakie sygnały uznajemy za podejrzane (skoki pozycji, nierealna prędkość, mock location, wiele kont z jednego urządzenia) i co robimy (odrzucenie, flaga, blokada)? Dziennik `game_attack` zbiera dane, a decyzje wymagają ustaleń.
-3. **"Akcja na miejscu":** dziś weryfikuje się tylko obecność, zanim można zaatakować. Czy potrzebne jest potwierdzenie (zdjęcie, kod QR, czas pobytu)? Schemat ma `action_kind` na to miejsce.
+3. **"Akcja na miejscu":** frontend wymaga 20 s pobytu w kółku przy przeciwniku przed wyborem drużyny, ale liczy to
+   tylko klient. Żeby serwer to egzekwował, musiałby pamiętać pierwszą pozycję gracza w zasięgu przeciwnika (np.
+   `POST /encounters/{id}/checkin`) i odrzucać atak wcześniej niż po 20 s. Czy to potrzebne na hackathon? Czy
+   dla `action_kind = checkin` wystarczy sama obecność, a czas pobytu tylko dla `dwell`?
 4. **Stałe gry (exp za głos = 10, za potwierdzone zgłoszenie = 50, mnożnik typu = 1.2, próg głosów = 10):** to
    wartości-placeholder do wytuningowania na podstawie testów, dziś stałe w kodzie backendu. Jeśli mają się zmieniać
    bez wdrożenia, potrzebna osobna tabela `game_config` (key/value) — czy to jest potrzebne na hackathon, czy można
