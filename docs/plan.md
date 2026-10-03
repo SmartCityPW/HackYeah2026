@@ -139,7 +139,7 @@ Branch (4 commity, odgałęziony od `53f1653`, czyli sprzed Etapów 1, 3 i 6) do
 - [x] 8.5 Paleta: wszystko na tokenach (test `palette.spec.ts` przechodzi)
 - [x] 8.6 Strona Spryciaki (poziomy, pasek exp, typ, atlas)
 - [x] 8.7 Testy frontendu: 153 ✔ (nowe: walka, serwis przeciwników, HTTP gry, `too_far`). Niesprawdzone w przeglądarce (tego nie robiłem)
-- [ ] 8.8 **Backend (w trakcie, nic nie jest jeszcze uruchomione ani przetestowane):** zrobione w kodzie: `too_far` jako 422 z odległością, `position` w głosie i nowej pinezce, pola exp w pokemonie, konfiguracja `game.encounters`, kontrakt (`openapi.yaml`, `api-contract.md`). **Zostało:** poprawić istniejące testy backendu (`tests/test_pokestops.py` używa starego `lat`/`lng` i 403), modele i migracja komórek przeciwników, `GET /encounters`, `POST /encounters/{id}/attack` z antyoszustwem, `docs/db/schema.sql`, `scripts/api_walkthrough.py`, ponowne pobranie próbek odpowiedzi dla frontendu
+- [x] 8.8 Backend: `too_far` jako 422 z `distanceM`/`radiusM`, `position` w głosie i nowej pinezce (testy przepisane, plus test nowej pinezki poza kółkiem), pola exp w pokemonie, konfiguracja `game.encounters`. Walka: model `EncounterCell` i migracja `game/0002`, `GET /encounters` (kwadraty 100 m wspólne dla graczy, leniwe zasiedlanie 0–6, odnowienie po 60 s, 5 najbliższych w promieniu, wygasanie), `POST /encounters/{id}/attack` (drużyna 1–3 własnych niezastawionych, mnożnik typu, remis = porażka, wygrana atomowo: exp dla drużyny, losowa postać poza `festival`, XP gracza; `too_far` jako wynik 200 zapisany w dzienniku; antyoszustwo: dokładność GPS i tempo ruchu → 422 `position_unreliable` zapisane jako `rejected`, limity 5 s i 20/h → 429 niezapisane; 409 `encounter_defeated`/`encounter_expired`; administrator 403). `docs/db/schema.sql` (v5: `game_encounter_cell`, `cell_id`), kontrakt (kody błędów ataku), `scripts/api_walkthrough.py` (nowe kształty i sekcja walki), próbki `encounters`/`attackWon`/`attackLost`/`attackTooFar` w `backend-sample.json` (wygenerowane klientem testowym Django, nie z serwera). Testy backendu: **116 ✔, 1 ✘** (`test_config.py::test_relative_paths_resolve_against_backend_dir`, padał już wcześniej: na Windows `/abs/path` nie jest ścieżką bezwzględną). **Niesprawdzone:** `api_walkthrough.py` na działającym serwerze, migracja na Postgresie, frontend w trybie `game: http` z prawdziwym backendem
 - [x] 8.9 „Pomiń odliczanie” tylko pod `dev.tools`
 
 **Do decyzji:**
@@ -149,7 +149,7 @@ Branch (4 commity, odgałęziony od `53f1653`, czyli sprzed Etapów 1, 3 i 6) do
 
 ## Etap 4: brakujące operacje backendu (`501`) i ich ekrany
 - [ ] `POST /photos`
-- [ ] walka: `GET /encounters`, `POST /encounters/{id}/attack`
+- [x] walka: `GET /encounters`, `POST /encounters/{id}/attack` (Etap 8.8)
 - [ ] ankiety: `survey-responses`, `survey-results`
 - [ ] wydarzenia + `check-in` + postać `festival`
 

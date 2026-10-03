@@ -265,5 +265,72 @@
     "contactEmail": "kontakt@testowa.example",
     "contactPhone": "+48 600 000 000",
     "verificationStatus": "verified"
+  },
+  "encounters": [
+    {
+      "id": 2,
+      "name": "Śmieciowy Potwór",
+      "emoji": "🗑️",
+      "level": 2,
+      "typeCode": "clean",
+      "power": 28,
+      "description": "Rośnie przy każdym wyrzuconym papierku.",
+      "actionLabel": "Wyrzuć jedną śmieć do kosza w pobliżu",
+      "xpReward": 25,
+      "lat": 50.06160868487774,
+      "lng": 19.937326751543562,
+      "expiresAt": "2026-10-03T21:46:50.327929+02:00"
+    },
+    {
+      "id": 3,
+      "name": "Korek Komunikacyjny",
+      "emoji": "🚗",
+      "level": 3,
+      "typeCode": "transport",
+      "power": 50,
+      "description": "Zablokował skrzyżowanie i nie chce odjechać.",
+      "actionLabel": "Stań przy skrzyżowaniu i rozładuj korek",
+      "xpReward": 40,
+      "lat": 50.06146080861603,
+      "lng": 19.93778986765007,
+      "expiresAt": "2026-10-03T21:46:50.327929+02:00"
+    }
+  ],
+  "attackLost": {
+    "outcome": "lost",
+    "enemyPower": 999,
+    "pokemonPowerTotal": 20,
+    "pokemons": [
+      {
+        "pokemonId": 1,
+        "powerUsed": 20,
+        "typeMultiplierApplied": 1.0
+      }
+    ]
+  },
+  "attackTooFar": {
+    "outcome": "too_far",
+    "distanceM": 1112
+  },
+  "attackWon": {
+    "outcome": "won",
+    "enemyPower": 10,
+    "pokemonPowerTotal": 20,
+    "pokemons": [
+      {
+        "pokemonId": 1,
+        "powerUsed": 20,
+        "typeMultiplierApplied": 1.0,
+        "expGained": 25
+      }
+    ],
+    "awardedCharacter": "train",
+    "xpGained": 25,
+    "progress": {
+      "level": 1,
+      "xp": 25,
+      "xpIntoLevel": 25,
+      "xpForNextLevel": 100
+    }
   }
 }

@@ -4,7 +4,7 @@ from django.conf import settings
 from apps.collection.models import Pokemon
 from apps.moderation.agent import ModerationUnavailable
 from apps.pokestops.models import Comment, ModerationLog, Pokestop, StatusChange, Vote
-from tests.conftest import FAR, NEAR, RYNEK, client_for, report_payload
+from tests.conftest import FAR, NEAR, RYNEK, at, client_for, report_payload
 
 pytestmark = pytest.mark.django_db
 URL = '/api/v1/pokestops'
@@ -15,7 +15,7 @@ def create(user, **extra):
 
 
 def vote_body(user, value='for', at=NEAR):
-    return {'vote': value, 'pokemonId': user.pokemons.first().id, 'lat': at[0], 'lng': at[1]}
+    return {'vote': value, 'pokemonId': user.pokemons.first().id, 'position': {'lat': at[0], 'lng': at[1], 'accuracyM': 5}}
 
 
 # ───────────── tworzenie ─────────────
@@ -50,12 +50,24 @@ def test_details_are_validated_against_the_scenario(resident):
 
 
 def test_cool_place_requires_rating_and_cost_and_needs_no_stake(resident):
-    base = {'scenarioCode': 'place-food', 'title': 'Kawiarnia pod żyrandolem', 'lat': RYNEK[0], 'lng': RYNEK[1]}
+    base = {'scenarioCode': 'place-food', 'title': 'Kawiarnia pod żyrandolem', 'lat': RYNEK[0], 'lng': RYNEK[1], 'position': at(*NEAR)}
     bad = client_for(resident).post(URL, {**base, 'details': {}}, format='json')
     assert bad.status_code == 422 and set(bad.data['fields']) == {'rating', 'cost'}
     ok = client_for(resident).post(URL, {**base, 'details': {'rating': '5', 'cost': 'cheap', 'vibes': ['calm']}}, format='json')
     assert ok.status_code == 201 and ok.data['type'] == 'place' and ok.data['stakedPokemonId'] is None
     assert ok.data['character'] == 'bin'  # domyślna postać scenariusza
+
+
+def test_new_pin_must_be_inside_interaction_circle_and_skips_moderation_when_too_far(resident, monkeypatch):
+    def must_not_be_called():
+        raise AssertionError('za daleko: agent nie powinien być wołany')
+
+    monkeypatch.setattr('apps.pokestops.services.get_agent', must_not_be_called)
+    r = create(resident, position=at(*FAR))
+    assert r.status_code == 422 and r.data['code'] == 'too_far' and r.data['distanceM'] > 1000
+    assert Pokestop.objects.count() == 0 and Pokemon.objects.get(user=resident).is_staked is False
+    missing = client_for(resident).post(URL, {k: v for k, v in report_payload(resident).items() if k != 'position'}, format='json')
+    assert missing.status_code == 422 and 'position' in missing.data['fields']
 
 
 def test_moderation_rejection_blocks_creation_and_is_logged(resident):
@@ -81,7 +93,7 @@ def test_moderation_outage_fails_closed(resident, monkeypatch):
 
 
 def test_org_must_be_verified_and_skips_moderation(make_org, monkeypatch):
-    org_payload = {'scenarioCode': 'org-tree', 'title': 'Nasadzenie lip', 'lat': RYNEK[0], 'lng': RYNEK[1],
+    org_payload = {'scenarioCode': 'org-tree', 'title': 'Nasadzenie lip', 'lat': RYNEK[0], 'lng': RYNEK[1], 'position': at(*RYNEK),
                    'details': {'plantingType': 'new', 'species': 'linden', 'count': 5, 'rationale': 'Cień'}}
     pending, _ = make_org(verified=False)
     denied = client_for(pending).post(URL, org_payload, format='json')
@@ -103,9 +115,9 @@ def test_org_must_be_verified_and_skips_moderation(make_org, monkeypatch):
 
 def test_roles_cannot_use_foreign_scenarios(resident, make_org, admin):
     org_user, _ = make_org()
-    assert client_for(resident).post(URL, {'scenarioCode': 'org-tree', 'title': 'Test', 'lat': 50, 'lng': 19}, format='json').status_code == 403
-    assert client_for(org_user).post(URL, {'scenarioCode': 'res-pothole', 'title': 'Test', 'lat': 50, 'lng': 19}, format='json').status_code == 403
-    assert client_for(admin).post(URL, {'scenarioCode': 'res-pothole', 'title': 'Test', 'lat': 50, 'lng': 19}, format='json').status_code == 403
+    assert client_for(resident).post(URL, {'scenarioCode': 'org-tree', 'title': 'Test', 'lat': 50, 'lng': 19, 'position': at(50, 19)}, format='json').status_code == 403
+    assert client_for(org_user).post(URL, {'scenarioCode': 'res-pothole', 'title': 'Test', 'lat': 50, 'lng': 19, 'position': at(50, 19)}, format='json').status_code == 403
+    assert client_for(admin).post(URL, {'scenarioCode': 'res-pothole', 'title': 'Test', 'lat': 50, 'lng': 19, 'position': at(50, 19)}, format='json').status_code == 403
 
 
 # ───────────── lista ─────────────
@@ -149,7 +161,8 @@ def test_vote_requires_proximity(resident, make_resident):
     stop_id = create(resident).data['id']
     voter = make_resident()
     r = client_for(voter).post(f'{URL}/{stop_id}/vote', vote_body(voter, at=FAR), format='json')
-    assert r.status_code == 403 and r.data['code'] == 'too_far'
+    assert r.status_code == 422 and r.data['code'] == 'too_far'
+    assert r.data['radiusM'] == settings.APP.game.interaction_range_m and r.data['distanceM'] > 1000
     assert Vote.objects.count() == 0 and Pokemon.objects.get(user=voter).exp == 0
 
 
@@ -161,7 +174,7 @@ def test_range_comes_from_configuration(resident, make_resident, monkeypatch):
     tight = replace(settings.APP, game=replace(settings.APP.game, interaction_range_m=1.0))
     monkeypatch.setattr(settings, 'APP', tight)
     r = client_for(voter).post(f'{URL}/{stop_id}/vote', vote_body(voter), format='json')  # ~11 m > 1 m
-    assert r.status_code == 403 and r.data['code'] == 'too_far'
+    assert r.status_code == 422 and r.data['code'] == 'too_far' and r.data['radiusM'] == 1
 
 
 def test_one_vote_per_user_and_no_vote_on_own_pin(resident, make_resident):
@@ -177,7 +190,7 @@ def test_one_vote_per_user_and_no_vote_on_own_pin(resident, make_resident):
 
 def test_admin_cannot_vote_and_foreign_pokemon_is_rejected(resident, make_resident, admin):
     stop_id = create(resident).data['id']
-    assert client_for(admin).post(f'{URL}/{stop_id}/vote', {'vote': 'for', 'pokemonId': 1, 'lat': NEAR[0], 'lng': NEAR[1]}, format='json').status_code == 403
+    assert client_for(admin).post(f'{URL}/{stop_id}/vote', {'vote': 'for', 'pokemonId': 1, 'position': at(*NEAR)}, format='json').status_code == 403
     voter, other = make_resident(), make_resident()
     body = {**vote_body(voter), 'pokemonId': other.pokemons.first().id}
     assert client_for(voter).post(f'{URL}/{stop_id}/vote', body, format='json').status_code == 422

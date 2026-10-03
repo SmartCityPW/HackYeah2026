@@ -452,11 +452,12 @@ paths:
         jeden gracz pokona danego przeciwnika.
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AttackRequest' } } } }
       responses:
-        '200': { description: Wynik walki, content: { application/json: { schema: { $ref: '#/components/schemas/AttackResult' } } } }
+        '200': { description: 'Wynik walki (`too_far` też jest wynikiem: próba zapisana, do walki nie doszło)', content: { application/json: { schema: { $ref: '#/components/schemas/AttackResult' } } } }
+        '403': { description: Administrator nie walczy, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '404': { $ref: '#/components/responses/NotFound' }
-        '409': { description: Przeciwnik pokonany lub wygasły, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '422': { $ref: '#/components/responses/ValidationError' }
-        '429': { description: Za dużo prób, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '409': { description: 'Przeciwnik pokonany (`encounter_defeated`) lub wygasły (`encounter_expired`)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: 'Błędna drużyna (`validation_error`, pole `pokemonIds`) albo niewiarygodna pozycja (`position_unreliable`: dokładność GPS ponad limit lub zbyt szybki ruch od poprzedniej próby; próba zapisana jako `rejected`)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: 'Za dużo prób (`too_many_requests`): limit 1 na 5 s i 20 na godzinę; takie żądanie nie jest zapisywane', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
 
   /admin/organizations:
     get:

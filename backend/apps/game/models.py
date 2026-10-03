@@ -44,7 +44,25 @@ class EncounterStatus(models.TextChoices):
     EXPIRED = 'expired'
 
 
+class EncounterCell(models.Model):
+    """Kwadrat terenu (bok `game.encounters.cell_size_m`), do którego przypisani są przeciwnicy, wspólny dla wszystkich graczy.
+
+    `row`/`col` to numer kwadratu w siatce (patrz `services.cell_of`). `refill_at`: kiedy pusty kwadrat zasiedli się na nowo
+    (NULL, dopóki stoją w nim przeciwnicy albo nikt jeszcze nie zauważył, że jest pusty).
+    """
+
+    row = models.IntegerField()
+    col = models.IntegerField()
+    populated_at = models.DateTimeField(null=True, blank=True)
+    refill_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'game_encounter_cell'
+        constraints = [models.UniqueConstraint(fields=['row', 'col'], name='game_encounter_cell_unique')]
+
+
 class Encounter(models.Model):
+    cell = models.ForeignKey(EncounterCell, null=True, blank=True, on_delete=models.CASCADE, related_name='encounters')
     enemy_type = models.ForeignKey(EnemyType, on_delete=models.PROTECT, related_name='encounters')
     level = models.SmallIntegerField()
     power = models.IntegerField()
@@ -95,6 +113,15 @@ class Attack(models.Model):
         constraints = [
             models.UniqueConstraint(fields=['encounter'], condition=Q(outcome='won'), name='game_attack_one_win_per_encounter'),
             models.CheckConstraint(condition=Q(distance_m__gte=0), name='attack_distance_non_negative'),
+            models.CheckConstraint(
+                condition=Q(outcome__in=['won', 'lost'], pokemon_power_total__isnull=False)
+                | (~Q(outcome__in=['won', 'lost']) & Q(pokemon_power_total__isnull=True)),
+                name='attack_power_total_required',
+            ),
+            models.CheckConstraint(
+                condition=Q(outcome='won', reward_pokemon__isnull=False) | (~Q(outcome='won') & Q(reward_pokemon__isnull=True)),
+                name='attack_reward_iff_won',
+            ),
         ]
 
 

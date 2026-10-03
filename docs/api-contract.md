@@ -62,7 +62,10 @@ i do wyboru 3 pokemonów do walki.
   postać do kolekcji i XP. Suma mniejsza lub równa → `lost`: próba się zapisuje, nagrody nie ma, przeciwnik
   pozostaje aktywny i można próbować ponownie (także innymi pokemonami). Zwycięstwo jest atomowe (unikalny indeks),
   więc dwóch graczy nie pokona tego samego przeciwnika. Klient liczy odległość i podgląd mocy tylko na wyświetlanie —
-  serwer rozstrzyga walkę od nowa.
+  serwer rozstrzyga walkę od nowa. Nowa postać za wygraną jest losowana z aktywnych postaci poza unikalnymi za
+  wydarzenia (`festival`), a XP gracza = `xpReward`. Kody błędów: `403` administrator, `409` `encounter_defeated` /
+  `encounter_expired`, `422` `validation_error` (drużyna) lub `position_unreliable` (antyoszustwo, próba zapisana jako
+  `rejected`), `429` `too_many_requests` (próba niezapisana).
 - **Przeciwnicy:** generuje wyłącznie serwer (losowanie z `game_enemy_type` wg wag, czas życia `expiresAt`); moc i
   typ przeciwnika są widoczne w `GET /encounters`, żeby gracz mógł dobrać pokemony przed podejściem. Są
   **przypisani do miejsc**: teren dzieli się na kwadraty 100 × 100 m, każdy kwadrat przy pierwszym odwiedzeniu losuje

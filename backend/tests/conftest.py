@@ -88,7 +88,13 @@ def report_payload(user: User, **extra) -> dict:
     """Poprawne zgłoszenie problemu (scenariusz res-pothole) z zastawionym pokemonem startowym."""
     payload = {
         'scenarioCode': 'res-pothole', 'title': 'Dziura w chodniku', 'description': 'Głęboka dziura',
-        'lat': RYNEK[0], 'lng': RYNEK[1], 'position': {'lat': RYNEK[0], 'lng': RYNEK[1]}, 'stakedPokemonId': user.pokemons.first().id,
+        'lat': RYNEK[0], 'lng': RYNEK[1], 'stakedPokemonId': user.pokemons.first().id,
     }
     payload.update(extra)
+    payload.setdefault('position', at(payload['lat'], payload['lng']))  # domyślnie gracz stoi przy pinezce
     return payload
+
+
+def at(lat: float, lng: float) -> dict:
+    """Pozycja gracza w chwili akcji (`PositionRequest`)."""
+    return {'lat': lat, 'lng': lng}

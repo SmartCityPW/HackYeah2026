@@ -5,15 +5,16 @@ baza: [`../docs/db/README.md`](../docs/db/README.md).
 
 ## Stan
 
-`python manage.py contract_status` pokazuje, które operacje z kontraktu są gotowe. Dziś: **25 z 36 zaimplementowanych**, reszta
-to jawne `501 not_implemented` (ankiety, zdjęcia, wydarzenia, walka). Nic z kontraktu nie zwraca 404.
+`python manage.py contract_status` pokazuje, które operacje z kontraktu są gotowe. Dziś: **27 z 36 zaimplementowanych**, reszta
+to jawne `501 not_implemented` (ankiety, zdjęcia, wydarzenia, edycja scenariusza). Nic z kontraktu nie zwraca 404.
 
 | Gotowe | Atrapy (501), kolejne wycinki do zrobienia |
 |---|---|
 | konta (gość, rejestracja, organizacja, logowanie, odświeżanie, zapis konta), profil, organizacje, weryfikacja | `POST /photos` |
 | `GET /catalog`, `GET /scenarios` | `POST /pokestops/{id}/survey-responses`, `GET .../survey-results` |
 | pinezki: lista z `bbox`, szczegóły, tworzenie (scenariusze, zastaw, moderacja AI), głos (zasięg, exp, zwrot zastawu), wycofanie, status, komentarze | `GET/POST /events`, `/events/{id}`, `/events/{id}/check-in` |
-| kolekcja, pokemony, postęp gracza, interakcje | `GET /encounters`, `POST /encounters/{id}/attack` |
+| kolekcja, pokemony, postęp gracza, interakcje | `PUT /admin/scenarios/{code}` |
+| walka: przeciwnicy w kwadratach terenu (`GET /encounters`), atak z antyoszustwem (`POST /encounters/{id}/attack`) | |
 
 ## Uruchomienie
 
@@ -39,7 +40,7 @@ source config/local.env      # DJANGO_SECRET_KEY, APP_CONFIG_OVERRIDE, DEMO_PASS
 Dane demo (konta, zweryfikowana organizacja i 6 pinezek wokół Rynku w Krakowie; tylko tryb debug, hasło z `DEMO_PASSWORD`):
 `DEMO_PASSWORD=... .venv/bin/python manage.py seed_demo`. Test "z zewnątrz" na działającym serwerze: `.venv/bin/python scripts/api_walkthrough.py`.
 
-Testy: `.venv/bin/python -m pytest` (79 testów, SQLite w pamięci, bez zewnętrznych usług).
+Testy: `.venv/bin/python -m pytest` (117 testów, SQLite w pamięci, bez zewnętrznych usług).
 
 > Dockerfile i `docker-compose.yml` zostały napisane, ale **nie uruchamiane** (na maszynie, na której powstały, nie było Dockera).
 > Pierwsze `docker compose up --build` to ich pierwszy test. Spójność compose z konfiguracją sprawdza `tests/test_deployment_files.py`.

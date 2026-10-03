@@ -49,7 +49,7 @@ Triggery z `schema.sql` (liczniki głosów, własność pokemona, limit trzech w
 | `scenarios` | katalog formularzy (dane, nie kod) | `scenarios_scenario`, `_section`, `_field`, `_field_option` |
 | `pokestops` | pinezki, głosy, komentarze, zdjęcia, ankiety, moderacja | `pokestops_pokestop`, `_photo`, `_vote`, `_comment`, `_status_change`, `_moderation_log`, `_question`, `_survey_response`, `_survey_answer` |
 | `events` | wydarzenia organizacji i udział w nich | `events_event`, `events_participation` |
-| `game` | przeciwnicy, walki (moc/typ/mnożnik), XP gracza | `game_enemy_type`, `game_encounter`, `game_attack`, `game_attack_pokemon`, `game_player_progress` |
+| `game` | przeciwnicy, walki (moc/typ/mnożnik), XP gracza | `game_enemy_type`, `game_encounter_cell`, `game_encounter`, `game_attack`, `game_attack_pokemon`, `game_player_progress` |
 
 Zależności (sprawdzone z kluczy obcych, **bez cykli**):
 
@@ -162,6 +162,7 @@ erDiagram
     accounts_user ||--o{ events_participation : "uczestniczy"
     collection_pokemon ||--o| events_participation : "nagroda za udział"
     game_enemy_type ||--o{ game_encounter : "szablon"
+    game_encounter_cell ||--o{ game_encounter : "kwadrat terenu"
     game_encounter ||--o{ game_attack : "próby walki"
     accounts_user ||--o{ game_attack : "atakuje"
     game_attack ||--o{ game_attack_pokemon : "użyte pokemony"

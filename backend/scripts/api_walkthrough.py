@@ -24,6 +24,7 @@ LAT = float(os.environ.get('WALK_LAT', '50.0617'))  # punkt, w którym powstaje 
 LNG = float(os.environ.get('WALK_LNG', '19.9373'))
 NEAR = (LAT + 0.0001, LNG)   # ok. 11 m od pinezki
 FAR = (LAT + 0.01, LNG)      # ok. 1,1 km od pinezki
+HERE = {'lat': LAT, 'lng': LNG}  # pozycja gracza przy tworzeniu pinezki (stoi w tym samym miejscu)
 
 steps = {'ok': 0, 'fail': 0}
 
@@ -76,12 +77,12 @@ check('GET /scenarios: katalog mieszkańca (3 kategorie)', {s['category'] for s 
 
 section('3. Zgłoszenie problemu z zastawem pokemona')
 status, stop = call('POST', '/pokestops', {'scenarioCode': 'res-pothole', 'title': 'Dziura (test skryptu)', 'description': 'Testowa dziura',
-                                          'lat': LAT, 'lng': LNG, 'stakedPokemonId': pokemons[0]['id']}, token=author)
+                                          'lat': LAT, 'lng': LNG, 'position': HERE, 'stakedPokemonId': pokemons[0]['id']}, token=author)
 check('POST /pokestops: 201, status open, postać = gatunek zastawionego pokemona', status == 201 and stop['status'] == 'open' and stop['character'] == pokemons[0]['character'], stop)
 check('zastawiony pokemon jest zablokowany do walki', call('GET', '/me/pokemons?availableOnly=true', token=author)[1] == [])
-check('te same zastaw drugi raz: 409 pokemon_unavailable', call('POST', '/pokestops', {'scenarioCode': 'res-pothole', 'title': 'Drugie', 'lat': LAT, 'lng': LNG, 'stakedPokemonId': pokemons[0]['id']}, token=author)[1].get('code') == 'pokemon_unavailable')
+check('te same zastaw drugi raz: 409 pokemon_unavailable', call('POST', '/pokestops', {'scenarioCode': 'res-pothole', 'title': 'Drugie', 'lat': LAT, 'lng': LNG, 'position': HERE, 'stakedPokemonId': pokemons[0]['id']}, token=author)[1].get('code') == 'pokemon_unavailable')
 # cool miejsce nie wymaga zastawu, więc o odrzuceniu decyduje wyłącznie moderacja
-status, rejected = call('POST', '/pokestops', {'scenarioCode': 'place-food', 'title': f'Test {cfg.moderation.stub.reject_marker}', 'lat': LAT, 'lng': LNG,
+status, rejected = call('POST', '/pokestops', {'scenarioCode': 'place-food', 'title': f'Test {cfg.moderation.stub.reject_marker}', 'lat': LAT, 'lng': LNG, 'position': HERE,
                                               'details': {'rating': '4', 'cost': 'cheap'}}, token=author)
 if cfg.moderation.provider == 'stub':
     check('moderacja AI (tryb stub) odrzuca treść ze znacznikiem: 422 moderation_rejected', status == 422 and rejected['code'] == 'moderation_rejected', rejected)
@@ -90,13 +91,13 @@ section('4. Głosowanie tylko z bliska')
 voter, _ = guest()
 voter_pokemon = call('GET', '/me/pokemons', token=voter)[1][0]
 vote = {'vote': 'for', 'pokemonId': voter_pokemon['id']}
-status, body = call('POST', f'/pokestops/{stop["id"]}/vote', {**vote, 'lat': FAR[0], 'lng': FAR[1]}, token=voter)
-check('z odległości ~1,1 km: 403 too_far', status == 403 and body['code'] == 'too_far', body)
-status, body = call('POST', f'/pokestops/{stop["id"]}/vote', {**vote, 'lat': NEAR[0], 'lng': NEAR[1]}, token=voter)
+status, body = call('POST', f'/pokestops/{stop["id"]}/vote', {**vote, 'position': {'lat': FAR[0], 'lng': FAR[1]}}, token=voter)
+check('z odległości ~1,1 km: 422 too_far z odległością i promieniem', status == 422 and body['code'] == 'too_far' and body['radiusM'] == cfg.game.interaction_range_m, body)
+status, body = call('POST', f'/pokestops/{stop["id"]}/vote', {**vote, 'position': {'lat': NEAR[0], 'lng': NEAR[1]}}, token=voter)
 exp_gain = cfg.game.exp.per_vote
 check(f'z odległości ~11 m: 200, głos zapisany, wybrany pokemon dostaje +{exp_gain} exp', status == 200 and body['stop']['votesFor'] == 1 and body['pokemon']['exp'] == exp_gain, body)
-check('drugi głos tego samego użytkownika: 409 already_voted', call('POST', f'/pokestops/{stop["id"]}/vote', {**vote, 'lat': NEAR[0], 'lng': NEAR[1]}, token=voter)[1].get('code') == 'already_voted')
-own = call('POST', f'/pokestops/{stop["id"]}/vote', {'vote': 'for', 'pokemonId': pokemons[0]['id'], 'lat': NEAR[0], 'lng': NEAR[1]}, token=author)[1]
+check('drugi głos tego samego użytkownika: 409 already_voted', call('POST', f'/pokestops/{stop["id"]}/vote', {**vote, 'position': {'lat': NEAR[0], 'lng': NEAR[1]}}, token=voter)[1].get('code') == 'already_voted')
+own = call('POST', f'/pokestops/{stop["id"]}/vote', {'vote': 'for', 'pokemonId': pokemons[0]['id'], 'position': {'lat': NEAR[0], 'lng': NEAR[1]}}, token=author)[1]
 check('autor nie głosuje na własną pinezkę: 403 own_pokestop', own.get('code') == 'own_pokestop', own)
 
 section('5. Dyskusja')
@@ -119,9 +120,19 @@ check('POST withdraw: status rejected', status == 200 and withdrawn['status'] ==
 back = call('GET', '/me/pokemons?availableOnly=true', token=author)[1]
 check('pokemon wrócił do autora (bez premii exp)', len(back) == 1 and back[0]['exp'] == 0, back)
 
-section('8. Funkcje jeszcze niezaimplementowane odpowiadają jawnie')
-status, body = call('GET', '/encounters?lat=50&lng=19', token=author)
-check('GET /encounters: 501 not_implemented (a nie 404)', status == 501 and body['code'] == 'not_implemented', body)
+section('8. Walka')
+radius = cfg.game.encounters.max_radius_m
+status, enemies = call('GET', f'/encounters?lat={LAT}&lng={LNG}&radius={radius}', token=author)
+check(f'GET /encounters: 200, najwyżej {cfg.game.encounters.max_in_response} przeciwników', status == 200 and len(enemies) <= cfg.game.encounters.max_in_response, enemies)
+check('drugie zapytanie: ci sami przeciwnicy (przypisani do miejsca)', [e['id'] for e in call('GET', f'/encounters?lat={LAT}&lng={LNG}&radius={radius}', token=voter)[1]] == [e['id'] for e in enemies])
+if enemies:
+    enemy = enemies[0]
+    status, result = call('POST', f'/encounters/{enemy["id"]}/attack', {'lat': enemy['lat'], 'lng': enemy['lng'], 'pokemonIds': [pokemons[0]['id']]}, token=author)
+    check('POST /encounters/{id}/attack z miejsca przeciwnika: wynik won albo lost', status == 200 and result['outcome'] in ('won', 'lost'), result)
+    status, body = call('POST', f'/encounters/{enemy["id"]}/attack', {'lat': enemy['lat'], 'lng': enemy['lng'], 'pokemonIds': [pokemons[0]['id']]}, token=author)
+    check('druga próba od razu: 429 (limit częstotliwości) albo 409 (już pokonany)', status in (409, 429), body)
+else:
+    print('  - brak przeciwników w okolicy (losowanie dało 0), atak pominięty')
 
 section('9. Administrator z danych demo (opcjonalnie)')
 password = os.environ.get('DEMO_PASSWORD')

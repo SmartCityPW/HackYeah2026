@@ -10,6 +10,9 @@
 --   * to jest docelowy kształt bazy: modele Django mają go odwzorować,
 --     a migracje (`makemigrations`) wygenerują właściwy DDL. Plik służy jako wzorzec i do szybkiej inicjalizacji.
 --
+-- v5: przeciwnicy przypisani do kwadratów terenu (game_encounter_cell, game_encounter.cell_id), wspólni dla graczy;
+--     game_attack zapisuje też próby odrzucone (antyoszustwo) i poza zasięgiem.
+--
 -- v4: zgodność z docs/opis.md: wydarzenia (events_*), ankiety (pokestops_question/_survey_*), głosowanie i ankiety
 --     tylko w zasięgu punktu (pozycja zapisywana przy głosie), agent AI zwraca tylko tak/nie.
 --
@@ -480,8 +483,18 @@ CREATE TABLE game_enemy_type (                          -- szablony, z których 
     CONSTRAINT enemy_weight_positive CHECK (spawn_weight > 0)
 );
 
+CREATE TABLE game_encounter_cell (                      -- kwadrat terenu (bok game.encounters.cell_size_m), wspólny dla graczy
+    id            bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    "row"         integer     NOT NULL,                   -- numer kwadratu w siatce (z szerokości geograficznej)
+    col           integer     NOT NULL,                   -- numer kwadratu w rzędzie (z długości, liczonej dla środka rzędu)
+    populated_at  timestamptz,                            -- ostatnie zasiedlenie (losowanie 0..max_per_cell przeciwników)
+    refill_at     timestamptz,                            -- kiedy wyczyszczony kwadrat zasiedli się na nowo; NULL, gdy stoją w nim przeciwnicy
+    CONSTRAINT game_encounter_cell_unique UNIQUE ("row", col)
+);
+
 CREATE TABLE game_encounter (                           -- konkretny przeciwnik na mapie
     id            bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    cell_id       bigint           REFERENCES game_encounter_cell (id) ON DELETE CASCADE,   -- kwadrat, do którego należy przeciwnik
     enemy_type_id smallint         NOT NULL REFERENCES game_enemy_type (id),
     level         smallint         NOT NULL,
     power         integer          NOT NULL,                      -- migawka mocy (z enemy_type.base_power/power_growth i poziomu) w chwili wygenerowania
@@ -502,6 +515,7 @@ CREATE TABLE game_encounter (                           -- konkretny przeciwnik 
     )
 );
 CREATE INDEX game_encounter_active_location_idx ON game_encounter USING gist (location) WHERE status = 'active';
+CREATE INDEX game_encounter_cell_idx ON game_encounter (cell_id) WHERE status = 'active';
 CREATE INDEX game_encounter_active_expiry_idx ON game_encounter (expires_at) WHERE status = 'active';
 
 -- Stawiany pokemon musi należeć do autora, być dostępny (nie już zastawiony) i mieć gatunek
