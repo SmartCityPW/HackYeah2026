@@ -4,7 +4,9 @@ from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
 from apps.accounts.models import MemberRole, Organization, OrganizationMember, User, VerificationStatus
-from apps.collection.services import grant_starter
+from apps.collection.models import Character, PokemonOrigin
+from apps.collection.services import grant_pokemon, grant_starter
+from apps.game.models import PlayerProgress
 from apps.pokestops.models import Pokestop
 from apps.pokestops.services import create_pokestop
 from core.secrets import secret
@@ -42,8 +44,21 @@ class Command(BaseCommand):
             return user
         user = User.objects.create_user(row['email'], password, row['name'], role=row['role'])
         if row['role'] == 'resident':
-            grant_starter(user)
+            self._collection(user, row)
         if row['role'] == 'org':
             org = Organization.objects.create(**row['organization'], verification_status=VerificationStatus.VERIFIED, verified_at=timezone.now())
             OrganizationMember.objects.create(organization=org, user=user, member_role=MemberRole.OWNER)
         return user
+
+    def _collection(self, user: User, row: dict) -> None:
+        """Startowy pokemon, a dla kont "w połowie gry" także dodatkowe Spryciaki z exp i XP gracza (klucze `pokemons`, `xp`)."""
+        starter = grant_starter(user)
+        if row.get('starter_exp'):
+            starter.exp = row['starter_exp']
+            starter.save(update_fields=['exp'])
+        for item in row.get('pokemons', []):
+            pokemon = grant_pokemon(user, Character.objects.get(code=item['character']), PokemonOrigin.ENCOUNTER)
+            pokemon.exp = item.get('exp', 0)
+            pokemon.save(update_fields=['exp'])
+        if row.get('xp'):
+            PlayerProgress.objects.update_or_create(user=user, defaults={'xp': row['xp']})

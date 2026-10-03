@@ -7,6 +7,10 @@ import { CharacterId } from '../pokestop.model';
 export const EXP_PER_POKEMON_LEVEL = 100;
 export const XP_PER_PLAYER_LEVEL = 100;
 
+/** Exp kolejnych Spryciaków konta demo (poziom = 1 + exp / 100) i które z nich czekają na zgłoszeniach (MOCK_STOPS). */
+const MID_GAME_EXP = [620, 480, 410, 350, 300, 260, 210, 170, 130, 90, 50, 20];
+const STAKED = [6, 9];
+
 export interface OwnedPokemon {
   id: number;
   character: CharacterId;
@@ -40,10 +44,10 @@ export function toPokemon(p: OwnedPokemon, catalog: CatalogService): Pokemon {
 @Injectable({ providedIn: 'root' })
 export class MockPlayerState {
   private readonly catalog = inject(CatalogService);
-  /** XP gracza (poziom gracza liczy się z niego; głosy nie dają xp, tylko exp pokemonowi). */
-  xp = 120;
-  /** Na start: postać startowa i dwie kolejne ze słownika (z różnym exp, żeby było widać poziomy). */
-  readonly pokemons: OwnedPokemon[] = this.starterTeam();
+  /** XP gracza (poziom gracza liczy się z niego; głosy nie dają xp, tylko exp pokemonowi). Konto demo jest "w połowie gry". */
+  xp = 640;
+  /** Konto demo w połowie gry: kilkanaście Spryciaków na różnych poziomach, dwa zastawione na własnych zgłoszeniach. */
+  readonly pokemons: OwnedPokemon[] = this.midGameTeam();
 
   find(id: number): OwnedPokemon | undefined {
     return this.pokemons.find((p) => p.id === id);
@@ -59,10 +63,10 @@ export class MockPlayerState {
     return pokemon;
   }
 
-  private starterTeam(): OwnedPokemon[] {
-    const all = this.catalog.characters();
+  private midGameTeam(): OwnedPokemon[] {
+    const all = this.catalog.characters().filter((c) => !c.isEventExclusive);
     const starter = all.find((c) => c.isStarter) ?? all[0];
-    const others = all.filter((c) => c !== starter && !c.isEventExclusive).slice(0, 2);
-    return [starter, ...others].map((c, i) => ({ id: i + 1, character: c.code, exp: [150, 40, 0][i], isStaked: false }));
+    const team = [starter, ...all.filter((c) => c !== starter)].slice(0, MID_GAME_EXP.length);
+    return team.map((c, i) => ({ id: i + 1, character: c.code, exp: MID_GAME_EXP[i], isStaked: STAKED.includes(i) }));
   }
 }

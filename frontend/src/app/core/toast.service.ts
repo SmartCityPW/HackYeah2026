@@ -3,7 +3,7 @@ import { AppConfigService } from './config/app-config.service';
 
 export interface Toast {
   text: string;
-  /** Ikona dopasowana do treści: 🎁 nagroda, 🚶 trzeba podejść, ⚠️ przerwanie lub błąd. Znaczenie niesie ikona, nie kolor. */
+  /** Rodzaj komunikatu: 🎁 nagroda, 🚶 trzeba podejść, ⚠️ przerwanie lub błąd. Powłoka pokazuje znak ⚠ przy dwóch ostatnich (znaczenie niesie znak, nie kolor). */
   icon: string;
 }
 

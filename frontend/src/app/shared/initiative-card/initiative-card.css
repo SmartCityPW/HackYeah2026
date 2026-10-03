@@ -1,5 +1,5 @@
 :host { display: block; }
-article { background: var(--surface); border-radius: 18px; padding: 12px; box-shadow: 0 1px 4px var(--shadow); }
+article { background: var(--surface); border-radius: 14px; padding: 12px; box-shadow: 0 1px 4px var(--shadow); }
 .head { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: 0; padding: 0; text-align: left; font: inherit; cursor: pointer; }
 .icon { font-size: 1.8rem; }
 .text { flex: 1; min-width: 0; display: flex; flex-direction: column; }

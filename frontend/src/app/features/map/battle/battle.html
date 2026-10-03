@@ -3,17 +3,17 @@
   <header class="enemy">
     <span class="enemy-emoji" aria-hidden="true">{{ enc.emoji }}</span>
     <div>
-      <p class="kicker">⚔️ Tryb walki · poziom {{ enc.level }}</p>
+      <p class="kicker">Tryb walki · poziom {{ enc.level }}</p>
       <h2>{{ enc.name }}</h2>
       <p class="meta">
         <span class="chip">{{ types[enc.typeCode].emoji }} {{ types[enc.typeCode].label }}</span>
-        <span class="chip power">💪 Moc {{ enc.power }}</span>
+        <span class="chip power">Moc {{ enc.power }}</span>
       </p>
     </div>
   </header>
 
   @if (graceLeft() !== null && (phase() === 'action' || phase() === 'team')) {
-    <p class="grace" role="alert">🚶 Jesteś poza kółkiem! Wróć w ciągu {{ graceLeft() }} s, inaczej walka się przerwie.</p>
+    <p class="grace" role="alert">Jesteś poza kółkiem. Wróć w ciągu {{ graceLeft() }} s, inaczej walka się przerwie.</p>
   }
 
   @switch (phase()) {
@@ -35,20 +35,20 @@
       @let r = result()!;
       <div class="panel result" [class.won]="r.outcome === 'won'">
         @if (r.outcome === 'won') {
-          <h3>🏆 Wygrana!</h3>
+          <h3>Wygrana</h3>
           <p>Twoja drużyna: <strong>{{ r.pokemonPowerTotal }}</strong> vs <strong>{{ r.enemyPower }}</strong></p>
           <ul class="rewards">
             @for (p of team(); track p.id) {
               <li>{{ catalog.character(p.character).emoji }} {{ catalog.character(p.character).label }} <strong>+{{ expGained(p.id) }} exp</strong></li>
             }
-            <li>⭐ <strong>+{{ r.xpGained }} XP</strong> dla Ciebie</li>
+            <li><strong>+{{ r.xpGained }} XP</strong> dla Ciebie</li>
             @if (r.awardedCharacter; as c) {
-              <li class="new">🎁 Nowy Spryciak: {{ catalog.character(c).emoji }} <strong>{{ catalog.character(c).label }}</strong></li>
+              <li class="new">Nowy Spryciak: {{ catalog.character(c).emoji }} <strong>{{ catalog.character(c).label }}</strong></li>
             }
           </ul>
           <button class="btn go" (click)="closed.emit()">Wróć na mapę</button>
         } @else {
-          <h3>💥 Przegrana</h3>
+          <h3>Przegrana</h3>
           <p>Twoja drużyna: <strong>{{ r.pokemonPowerTotal }}</strong> vs <strong>{{ r.enemyPower }}</strong>. Przeciwnik wciąż tu jest.</p>
           <div class="actions">
             <button class="btn go" (click)="retry()">Spróbuj innym składem</button>
@@ -66,7 +66,7 @@
         </div>
 
         @if (phase() === 'fighting') {
-          <p class="fighting-label">⚔️ Starcie trwa…</p>
+          <p class="fighting-label">Starcie trwa…</p>
         } @else {
           <h3>Wybierz drużynę ({{ team().length }}/{{ maxTeam }})</h3>
           @if (available().length === 0) {
@@ -85,7 +85,7 @@
               >
                 <span class="p-emoji">{{ catalog.character(p.character).emoji }}</span>
                 <strong>{{ catalog.character(p.character).label }}</strong>
-                <small>poz. {{ p.level }} · {{ types[p.typeCode].emoji }} · 💪 {{ p.power }}</small>
+                <small>poz. {{ p.level }} · {{ types[p.typeCode].label }} · moc {{ p.power }}</small>
                 @if (bonus) { <span class="bonus">bonus typu</span> }
               </button>
             }
@@ -99,13 +99,13 @@
               Za słabo: potrzeba więcej niż {{ enc.power }} mocy.
             }
           </p>
-          <button class="btn fight" [disabled]="team().length === 0" (click)="fight()">⚔️ Atakuj</button>
+          <button class="btn fight" [disabled]="team().length === 0" (click)="fight()">Atakuj</button>
         }
       </div>
     }
   }
 
   @if (phase() === 'action' || phase() === 'team') {
-    <button class="flee" (click)="closed.emit()">🏃 Uciekaj</button>
+    <button class="flee" (click)="closed.emit()">Uciekaj</button>
   }
 </section>

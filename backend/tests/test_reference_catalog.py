@@ -44,6 +44,7 @@ def test_scenarios_use_only_characters_from_the_reference_file(settings):
 
 def test_replacing_the_set_deactivates_old_characters_and_moves_the_starter(tmp_path, anon, make_resident):
     data = read_reference()
+    old = set(Character.objects.filter(is_active=True).values_list('code', flat=True))
     data['characters'] = [
         {'code': 'sprytek', 'label': 'Sprytek', 'emoji': '🦊', 'category_label': 'Test', 'type': 'green', 'base_power': 21, 'is_starter': True},
         {'code': 'iskra', 'label': 'Iskra', 'emoji': '⚡', 'category_label': 'Test', 'type': 'energy', 'base_power': 19},
@@ -54,7 +55,7 @@ def test_replacing_the_set_deactivates_old_characters_and_moves_the_starter(tmp_
 
     load_reference(path)
     assert anon.get('/api/v1/catalog').json() == catalog_from_reference(data)
-    assert set(Character.objects.filter(is_active=False).values_list('code', flat=True)) >= {'cyclist', 'festival'}
+    assert set(Character.objects.filter(is_active=False).values_list('code', flat=True)) == old
     assert EnemyType.objects.filter(is_active=True).count() == 1
     assert make_resident().pokemons.get().character.code == 'sprytek'  # nowe konto dostaje nową postać startową
     load_reference(path)  # ponowne wczytanie niczego nie psuje

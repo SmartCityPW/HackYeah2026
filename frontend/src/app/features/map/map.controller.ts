@@ -38,7 +38,6 @@ export class MapController implements OnDestroy {
   private readonly characters = new CharactersLayer((code) => this.catalog.character(code).modelPath);
   private readonly markers = new Map<number, maplibregl.Marker>();
   private readonly enemyMarkers = new Map<number, maplibregl.Marker>();
-  private userMarker?: maplibregl.Marker;
   private pulseFrame?: number;
   private userLat?: number;
   /** Widok sprzed trybu walki, przywracany po jej zakończeniu. */
@@ -104,7 +103,8 @@ export class MapController implements OnDestroy {
     }
   }
 
-  showUser(lngLat: [number, number]): void {
+  /** Pozycja gracza: kółko interakcji i model 3D jego Spryciaka-towarzysza (`modelPath`) zamiast kropki. */
+  showUser(lngLat: [number, number], modelPath: string | null): void {
     if (!this.map) return;
     const ring = circleRing({ lng: lngLat[0], lat: lngLat[1] }, this.radiusM);
     (this.map.getSource(RANGE_SOURCE) as maplibregl.GeoJSONSource | undefined)?.setData({
@@ -117,15 +117,10 @@ export class MapController implements OnDestroy {
       properties: {},
       geometry: { type: 'Point', coordinates: lngLat },
     });
+    const first = this.userLat === undefined;
     this.userLat = lngLat[1];
-    if (this.userMarker) {
-      this.userMarker.setLngLat(lngLat);
-      return;
-    }
-    const el = document.createElement('div');
-    el.className = 'user-marker';
-    this.userMarker = new maplibregl.Marker({ element: el }).setLngLat(lngLat).addTo(this.map);
-    this.map.jumpTo({ center: lngLat });
+    void this.characters.setPlayer(lngLat, modelPath);
+    if (first) this.map.jumpTo({ center: lngLat });
   }
 
   focus(lat: number, lng: number): void {

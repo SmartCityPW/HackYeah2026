@@ -10,14 +10,14 @@
 
   <div class="support" [attr.aria-label]="'Poparcie: ' + support() + '%'">
     <div class="bar"><div class="fill" [style.width.%]="support()"></div></div>
-    <small>👍 {{ stop().votesFor }} · 👎 {{ stop().votesAgainst }} · 💬 {{ stop().commentCount ?? stop().comments.length }}</small>
+    <small>{{ stop().votesFor }} za · {{ stop().votesAgainst }} przeciw · {{ stop().commentCount ?? stop().comments.length }} kom.</small>
   </div>
 
   @if (showInteraction()) {
     <p class="mine">
-      @if (stop().mine) { <span>📌 Twoje zgłoszenie</span> }
-      @if (stop().myVote) { <span>{{ stop().myVote === 'for' ? '👍 Zagłosowano za' : '👎 Zagłosowano przeciw' }}</span> }
-      @if (myComments() > 0) { <span>💬 Skomentowano ({{ myComments() }})</span> }
+      @if (stop().mine) { <span>Twoje zgłoszenie</span> }
+      @if (stop().myVote) { <span>{{ stop().myVote === 'for' ? 'Głos za' : 'Głos przeciw' }}</span> }
+      @if (myComments() > 0) { <span>Twoje komentarze: {{ myComments() }}</span> }
     </p>
   }
 

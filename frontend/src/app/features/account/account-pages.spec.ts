@@ -171,7 +171,7 @@ describe('AccountPanel', () => {
   it('a guest is offered saving progress, logging in and an organization account', async () => {
     const { session } = setup({ guest: true });
     const page = await render(AccountPanel, session);
-    expect(page.text()).toContain('🎮 Gość');
+    expect(page.text()).toContain('Gość');
     const links = [...page.el.querySelectorAll('a')].map((a) => a.getAttribute('href'));
     expect(links).toEqual(['/rejestracja', '/logowanie', '/rejestracja-organizacji']);
     expect(page.el.textContent).not.toContain('Wyloguj');
@@ -190,7 +190,10 @@ describe('AccountPanel', () => {
     const { session } = setup({ remote: false });
     const page = await render(AccountPanel, session);
     expect(page.text()).toContain('Tryb atrap');
-    expect(page.el.querySelector('button, a')).toBeNull();
+    expect(page.el.querySelector('a')).toBeNull();
+    expect(page.text()).not.toContain('Wyloguj');
+    // Na atrapie konta (i z narzędziami deweloperskimi) zamiast logowania jest przełącznik widoku.
+    expect([...page.el.querySelectorAll('.segmented button')].map((b) => b.textContent)).toEqual(['Mieszkaniec', 'Organizacja', 'Administrator']);
   });
 });
 

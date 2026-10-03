@@ -6,6 +6,7 @@ import { AppConfigService } from '../../core/config/app-config.service';
 import { Encounter, Position, TYPES } from '../../core/game.model';
 import { distanceMeters } from '../../core/geo.utils';
 import { describeError } from '../../core/http/api-error';
+import { PROFILE_PATH } from '../../core/navigation';
 import { POKESTOP_TYPES, Pokestop } from '../../core/pokestop.model';
 import { PokemonService } from '../../core/pokemon.service';
 import { GeolocationService } from '../../core/geolocation.service';
@@ -15,6 +16,7 @@ import { findScenario } from '../../core/scenario.catalog';
 import { describeDetails } from '../../core/scenario.utils';
 import { SessionService } from '../../core/session.service';
 import { ToastService } from '../../core/toast.service';
+import { Icon } from '../../shared/icon/icon';
 import { StatusChip } from '../../shared/status-chip/status-chip';
 import { Battle } from './battle/battle';
 import { MapController } from './map.controller';
@@ -23,7 +25,7 @@ import { ReportDraft, ReportPanel } from './report-panel/report-panel';
 /** Ekran mapy ("home"): pinezki, głosowanie, komentarze, zgłoszenia i tryb walki. Logikę MapLibre ma `MapController`. */
 @Component({
   selector: 'app-map-page',
-  imports: [Battle, ReportPanel, StatusChip, RouterLink],
+  imports: [Battle, ReportPanel, StatusChip, RouterLink, Icon],
   providers: [MapController],
   templateUrl: './map.page.html',
   styleUrl: './map.page.css',
@@ -45,6 +47,16 @@ export class MapPage {
   protected readonly interactionRadius = inject(AppConfigService).config.game.interactionRangeM;
   protected readonly enemyTypes = TYPES;
   protected readonly devTools = inject(AppConfigService).config.dev.tools;
+  private readonly simulatedGps = inject(AppConfigService).config.game.simulatedGps;
+  protected readonly gpsSimulated = this.geo.isSimulated;
+  /** Przycisk poziomu prowadzi do profilu gracza. */
+  protected readonly profilePath = computed(() => PROFILE_PATH[this.session.role()]);
+  /** Na mapie gracza reprezentuje jego najsilniejszy Spryciak (jak towarzysz w Pokémon GO), a nie kropka. */
+  private readonly buddyModel = computed(() => {
+    const best = [...this.pokemons.pokemons()].sort((a, b) => b.power - a.power)[0];
+    const code = best?.character ?? this.catalog.characters().find((c) => c.isStarter)?.code;
+    return code ? this.catalog.character(code).modelPath : null;
+  });
 
   /** Z parametru adresu `?stop=ID`, np. przy przejściu z listy inicjatyw. */
   readonly stop = input<string>();
@@ -139,12 +151,18 @@ export class MapPage {
     inject(DestroyRef).onDestroy(() => clearTimeout(this.reloadTimer));
     effect(() => {
       const position = this.geo.position();
-      if (position && this.mapCtl.ready()) this.mapCtl.showUser(position);
+      if (position && this.mapCtl.ready()) this.mapCtl.showUser(position, this.buddyModel());
     });
     effect(() => {
       const id = Number(this.stop());
       if (id && this.mapCtl.ready()) untracked(() => void this.select(id));
     });
+  }
+
+  /** Tryb deweloperski: symulowana pozycja (domyślnie przy wejściu na Arenę), żeby testować grę bez wychodzenia z domu. */
+  protected toggleSimulatedGps(): void {
+    const { lat, lng } = this.simulatedGps;
+    this.geo.simulate(this.geo.isSimulated() ? null : [lng, lat]);
   }
 
   private distanceTo(target: Position | null): number | null {

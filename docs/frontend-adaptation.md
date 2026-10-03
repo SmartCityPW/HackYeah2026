@@ -92,7 +92,7 @@ przez dwóch użytkowników-gości i zapisz odpowiedzi `GET /pokestops`, `/me/co
 
 ## Znane ograniczenia
 
-- **Postać `festival`** (unikalna za wydarzenia) jest już w słowniku frontendu (z `GET /catalog`), ale nie ma modelu 3D: na mapie rysuje się postać zastępcza.
+- **Postać za wydarzenia:** obecny zestaw Spryciaków nie ma postaci `is_event_exclusive` (dawna `festival` jest wyłączona). Do ustalenia przy wydarzeniach (Etap 4).
 - **Tryb `http` dla `pokestops` i `account` jest kompletny dla pętli gry** (głos, zgłoszenie, komentarze). Walka (`game: http`) i zdjęcia czekają na backend, więc `game` zostaje na `mock`.
 - **Tryb `http` wymaga działającego backendu już przy starcie** (zakłada konto gościa i pobiera `/me`). Gdy backend nie odpowiada, aplikacja się nie uruchomi (biały ekran). Ekran błędu startu to zadanie na etap wdrożeniowy.
 - Narzędzia deweloperskie (przełącznik ról, symulator GPS) wyłącza `dev.tools: false`. W produkcji koniecznie.

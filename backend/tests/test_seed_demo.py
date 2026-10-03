@@ -21,6 +21,8 @@ def test_demo_data_is_created_once_and_has_a_verified_org(monkeypatch):
     call_command('seed_demo')  # drugi raz nic nie dubluje
     assert (User.objects.count(), Pokestop.objects.count()) == (users, pins)
     assert User.objects.get(email='admin@demo.smartcity.example').check_password('demo-haslo-1234')
+    tester = User.objects.get(email='tester@demo.smartcity.example')  # konto "w połowie gry" do pokazu
+    assert tester.pokemons.count() == 12 and tester.progress.xp == 640 and tester.pokemons.order_by('-exp').first().exp == 620
 
 
 def test_demo_password_comes_from_the_environment_only(monkeypatch):

@@ -1,8 +1,9 @@
+import type { IconName } from '../shared/icon/icon';
 import { Role } from './session.service';
 
 export interface NavItem {
   label: string;
-  icon: string;
+  icon: IconName;
   path: string;
   /** Dopasowanie dokładne (dla "home", żeby nie świecił na podstronach). */
   exact?: boolean;
@@ -13,25 +14,28 @@ export interface NavItem {
 export const ROLE_HOME: Record<Role, string> = { resident: '/', org: '/org', admin: '/admin' };
 
 /** Adres ekranu mapy dla danej roli (do przejść typu "pokaż na mapie"). */
+/** Profil gracza (cel przycisku poziomu na mapie). */
+export const PROFILE_PATH: Record<Role, string> = { resident: '/profil', org: '/org/organizacja', admin: '/admin/konto' };
+
 export const MAP_PATH: Record<Role, string> = { resident: '/', org: '/org', admin: '/admin/mapa' };
 
 export const NAV_ITEMS: Record<Role, NavItem[]> = {
   resident: [
-    { label: 'Mapa', icon: '🗺️', path: '/', exact: true },
-    { label: 'Spryciaki', icon: '🎒', path: '/spryciaki' },
-    { label: 'Inicjatywy', icon: '📋', path: '/inicjatywy' },
-    { label: 'Konto', icon: '👤', path: '/konto' },
+    { label: 'Mapa', icon: 'map', path: '/', exact: true },
+    { label: 'Moje Spryciaki', icon: 'spryciaki', path: '/spryciaki' },
+    { label: 'Inicjatywy', icon: 'list', path: '/inicjatywy' },
+    { label: 'Profil', icon: 'user', path: '/profil' },
   ],
   org: [
-    { label: 'Mapa', icon: '🗺️', path: '/org', exact: true },
-    { label: 'Inicjatywy', icon: '📋', path: '/org/inicjatywy' },
-    { label: 'Organizacja', icon: '🏢', path: '/org/organizacja' },
+    { label: 'Mapa', icon: 'map', path: '/org', exact: true },
+    { label: 'Inicjatywy', icon: 'list', path: '/org/inicjatywy' },
+    { label: 'Organizacja', icon: 'building', path: '/org/organizacja' },
   ],
   admin: [
-    { label: 'Moderacja', icon: '🛡️', path: '/admin', exact: true },
-    { label: 'Organizacje', icon: '🏢', path: '/admin/organizacje' },
-    { label: 'Scenariusze', icon: '🧩', path: '/admin/scenariusze' },
-    { label: 'Mapa', icon: '🗺️', path: '/admin/mapa' },
-    { label: 'Konto', icon: '👤', path: '/admin/konto' },
+    { label: 'Moderacja', icon: 'shield', path: '/admin', exact: true },
+    { label: 'Organizacje', icon: 'building', path: '/admin/organizacje' },
+    { label: 'Scenariusze', icon: 'grid', path: '/admin/scenariusze' },
+    { label: 'Mapa', icon: 'map', path: '/admin/mapa' },
+    { label: 'Konto', icon: 'user', path: '/admin/konto' },
   ],
 };

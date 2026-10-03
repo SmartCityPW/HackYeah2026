@@ -9,13 +9,25 @@ types:
   - {code: infra,     name: Infrastruktura, emoji: "🧱"}
 
 characters:
-  - {code: cyclist, label: Rowerzysta,   emoji: "🚴", category_label: Rowery i ścieżki, model_path: null, type: transport, base_power: 20, power_growth: 4, is_starter: true}
-  - {code: bin,     label: Stworek Kosz, emoji: "🗑️", category_label: Czystość i śmieci, model_path: null, type: clean, base_power: 15, power_growth: 4}
-  - {code: tree,    label: Drzewo,       emoji: "🌳", category_label: Zieleń, model_path: models/kenney-mini-forest/tree.glb, type: green, base_power: 18, power_growth: 4}
-  - {code: train,   label: Pociąg,       emoji: "🚆", category_label: Komunikacja, model_path: models/kenney-train-kit/train-electric-city-a.glb, type: transport, base_power: 25, power_growth: 5}
-  - {code: lamp,    label: Latarnia,     emoji: "💡", category_label: Oświetlenie, model_path: models/kenney-city-kit-roads/light-curved.glb, type: energy, base_power: 12, power_growth: 3}
-  # Unikalny pokemon za udział w wydarzeniu (nie wypada z walk ani ankiet).
-  - {code: festival, label: Maskotka Festiwalu, emoji: "🎪", category_label: Wydarzenia, model_path: null, type: infra, base_power: 22, power_growth: 5, is_event_exclusive: true}
+  # Spryciaki: modele 3D w frontend/public/models/spryciaki/ (rejestr licencji: docs/ASSETS.md).
+  # Moc (base_power, power_growth) to placeholdery do strojenia po pierwszych testach. Dokładnie jedna postać is_starter.
+  - {code: bicycle,         label: Rower,              emoji: "🚲", category_label: Rowery i ścieżki,  type: transport, base_power: 20, power_growth: 4, model_path: models/spryciaki/bicycle.glb, is_starter: true}
+  - {code: car,             label: Samochód,           emoji: "🚗", category_label: Ruch uliczny,      type: transport, base_power: 22, power_growth: 4, model_path: models/spryciaki/car.glb}
+  - {code: small_car,       label: Autko,              emoji: "🚘", category_label: Ruch uliczny,      type: transport, base_power: 18, power_growth: 4, model_path: models/spryciaki/small_car.glb}
+  - {code: suv,             label: SUV,                emoji: "🚙", category_label: Ruch uliczny,      type: transport, base_power: 26, power_growth: 5, model_path: models/spryciaki/suv.glb}
+  - {code: sports_car,      label: Auto sportowe,      emoji: "🏎️", category_label: Ruch uliczny,      type: transport, base_power: 24, power_growth: 5, model_path: models/spryciaki/sports_car.glb}
+  - {code: van,             label: Furgonetka,         emoji: "🚐", category_label: Dostawy i usługi,  type: transport, base_power: 25, power_growth: 5, model_path: models/spryciaki/van.glb}
+  - {code: trash_can,       label: Kosz na śmieci,     emoji: "🗑️", category_label: Czystość,          type: clean,     base_power: 15, power_growth: 4, model_path: models/spryciaki/trash_can.glb}
+  - {code: dumpster,        label: Kontener na śmieci, emoji: "♻️", category_label: Odpady,            type: clean,     base_power: 21, power_growth: 5, model_path: models/spryciaki/dumpster.glb}
+  - {code: tree,            label: Drzewo,             emoji: "🌳", category_label: Zieleń,            type: green,     base_power: 18, power_growth: 4, model_path: models/spryciaki/tree.glb}
+  - {code: potted_tree,     label: Drzewko w donicy,   emoji: "🪴", category_label: Zieleń na ulicy,   type: green,     base_power: 14, power_growth: 3, model_path: models/spryciaki/potted_tree.glb}
+  - {code: flower_pot,      label: Kwiaty w donicy,    emoji: "🌷", category_label: Zieleń na ulicy,   type: green,     base_power: 12, power_growth: 3, model_path: models/spryciaki/flower_pot.glb}
+  - {code: air_conditioner, label: Klimatyzator,       emoji: "❄️", category_label: Powietrze i klimat, type: air,      base_power: 17, power_growth: 4, model_path: models/spryciaki/air_conditioner.glb}
+  - {code: billboard,       label: Billboard,          emoji: "🪧", category_label: Reklama i światło,  type: energy,   base_power: 16, power_growth: 4, model_path: models/spryciaki/billboard.glb}
+  - {code: bench,           label: Ławka,              emoji: "🪑", category_label: Mała architektura, type: infra,     base_power: 13, power_growth: 3, model_path: models/spryciaki/bench.glb}
+  - {code: cone,            label: Pachołek,           emoji: "🚧", category_label: Roboty drogowe,    type: infra,     base_power: 12, power_growth: 3, model_path: models/spryciaki/cone.glb}
+  - {code: fire_hydrant,    label: Hydrant,            emoji: "🧯", category_label: Sieć wodna,        type: infra,     base_power: 19, power_growth: 4, model_path: models/spryciaki/fire_hydrant.glb}
+  - {code: floor_hole,      label: Dziura w chodniku,  emoji: "🕳️", category_label: Chodniki,          type: infra,     base_power: 16, power_growth: 4, model_path: models/spryciaki/floor_hole.glb}
 
 enemy_types:
   - {code: traffic_jam,    name: Korek Komunikacyjny, emoji: "🚗",  description: Zablokował skrzyżowanie i nie chce odjechać., type: transport, action_kind: checkin, action_label: Stań przy skrzyżowaniu i rozładuj korek, min_level: 2, max_level: 4, base_power: 30, power_growth: 10, base_xp: 40, spawn_weight: 3}

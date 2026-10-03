@@ -5,10 +5,23 @@ Każdy plik z `frontend/public/` (modele 3D, tekstury, ikony, dźwięki, czcionk
 
 | Nazwa | Źródło (link) | Licencja | Autor | Gdzie użyte |
 |-------|---------------|----------|-------|-------------|
-| tree.glb (+ colormap.png) | https://kenney.nl/assets/mini-forest | CC0 | Kenney | `frontend/public/models/kenney-mini-forest/` — postać Drzewo |
-| train-electric-city-a.glb (+ colormap.png) | https://kenney.nl/assets/train-kit | CC0 | Kenney | `frontend/public/models/kenney-train-kit/` — postać Pociąg |
-| light-curved.glb (+ colormap.png) | https://kenney.nl/assets/city-kit-roads | CC0 | Kenney | `frontend/public/models/kenney-city-kit-roads/` — postać Latarnia |
-| Rowerzysta, Stworek Kosz | własne, generowane w kodzie (three.js) | — (własność projektu) | zespół | `frontend/src/app/features/map/three/character-factory.ts` |
+| air_conditioner.glb („Air conditioner”) | **do uzupełnienia** | **do uzupełnienia** | **do uzupełnienia** | `frontend/public/models/spryciaki/` — Spryciak (kod `air_conditioner`) |
+| bench.glb („Bench”) | **do uzupełnienia** | **do uzupełnienia** | **do uzupełnienia** | `frontend/public/models/spryciaki/` — Spryciak (kod `bench`) |
+| bicycle.glb („Bicycle”) | **do uzupełnienia** | **do uzupełnienia** | **do uzupełnienia** | `frontend/public/models/spryciaki/` — Spryciak (kod `bicycle`) |
+| billboard.glb („Billboard”) | **do uzupełnienia** | **do uzupełnienia** | **do uzupełnienia** | `frontend/public/models/spryciaki/` — Spryciak (kod `billboard`) |
+| car.glb („Car”) | **do uzupełnienia** | **do uzupełnienia** | **do uzupełnienia** | `frontend/public/models/spryciaki/` — Spryciak (kod `car`) |
+| small_car.glb („Car (unqqkULtRU)”) | **do uzupełnienia** | **do uzupełnienia** | **do uzupełnienia** | `frontend/public/models/spryciaki/` — Spryciak (kod `small_car`) |
+| cone.glb („Cone”) | **do uzupełnienia** | **do uzupełnienia** | **do uzupełnienia** | `frontend/public/models/spryciaki/` — Spryciak (kod `cone`) |
+| dumpster.glb („Dumpster”) | **do uzupełnienia** | **do uzupełnienia** | **do uzupełnienia** | `frontend/public/models/spryciaki/` — Spryciak (kod `dumpster`) |
+| fire_hydrant.glb („Fire hydrant”) | **do uzupełnienia** | **do uzupełnienia** | **do uzupełnienia** | `frontend/public/models/spryciaki/` — Spryciak (kod `fire_hydrant`) |
+| floor_hole.glb („Floor Hole”) | **do uzupełnienia** | **do uzupełnienia** | **do uzupełnienia** | `frontend/public/models/spryciaki/` — Spryciak (kod `floor_hole`) |
+| flower_pot.glb („Flower Pot (Kgt363WkKd)”) | **do uzupełnienia** | **do uzupełnienia** | **do uzupełnienia** | `frontend/public/models/spryciaki/` — Spryciak (kod `flower_pot`) |
+| potted_tree.glb („Flower Pot”) | **do uzupełnienia** | **do uzupełnienia** | **do uzupełnienia** | `frontend/public/models/spryciaki/` — Spryciak (kod `potted_tree`) |
+| sports_car.glb („Sports Car (Gzj704DXdr)”) | **do uzupełnienia** | **do uzupełnienia** | **do uzupełnienia** | `frontend/public/models/spryciaki/` — Spryciak (kod `sports_car`) |
+| suv.glb („SUV”) | **do uzupełnienia** | **do uzupełnienia** | **do uzupełnienia** | `frontend/public/models/spryciaki/` — Spryciak (kod `suv`) |
+| trash_can.glb („Trash Can”) | **do uzupełnienia** | **do uzupełnienia** | **do uzupełnienia** | `frontend/public/models/spryciaki/` — Spryciak (kod `trash_can`) |
+| tree.glb („Tree”) | **do uzupełnienia** | **do uzupełnienia** | **do uzupełnienia** | `frontend/public/models/spryciaki/` — Spryciak (kod `tree`) |
+| van.glb („Van”) | **do uzupełnienia** | **do uzupełnienia** | **do uzupełnienia** | `frontend/public/models/spryciaki/` — Spryciak (kod `van`) |
 
 ## Biblioteki i dane
 

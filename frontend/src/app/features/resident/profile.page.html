@@ -1,0 +1,44 @@
+<div class="page">
+  <section class="hero">
+    <div class="hero-model">
+      @if (top()[0]; as buddy) { <app-spryciak-model [character]="buddy.character" /> }
+    </div>
+    <div class="hero-text">
+      <h1>{{ session.profile().displayName }}</h1>
+      <p class="level">Poziom <strong>{{ progress().level }}</strong></p>
+      <div class="xp" role="progressbar" [attr.aria-valuenow]="progress().xpIntoLevel" [attr.aria-valuemax]="progress().xpForNextLevel" aria-label="XP do następnego poziomu">
+        <span [style.width.%]="(progress().xpIntoLevel / progress().xpForNextLevel) * 100"></span>
+      </div>
+      <small>{{ progress().xpIntoLevel }} / {{ progress().xpForNextLevel }} XP do poziomu {{ progress().level + 1 }}</small>
+    </div>
+  </section>
+
+  <h2>Najsilniejsze Spryciaki</h2>
+  <div class="top">
+    @for (p of top(); track p.id; let i = $index) {
+      @let species = catalog.character(p.character);
+      <article class="mon">
+        <app-spryciak-model [character]="p.character" [phase]="i * 2" />
+        <strong>{{ p.nickname ?? species.label }}</strong>
+        <small>Poziom {{ p.level }} · moc {{ p.power }}</small>
+      </article>
+    } @empty {
+      <p class="empty">Nie masz jeszcze Spryciaków.</p>
+    }
+  </div>
+  <a class="more" routerLink="/spryciaki">
+    Wszystkie Spryciaki ({{ ownedCount() }}) · odkryte gatunki {{ collection.unlocked() }} / {{ catalog.characters().length }}
+    <app-icon name="chevron" />
+  </a>
+
+  <h2>Udział w sprawach miasta</h2>
+  <div class="stats">
+    @for (s of stats(); track s.label) {
+      <div class="stat"><strong>{{ s.value }}</strong><span>{{ s.label }}</span></div>
+    }
+  </div>
+  <a class="more" routerLink="/inicjatywy">Moje inicjatywy <app-icon name="chevron" /></a>
+
+  <h2>Konto</h2>
+  <app-account-panel />
+</div>

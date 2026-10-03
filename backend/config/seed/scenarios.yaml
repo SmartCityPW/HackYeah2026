@@ -8,7 +8,7 @@ scenarios:
     label: "Dziura lub uszkodzony chodnik"
     description: "Dziura, wyrwa, zapadnięta kostka."
     emoji: "🕳️"
-    character: "cyclist"
+    character: "floor_hole"
     default_title: "Dziura w chodniku"
     sort_order: 0
     sections:
@@ -24,7 +24,7 @@ scenarios:
     label: "Brak kosza na śmieci"
     description: "Brakuje kosza albo jest przepełniony."
     emoji: "🗑️"
-    character: "bin"
+    character: "trash_can"
     default_title: "Brakuje kosza na śmieci"
     sort_order: 1
     sections:
@@ -40,7 +40,7 @@ scenarios:
     label: "Zepsuta latarnia"
     description: "Ciemno, latarnia nie świeci."
     emoji: "💡"
-    character: "lamp"
+    character: "billboard"
     default_title: "Zepsuta latarnia"
     sort_order: 2
     sections:
@@ -72,7 +72,7 @@ scenarios:
     label: "Problem z komunikacją"
     description: "Przystanek, rozkład, korek, niebezpieczne przejście."
     emoji: "🚆"
-    character: "train"
+    character: "car"
     default_title: "Problem z komunikacją"
     sort_order: 4
     sections:
@@ -88,7 +88,7 @@ scenarios:
     label: "Problem dla rowerzystów"
     description: "Brak ścieżki, zepsuty stojak, niebezpieczny odcinek."
     emoji: "🚴"
-    character: "cyclist"
+    character: "bicycle"
     default_title: "Problem dla rowerzystów"
     sort_order: 5
     sections:
@@ -104,7 +104,7 @@ scenarios:
     label: "Przystanek autobusowy"
     description: "Tu przydałby się nowy przystanek."
     emoji: "🚏"
-    character: "train"
+    character: "small_car"
     default_title: "Nowy przystanek"
     sort_order: 6
     sections:
@@ -121,7 +121,7 @@ scenarios:
     label: "Sklep lub usługa na osiedlu"
     description: "Warzywniak, piekarnia, apteka, punkt usługowy."
     emoji: "🥕"
-    character: "bin"
+    character: "van"
     default_title: "Sklep warzywny na osiedlu"
     sort_order: 7
     sections:
@@ -139,7 +139,7 @@ scenarios:
     label: "Plac zabaw lub boisko"
     description: "Miejsce do zabawy i sportu."
     emoji: "🛝"
-    character: "cyclist"
+    character: "bench"
     default_title: "Nowy plac zabaw"
     sort_order: 8
     sections:
@@ -156,7 +156,7 @@ scenarios:
     label: "Zieleń, drzewa, skwer"
     description: "Tu mogłoby być zielono."
     emoji: "🌿"
-    character: "tree"
+    character: "potted_tree"
     default_title: "Więcej zieleni"
     sort_order: 9
     sections:
@@ -173,7 +173,7 @@ scenarios:
     label: "Rowery: stojaki, ścieżka"
     description: "Infrastruktura dla rowerzystów."
     emoji: "🚲"
-    character: "cyclist"
+    character: "bicycle"
     default_title: "Stojaki lub ścieżka rowerowa"
     sort_order: 10
     sections:
@@ -190,7 +190,7 @@ scenarios:
     label: "Inny pomysł"
     description: "Coś, czego tu brakuje."
     emoji: "💭"
-    character: "lamp"
+    character: "cone"
     default_title: "Mój pomysł dla miasta"
     sort_order: 11
     sections:
@@ -207,7 +207,7 @@ scenarios:
     label: "Jedzenie i kawa"
     description: "Kawiarnia, street food, bar, cukiernia."
     emoji: "☕"
-    character: "bin"
+    character: "bench"
     default_title: ""
     sort_order: 12
     sections:
@@ -234,7 +234,7 @@ scenarios:
     label: "Zieleń i chillout"
     description: "Park, skwer, widok, miejsce nad wodą."
     emoji: "🌇"
-    character: "tree"
+    character: "flower_pot"
     default_title: ""
     sort_order: 13
     sections:
@@ -261,7 +261,7 @@ scenarios:
     label: "Rozrywka i sport"
     description: "Skatepark, boisko, arcade, tor rowerowy."
     emoji: "🛹"
-    character: "cyclist"
+    character: "sports_car"
     default_title: ""
     sort_order: 14
     sections:
@@ -287,7 +287,7 @@ scenarios:
     label: "Kultura i hobby"
     description: "Mural, galeria, biblioteka, księgarnia, koncerty."
     emoji: "🎨"
-    character: "lamp"
+    character: "billboard"
     default_title: ""
     sort_order: 15
     sections:
@@ -313,7 +313,7 @@ scenarios:
     label: "Nowy przystanek autobusowy"
     description: "Propozycja nowego przystanku wraz ze zmianami w liniach."
     emoji: "🚏"
-    character: "train"
+    character: "small_car"
     default_title: "Nowy przystanek autobusowy"
     sort_order: 16
     sections:
@@ -397,7 +397,7 @@ scenarios:
     label: "Uszkodzona mała architektura"
     description: "Zgłoszenie uszkodzonej ławki, kosza, placu zabaw, wiaty itp."
     emoji: "🪑"
-    character: "bin"
+    character: "bench"
     default_title: "Uszkodzona mała architektura"
     sort_order: 18
     sections:
@@ -430,7 +430,7 @@ scenarios:
     label: "Szkoda na powierzchni"
     description: "Dziury, zapadnięcia i uszkodzenia nawierzchni."
     emoji: "🚧"
-    character: "cyclist"
+    character: "cone"
     default_title: "Uszkodzenie nawierzchni"
     sort_order: 19
     sections:

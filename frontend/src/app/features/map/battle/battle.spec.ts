@@ -6,6 +6,9 @@ import { AttackResult, Encounter } from '../../../core/game.model';
 import { ApiHttpError } from '../../../core/http/api-error';
 import { PokemonService } from '../../../core/pokemon.service';
 import { Battle } from './battle';
+import mockCatalog from '../../../core/catalog/catalog.mock.json';
+
+const STARTER = mockCatalog.characters.find((c) => c.isStarter)!;
 
 const GAME = TEST_CONFIG.game; // dwell 3 s, grace 2 s, drużyna do 3, mnożnik 1,2, animacja starcia 0 ms
 const enemy: Encounter = {
@@ -111,12 +114,12 @@ describe('Battle', () => {
       const { fixture, el } = await setup();
       await toTeamStep(fixture);
       const names = [...el.querySelectorAll('.pokemon strong')].map((n) => n.textContent);
-      expect(names[0]).toBe('Rowerzysta'); // 150 exp, poziom 2, moc 24
+      expect(names[0]).toBe(STARTER.label); // postać startowa atrap: 150 exp, poziom 2, moc 24
       expect((el.querySelector('.btn.fight') as HTMLButtonElement).disabled).toBe(true);
       expect(text(el)).toContain('Wybierz od 1 do 3 Spryciaków');
 
       click(fixture, '.pokemon', 0);
-      expect(text(el)).toContain('bonus typu'); // rowerzysta (transport) kontra korek (transport)
+      expect(text(el)).toContain('bonus typu'); // postać startowa (transport) kontra korek (transport)
       expect(text(el)).toContain('Za słabo');   // 24 × 1,2 = 29 < 60
       expect((el.querySelector('.btn.fight') as HTMLButtonElement).disabled).toBe(false);
     });

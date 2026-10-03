@@ -4,9 +4,9 @@
     <p class="kicker">{{ scenario.emoji }} {{ isOrg() ? 'Inicjatywa organizacji' : categoryMeta()?.label }}</p>
     <h2>{{ scenario.label }}</h2>
     @if (pinInRange()) {
-      <p class="pin-hint">Przesuń mapę, aby pinezka 📍 wskazała właściwe miejsce w Twoim kółku.</p>
+      <p class="pin-hint">Przesuń mapę, aby pinezka wskazała właściwe miejsce w Twoim kółku.</p>
     } @else {
-      <p class="pin-hint out">Pinezka 📍 jest poza Twoim kółkiem. Przesuń mapę albo podejdź bliżej.</p>
+      <p class="pin-hint out">Pinezka jest poza Twoim kółkiem. Przesuń mapę albo podejdź bliżej.</p>
     }
     @if (needsStake()) {
       <label class="stake">
@@ -34,7 +34,7 @@
     />
   }
   @case ('scenario') {
-    <p class="kicker">{{ isOrg() ? '🏢 ' + organization() : categoryMeta()?.emoji + ' ' + categoryMeta()?.label }}</p>
+    <p class="kicker">{{ isOrg() ? organization() : categoryMeta()?.label }}</p>
     <h2>{{ isOrg() ? 'Wybierz rodzaj inicjatywy' : 'Wybierz rodzaj' }}</h2>
     <div class="catalog">
       @for (s of catalog(); track s.id) {
@@ -47,7 +47,7 @@
     @if (!isOrg()) { <button type="button" class="back" (click)="back()">← Wróć</button> }
   }
   @default {
-    <p class="kicker">➕ Nowa pinezka</p>
+    <p class="kicker">Nowa pinezka</p>
     <h2>Co chcesz dodać?</h2>
     <div class="catalog">
       @for (c of categories; track c.id) {

@@ -155,8 +155,22 @@ Problem: postacie były wpisane w kilku miejscach (YAML backendu, `seed_referenc
 - [x] 9.2 Frontend: `CatalogService` (`api.mode.catalog`: mock = `catalog.mock.json`, http = `GET /catalog` przy starcie). `CharacterId` to `string`, usunięte `CHARACTERS`, `CHARACTER_IDS`, `SPECIES`, `characterLabel`. Modele 3D ładowane z `modelPath`, bez modelu lub przy błędzie wczytania postać zastępcza (usunięty Rowerzysta budowany w kodzie)
 - [x] 9.3 Atrapy z tego samego pliku: `manage.py export_reference` generuje `catalog.mock.json` i `docs/db/seed_reference.sql`; test backendu pilnuje aktualności
 - [x] 9.4 `openapi.yaml`: `CharacterCode` bez zamkniętej listy, `CatalogCharacter` z nowymi polami. Testy: backend 121 ✔ (1 ✘ jak wcześniej, Windows), frontend 159 ✔, `ng build` ✔. Niesprawdzone w przeglądarce
-- [ ] 9.5 Wymiana zestawu na Spryciaki (po dostarczeniu modeli i katalogu): `reference.yaml`, przepięcie postaci w `scenarios.yaml` i `scenario.catalog.ts` (+ `npm run db:seed-scenarios`), atrapy pinezek, `export_reference`, skala i orientacja modeli na mapie
+- [x] 9.5 Wymiana zestawu na 17 Spryciaków (`frontend/public/models/spryciaki/`, pliki przemianowane na kody postaci, modele Kenneya usunięte): `reference.yaml` (postać startowa: Rower; brak postaci za wydarzenia), postacie scenariuszy w `scenario.catalog.ts` → `scenarios.yaml` i `seed_scenarios.sql`, atrapy pinezek, `export_reference`, testy uniezależnione od konkretnych kodów. Backend 121 ✔ (1 ✘ Windows), frontend 159 ✔, `ng build` ✔. **Niesprawdzone w przeglądarce:** skala i orientacja modeli (modele z FBX: `dumpster`, `floor_hole`, `flower_pot`, `potted_tree`, `sports_car`; `floor_hole` jest płaski). **Do uzupełnienia:** źródła i licencje modeli w `docs/ASSETS.md`
 - [ ] 9.6 Zostało zdublowane: szablony przeciwników w `game.api.mock.ts` (kopia `enemy_types`) i typy w `TYPES` (`game.model.ts`). Do przeniesienia do katalogu przy okazji
+
+## Etap 10: uwagi z przeglądu interfejsu (2026-10-03)
+
+Walka: zostaje wariant A (przeciwników generuje i walki rozstrzyga backend, jak w kontrakcie i Etapie 8.8). Frontend przełącza się na backend wartością `api.mode.game: http`.
+
+- [x] 10.1 Mapa startuje przy TAURON Arenie Kraków (`map.center`, `game.simulatedGps`); pinezki atrap (12) i dane demo backendu (`demo.yaml`) wokół Areny, z sensowną treścią i udziałem konta demo (własne zgłoszenia, głosy, konsultacje, komentarze)
+- [x] 10.2 Przyciski na mapie: poziom (lewy górny róg, prowadzi do profilu), „Zgłoś” na dole pośrodku, symulowany GPS osobno w prawym dolnym rogu (tylko `dev.tools`), szybka walka w prawym górnym. Pasek ról zniknął z góry ekranu: przełącznik widoku jest w Profilu/Koncie (tylko narzędzia deweloperskie na atrapie konta)
+- [x] 10.3 Nawigacja: ikony SVG zamiast emoji, „Moje Spryciaki”, „Profil” zamiast „Konto” (`/konto` przekierowuje)
+- [x] 10.4 Profil mieszkańca (`/profil`): poziom i XP, 3 najsilniejsze Spryciaki (modele 3D), udział w sprawach miasta (zgłoszenia, pomysły, głosy, konsultacje, inicjatywy NGO, załatwione), konto
+- [x] 10.5 Moje Spryciaki: obracające się modele 3D z poziomem, mocą i paskiem exp; atlas 17 gatunków (nieodkryte jako sylwetka). Jeden wspólny renderer WebGL dla wszystkich miniatur (~30 kl./s, tylko widoczne karty), bez WebGL zostaje emoji
+- [x] 10.6 Konto demo „w połowie gry”: atrapy poziom 7 i 12 Spryciaków (2 zastawione); backend: konto `tester@demo…` (Zosia) z tym samym stanem
+- [x] 10.7 Gracz na mapie to model 3D jego najsilniejszego Spryciaka (zamiast niebieskiej kropki)
+- [x] 10.8 Mniej „czatowy” interfejs: bez dekoracyjnych emoji w przyciskach, nagłówkach, kartach i komunikatach (zostały emoji postaci, przeciwników i kategorii), mniejsze zaokrąglenia, przełączniki segmentowe. Testy: frontend 160 ✔, `ng build` ✔, backend `test_seed_demo` ✔. **Niesprawdzone w przeglądarce** (wygląd, modele 3D w miniaturach i na mapie, telefon)
+- [ ] 10.9 Do decyzji/dalej: przegląd pozostałych ekranów (organizacja, administrator, formularze) w tym samym stylu; więcej gatunków Spryciaków wymaga nowych modeli
 
 ## Etap 4: brakujące operacje backendu (`501`) i ich ekrany
 - [ ] `POST /photos`

@@ -3,17 +3,6 @@
 </main>
 <app-navbar [items]="navItems()" />
 
-@if (devTools) {
-<div class="dev-role" title="Tryb deweloperski: przełącznik widoku">
-  @if (roleSwitchable()) {
-    @for (r of roles; track r.role) {
-      <button [class.on]="role() === r.role" (click)="switchRole(r.role)">{{ r.label }}</button>
-    }
-  }
-  <button [class.on]="gpsSimulated()" (click)="toggleSimulatedGps()" title="Symuluj pozycję GPS na Rynku (chodzenie: strzałki lub WASD, Shift = dłuższy krok)">📍 GPS</button>
-</div>
-}
-
 @if (toast.message(); as t) {
-  <div class="toast" role="status">{{ t.icon }} {{ t.text }}</div>
+  <div class="toast" role="status" [class.warn]="t.icon === '⚠️' || t.icon === '🚶'">{{ t.text }}</div>
 }

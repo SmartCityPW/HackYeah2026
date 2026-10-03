@@ -4,6 +4,7 @@ from django.conf import settings
 from apps.collection.models import Pokemon
 from apps.moderation.agent import ModerationUnavailable
 from apps.pokestops.models import Comment, ModerationLog, Pokestop, StatusChange, Vote
+from apps.scenarios.models import Scenario
 from tests.conftest import FAR, NEAR, RYNEK, at, client_for, report_payload
 
 pytestmark = pytest.mark.django_db
@@ -24,7 +25,7 @@ def test_resident_creates_report_and_pokemon_is_staked(resident):
     r = create(resident)
     assert r.status_code == 201, r.data
     assert r.data['type'] == 'report' and r.data['mine'] is True and r.data['status'] == 'open'
-    assert r.data['character'] == 'cyclist'  # gatunek zastawionego pokemona (startowy), a nie pole scenariusza
+    assert r.data['character'] == resident.pokemons.get().character.code  # gatunek zastawionego pokemona (startowy), a nie pole scenariusza
     assert r.data['icon'] == '🕳️' and r.data['scenarioCode'] == 'res-pothole'
     assert Pokemon.objects.get(pk=r.data['stakedPokemonId']).is_staked is True
     assert ModerationLog.objects.filter(verdict='approved', pokestop_id=r.data['id']).count() == 1
@@ -55,7 +56,7 @@ def test_cool_place_requires_rating_and_cost_and_needs_no_stake(resident):
     assert bad.status_code == 422 and set(bad.data['fields']) == {'rating', 'cost'}
     ok = client_for(resident).post(URL, {**base, 'details': {'rating': '5', 'cost': 'cheap', 'vibes': ['calm']}}, format='json')
     assert ok.status_code == 201 and ok.data['type'] == 'place' and ok.data['stakedPokemonId'] is None
-    assert ok.data['character'] == 'bin'  # domyślna postać scenariusza
+    assert ok.data['character'] == Scenario.objects.get(code='place-food').default_character.code  # domyślna postać scenariusza
 
 
 def test_new_pin_must_be_inside_interaction_circle_and_skips_moderation_when_too_far(resident, monkeypatch):
@@ -324,6 +325,7 @@ def test_pokemons_collection_and_progress_endpoints(resident):
     create(resident)
     assert client_for(resident).get('/api/v1/me/pokemons', {'availableOnly': 'true'}).data == []
     collection = client_for(resident).get('/api/v1/me/collection').data
-    assert collection['cyclist'] == 1 and collection['bin'] == 0
+    starter = resident.pokemons.get().character.code
+    assert collection[starter] == 1 and sum(collection.values()) == 1
     progress = client_for(resident).get('/api/v1/me/progress').data
     assert progress == {'level': 1, 'xp': 0, 'xpIntoLevel': 0, 'xpForNextLevel': 100}

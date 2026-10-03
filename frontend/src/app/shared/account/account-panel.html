@@ -2,7 +2,7 @@
   <h2>{{ session.profile().displayName }}</h2>
   <div class="chips">
     <span class="chip">{{ roleLabel() }}</span>
-    @if (session.isGuest()) { <span class="chip">🎮 Gość</span> }
+    @if (session.isGuest()) { <span class="chip">Gość</span> }
   </div>
 
   @if (!session.hasAccounts()) {
@@ -10,13 +10,24 @@
   } @else if (session.isGuest()) {
     <p class="hint">Grasz jako gość. Zapisz postęp, żeby nie stracić pokemonów, głosów i poziomu, a także móc wrócić z innego urządzenia.</p>
     <div class="actions">
-      <a class="btn primary" routerLink="/rejestracja">💾 Zapisz postęp</a>
+      <a class="btn primary" routerLink="/rejestracja">Zapisz postęp</a>
       <a class="btn" routerLink="/logowanie">Zaloguj się</a>
-      <a class="btn" routerLink="/rejestracja-organizacji">🏢 Konto organizacji</a>
+      <a class="btn" routerLink="/rejestracja-organizacji">Konto organizacji</a>
     </div>
   } @else {
     <div class="actions">
       <button type="button" class="btn" [disabled]="busy()" (click)="logout()">Wyloguj</button>
+    </div>
+  }
+
+  @if (roleSwitch()) {
+    <div class="dev">
+      <p class="dev-title">Narzędzia deweloperskie: widok</p>
+      <div class="segmented" role="group" aria-label="Widok aplikacji">
+        @for (r of roles; track r.role) {
+          <button type="button" [class.on]="session.role() === r.role" (click)="switchRole(r.role)">{{ r.label }}</button>
+        }
+      </div>
     </div>
   }
 </section>

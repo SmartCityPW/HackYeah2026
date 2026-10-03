@@ -105,37 +105,37 @@ const place = (id: string, label: string, emoji: string, character: Scenario['ch
   resident({ id, category: 'place', pokestopType: 'place', label, emoji, character, description, defaultTitle: '', sections: placeSections(titlePlaceholder, extra) });
 
 export const RESIDENT_SCENARIOS: Scenario[] = [
-  problem('res-pothole', 'Dziura lub uszkodzony chodnik', '🕳️', 'cyclist', 'Dziura, wyrwa, zapadnięta kostka.', 'Dziura w chodniku'),
-  problem('res-bin', 'Brak kosza na śmieci', '🗑️', 'bin', 'Brakuje kosza albo jest przepełniony.', 'Brakuje kosza na śmieci'),
-  problem('res-lamp', 'Zepsuta latarnia', '💡', 'lamp', 'Ciemno, latarnia nie świeci.', 'Zepsuta latarnia'),
+  problem('res-pothole', 'Dziura lub uszkodzony chodnik', '🕳️', 'floor_hole', 'Dziura, wyrwa, zapadnięta kostka.', 'Dziura w chodniku'),
+  problem('res-bin', 'Brak kosza na śmieci', '🗑️', 'trash_can', 'Brakuje kosza albo jest przepełniony.', 'Brakuje kosza na śmieci'),
+  problem('res-lamp', 'Zepsuta latarnia', '💡', 'billboard', 'Ciemno, latarnia nie świeci.', 'Zepsuta latarnia'),
   problem('res-green', 'Zaniedbana zieleń', '🌳', 'tree', 'Zarośnięty skwer, chore drzewo, brak trawnika.', 'Zaniedbana zieleń'),
-  problem('res-transport', 'Problem z komunikacją', '🚆', 'train', 'Przystanek, rozkład, korek, niebezpieczne przejście.', 'Problem z komunikacją'),
-  problem('res-bike', 'Problem dla rowerzystów', '🚴', 'cyclist', 'Brak ścieżki, zepsuty stojak, niebezpieczny odcinek.', 'Problem dla rowerzystów'),
+  problem('res-transport', 'Problem z komunikacją', '🚆', 'car', 'Przystanek, rozkład, korek, niebezpieczne przejście.', 'Problem z komunikacją'),
+  problem('res-bike', 'Problem dla rowerzystów', '🚴', 'bicycle', 'Brak ścieżki, zepsuty stojak, niebezpieczny odcinek.', 'Problem dla rowerzystów'),
 
-  initiative('idea-bus-stop', 'Przystanek autobusowy', '🚏', 'train', 'Tu przydałby się nowy przystanek.', 'Nowy przystanek'),
-  initiative('idea-shop', 'Sklep lub usługa na osiedlu', '🥕', 'bin', 'Warzywniak, piekarnia, apteka, punkt usługowy.', 'Sklep warzywny na osiedlu', [
+  initiative('idea-bus-stop', 'Przystanek autobusowy', '🚏', 'small_car', 'Tu przydałby się nowy przystanek.', 'Nowy przystanek'),
+  initiative('idea-shop', 'Sklep lub usługa na osiedlu', '🥕', 'van', 'Warzywniak, piekarnia, apteka, punkt usługowy.', 'Sklep warzywny na osiedlu', [
     { key: 'shopKind', label: 'Czego brakuje', type: 'choice', options: opts(['veg', 'Warzywniak'], ['bakery', 'Piekarnia'], ['pharmacy', 'Apteka'], ['grocery', 'Sklep spożywczy'], ['service', 'Punkt usługowy'], ['other', 'Coś innego']) },
   ]),
-  initiative('idea-playground', 'Plac zabaw lub boisko', '🛝', 'cyclist', 'Miejsce do zabawy i sportu.', 'Nowy plac zabaw'),
-  initiative('idea-greenery', 'Zieleń, drzewa, skwer', '🌿', 'tree', 'Tu mogłoby być zielono.', 'Więcej zieleni'),
-  initiative('idea-bike', 'Rowery: stojaki, ścieżka', '🚲', 'cyclist', 'Infrastruktura dla rowerzystów.', 'Stojaki lub ścieżka rowerowa'),
-  initiative('idea-other', 'Inny pomysł', '💭', 'lamp', 'Coś, czego tu brakuje.', 'Mój pomysł dla miasta'),
+  initiative('idea-playground', 'Plac zabaw lub boisko', '🛝', 'bench', 'Miejsce do zabawy i sportu.', 'Nowy plac zabaw'),
+  initiative('idea-greenery', 'Zieleń, drzewa, skwer', '🌿', 'potted_tree', 'Tu mogłoby być zielono.', 'Więcej zieleni'),
+  initiative('idea-bike', 'Rowery: stojaki, ścieżka', '🚲', 'bicycle', 'Infrastruktura dla rowerzystów.', 'Stojaki lub ścieżka rowerowa'),
+  initiative('idea-other', 'Inny pomysł', '💭', 'cone', 'Coś, czego tu brakuje.', 'Mój pomysł dla miasta'),
 
-  place('place-food', 'Jedzenie i kawa', '☕', 'bin', 'Kawiarnia, street food, bar, cukiernia.', 'np. Kawiarnia pod żyrandolem', [
+  place('place-food', 'Jedzenie i kawa', '☕', 'bench', 'Kawiarnia, street food, bar, cukiernia.', 'np. Kawiarnia pod żyrandolem', [
     { key: 'offer', label: 'Co tu zjesz i wypijesz', type: 'choice', options: opts(['coffee', 'Kawa i desery'], ['streetfood', 'Street food'], ['fast', 'Fast food'], ['restaurant', 'Restauracja'], ['bar', 'Bar'], ['bakery', 'Piekarnia']) },
     yes('vegan', 'Są opcje wegetariańskie lub wegańskie'),
     yes('wifi', 'Jest Wi-Fi'),
   ]),
-  place('place-chill', 'Zieleń i chillout', '🌇', 'tree', 'Park, skwer, widok, miejsce nad wodą.', 'np. Skwer z hamakami', [
+  place('place-chill', 'Zieleń i chillout', '🌇', 'flower_pot', 'Park, skwer, widok, miejsce nad wodą.', 'np. Skwer z hamakami', [
     { key: 'spotType', label: 'Rodzaj miejsca', type: 'choice', options: opts(['park', 'Park'], ['square', 'Skwer'], ['view', 'Punkt widokowy'], ['water', 'Nad wodą'], ['bench', 'Ławka z klimatem']) },
     yes('shade', 'Jest cień'),
     yes('dogsOk', 'Można z psem'),
   ]),
-  place('place-fun', 'Rozrywka i sport', '🛹', 'cyclist', 'Skatepark, boisko, arcade, tor rowerowy.', 'np. Skatepark pod mostem', [
+  place('place-fun', 'Rozrywka i sport', '🛹', 'sports_car', 'Skatepark, boisko, arcade, tor rowerowy.', 'np. Skatepark pod mostem', [
     { key: 'activity', label: 'Co tu robisz', type: 'choice', options: opts(['skate', 'Skatepark'], ['court', 'Boisko'], ['gym', 'Siłownia plenerowa'], ['arcade', 'Salon gier'], ['trampoline', 'Trampoliny'], ['other', 'Coś innego']) },
     yes('ownGear', 'Trzeba mieć własny sprzęt'),
   ]),
-  place('place-culture', 'Kultura i hobby', '🎨', 'lamp', 'Mural, galeria, biblioteka, księgarnia, koncerty.', 'np. Mural na starej kamienicy', [
+  place('place-culture', 'Kultura i hobby', '🎨', 'billboard', 'Mural, galeria, biblioteka, księgarnia, koncerty.', 'np. Mural na starej kamienicy', [
     { key: 'cultureKind', label: 'Rodzaj miejsca', type: 'choice', options: opts(['mural', 'Mural / street art'], ['gallery', 'Galeria'], ['library', 'Biblioteka'], ['bookshop', 'Księgarnia'], ['museum', 'Muzeum'], ['concerts', 'Koncerty']) },
     yes('ticket', 'Potrzebny bilet'),
   ]),
@@ -178,7 +178,7 @@ export const ORG_SCENARIOS: Scenario[] = [
     label: 'Nowy przystanek autobusowy',
     emoji: '🚏',
     description: 'Propozycja nowego przystanku wraz ze zmianami w liniach.',
-    character: 'train',
+    character: 'small_car',
     defaultTitle: 'Nowy przystanek autobusowy',
     sections: [
       basics('Nowy przystanek autobusowy'),
@@ -259,7 +259,7 @@ export const ORG_SCENARIOS: Scenario[] = [
     label: 'Uszkodzona mała architektura',
     emoji: '🪑',
     description: 'Zgłoszenie uszkodzonej ławki, kosza, placu zabaw, wiaty itp.',
-    character: 'bin',
+    character: 'bench',
     defaultTitle: 'Uszkodzona mała architektura',
     sections: [
       basics('Uszkodzona mała architektura'),
@@ -286,7 +286,7 @@ export const ORG_SCENARIOS: Scenario[] = [
     label: 'Szkoda na powierzchni',
     emoji: '🚧',
     description: 'Dziury, zapadnięcia i uszkodzenia nawierzchni.',
-    character: 'cyclist',
+    character: 'cone',
     defaultTitle: 'Uszkodzenie nawierzchni',
     sections: [
       basics('Uszkodzenie nawierzchni'),

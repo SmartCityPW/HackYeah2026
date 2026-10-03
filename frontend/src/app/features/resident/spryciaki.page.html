@@ -1,20 +1,19 @@
 <div class="page">
-  <h1>Moje Spryciaki</h1>
-  <p class="lead">Wygrywaj walki, żeby zdobywać nowe Spryciaki i podnosić poziom tych, którzy walczyli. Za głosy exp dostaje wybrany Spryciak.</p>
+  <header class="head">
+    <h1>Moje Spryciaki</h1>
+    <p class="lead">Za wygrane walki Spryciaki z drużyny zdobywają exp, a Ty nowe gatunki. Za głos exp dostaje wybrany Spryciak.</p>
+  </header>
 
-  <p class="level">⭐ Poziom {{ progress().level }} · {{ progress().xpIntoLevel }} / {{ progress().xpForNextLevel }} XP</p>
-
-  <div class="stat-grid">
-    <div class="stat"><strong>{{ owned().length }}</strong><span>Spryciaków</span></div>
-    <div class="stat"><strong>{{ ready().length }}</strong><span>gotowych do walki</span></div>
-    <div class="stat"><strong>💪 {{ bestTeamPower() }}</strong><span>moc najlepszej drużyny ({{ maxTeam }})</span></div>
-    <div class="stat"><strong>{{ collection.unlocked() }} / {{ catalog.characters().length }}</strong><span>odkrytych gatunków</span></div>
+  <div class="summary">
+    <div><strong>{{ owned().length }}</strong><span>Spryciaków</span></div>
+    <div><strong>{{ ready().length }}</strong><span>gotowych do walki</span></div>
+    <div><strong>{{ bestTeamPower() }}</strong><span>moc najlepszej trójki</span></div>
+    <div><strong>{{ collection.unlocked() }}/{{ catalog.characters().length }}</strong><span>odkrytych gatunków</span></div>
   </div>
 
-  <h2>Drużyna</h2>
-  <div class="chip-row">
+  <div class="tabs" role="tablist" aria-label="Widok">
     @for (f of filters; track f.id) {
-      <button [class.on]="filter() === f.id" (click)="filter.set(f.id)">{{ f.label }}</button>
+      <button role="tab" [attr.aria-selected]="filter() === f.id" [class.on]="filter() === f.id" (click)="filter.set(f.id)">{{ f.label }}</button>
     }
   </div>
 
@@ -24,39 +23,37 @@
     </p>
   } @else {
     <div class="roster">
-      @for (p of shown(); track p.id) {
+      @for (p of shown(); track p.id; let i = $index) {
         @let c = catalog.character(p.character);
-        <article class="mon" [class.staked]="p.isStaked" [class.best]="p.id === strongest()?.id">
-          <span class="mon-emoji" aria-hidden="true">{{ c.emoji }}</span>
+        <article class="mon" [class.staked]="p.isStaked">
+          <div class="stage">
+            <app-spryciak-model [character]="p.character" [phase]="i * 1.3" />
+            <span class="lvl">Poz. {{ p.level }}</span>
+          </div>
           <div class="mon-body">
-            <header>
-              <strong>{{ p.nickname ?? c.label }}</strong>
-              <span class="lvl">poz. {{ p.level }}</span>
-            </header>
-            <p class="mon-meta">
-              <span class="chip">{{ types[p.typeCode].emoji }} {{ types[p.typeCode].label }}</span>
-              <span class="chip power">💪 {{ p.power }}</span>
-              @if (p.isStaked) { <span class="chip pin">📌 Na zgłoszeniu</span> }
-              @if (p.id === strongest()?.id) { <span class="chip star">👑 Najsilniejszy</span> }
-            </p>
+            <strong>{{ p.nickname ?? c.label }}</strong>
+            <p class="meta">{{ types[p.typeCode].label }} · moc {{ p.power }}</p>
             <div class="exp" role="progressbar" [attr.aria-valuenow]="p.expIntoLevel" [attr.aria-valuemax]="p.expForNextLevel" aria-label="Exp do następnego poziomu">
               <span [style.width.%]="(p.expIntoLevel / p.expForNextLevel) * 100"></span>
             </div>
-            <small>{{ p.expIntoLevel }} / {{ p.expForNextLevel }} exp do poziomu {{ p.level + 1 }}</small>
+            <small>{{ p.expIntoLevel }}/{{ p.expForNextLevel }} exp</small>
+            @if (p.isStaked) { <small class="tag">Czeka na zgłoszeniu</small> }
+            @else if (p.id === strongest()?.id) { <small class="tag strong">Najsilniejszy</small> }
           </div>
         </article>
       }
     </div>
   }
 
-  <h2>Atlas</h2>
+  <h2>Atlas gatunków</h2>
+  <p class="sub">Nieodkryte gatunki widać tylko w zarysie. Zdobywa się je w walkach.</p>
   <div class="dex">
-    @for (s of catalog.characters(); track s.code) {
+    @for (s of catalog.characters(); track s.code; let i = $index) {
       @let count = collection.counts()[s.code] ?? 0;
       <div class="card" [class.locked]="count === 0">
-        <span class="emoji">{{ count > 0 ? s.emoji : '❔' }}</span>
-        <strong>{{ count > 0 ? s.label : '???' }}</strong>
-        <small>{{ count > 0 ? 'Zdobyty ×' + count : 'Wskazówka: ' + s.categoryLabel }}</small>
+        <app-spryciak-model [character]="s.code" [silhouette]="count === 0" [phase]="i * 0.7" />
+        <strong>{{ count > 0 ? s.label : 'Nieodkryty' }}</strong>
+        <small>{{ count > 0 ? '×' + count : s.categoryLabel }}</small>
       </div>
     }
   </div>

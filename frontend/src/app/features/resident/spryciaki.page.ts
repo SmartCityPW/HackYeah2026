@@ -7,19 +7,21 @@ import { describeError } from '../../core/http/api-error';
 import { PokemonService } from '../../core/pokemon.service';
 import { ProgressService } from '../../core/progress.service';
 import { ToastService } from '../../core/toast.service';
+import { SpryciakModel } from '../../shared/spryciak-model/spryciak-model';
 
 type Filter = 'all' | 'ready' | 'staked';
 
 const FILTERS: { id: Filter; label: string }[] = [
   { id: 'all', label: 'Wszystkie' },
-  { id: 'ready', label: '⚔️ Gotowe do walki' },
-  { id: 'staked', label: '📌 Na zgłoszeniach' },
+  { id: 'ready', label: 'Gotowe do walki' },
+  { id: 'staked', label: 'Na zgłoszeniach' },
 ];
 
 /** "Moje Spryciaki": posiadane egzemplarze (poziom, moc, typ, exp) i atlas odkrytych gatunków. */
 @Component({
   selector: 'app-spryciaki-page',
   templateUrl: './spryciaki.page.html',
+  imports: [SpryciakModel],
   styleUrl: './spryciaki.page.css',
 })
 export class SpryciakiPage {

@@ -532,7 +532,7 @@ components:
     ScenarioCategory: { type: string, enum: [problem, initiative, place] }
     FieldType: { type: string, enum: [text, textarea, number, select, multiselect, boolean, tags, date, photos, character, choice, rating] }
     VerificationStatus: { type: string, enum: [pending, verified, suspended] }
-    CharacterCode: { type: string, example: cyclist, description: 'Kod postaci ze słownika `collection_character`. Lista nie jest zamknięta: aktualny zestaw podaje `GET /catalog` (źródło: backend/config/seed/reference.yaml)' }
+    CharacterCode: { type: string, example: bicycle, description: 'Kod postaci ze słownika `collection_character`. Lista nie jest zamknięta: aktualny zestaw podaje `GET /catalog` (źródło: backend/config/seed/reference.yaml)' }
     TypeCode: { type: string, enum: [transport, clean, green, energy, air, infra], description: 'Typ postaci/przeciwnika do mnożnika w walce (słownik `collection_type`)' }
     Catalog:
       type: object

@@ -167,7 +167,7 @@ def test_team_is_validated(resident, make_resident):
     enemy = make_encounter()
     client = client_for(resident)
     starter = resident.pokemons.first()
-    extra = [grant_pokemon(resident, Character.objects.get(code='bin'), PokemonOrigin.ENCOUNTER) for _ in range(3)]
+    extra = [grant_pokemon(resident, Character.objects.get(code='trash_can'), PokemonOrigin.ENCOUNTER) for _ in range(3)]
     other = make_resident().pokemons.first()
     cases = [[], [starter.id, starter.id], [starter.id] + [p.id for p in extra], [other.id]]
     for ids in cases:
@@ -183,10 +183,10 @@ def test_party_of_three_sums_power(resident):
     from apps.collection.models import Character
     from apps.collection.services import grant_pokemon
 
-    team = [resident.pokemons.first()] + [grant_pokemon(resident, Character.objects.get(code='bin'), PokemonOrigin.ENCOUNTER) for _ in range(2)]
+    team = [resident.pokemons.first()] + [grant_pokemon(resident, Character.objects.get(code='trash_can'), PokemonOrigin.ENCOUNTER) for _ in range(2)]
     enemy = make_encounter(power=55)  # Śmieciowy Potwór (clean)
     r = client_for(resident).post(attack_url(enemy), {**body(resident), 'pokemonIds': [p.id for p in team]}, format='json')
-    assert r.data['outcome'] == 'won' and r.data['pokemonPowerTotal'] == 20 + 18 + 18  # Kosz (clean) = typ przeciwnika: 15 * 1.2
+    assert r.data['outcome'] == 'won' and r.data['pokemonPowerTotal'] == 20 + 18 + 18  # Kosz na śmieci (clean) = typ przeciwnika: 15 * 1.2
 
 
 # ───────────── antyoszustwo ─────────────

@@ -110,12 +110,12 @@ describe('PokestopService (on the in-memory mock, which enforces the same rules 
       TestBed.configureTestingModule({ providers: [provideTestConfig(), ...API_PROVIDERS] });
       const fresh = TestBed.inject(PokestopService);
 
-      await fresh.loadArea({ west: 19.93, south: 50.06, east: 19.94, north: 50.065 });
+      await fresh.loadArea({ west: 19.990, south: 50.066, east: 19.9925, north: 50.0685 }); // przy wejściu na Arenę
       const first = fresh.stops().map((s) => s.id);
       expect(first.length).toBeGreaterThan(0);
       expect(first.length).toBeLessThan(8);
 
-      await fresh.loadArea({ west: 19.90, south: 50.05, east: 19.92, north: 50.07 });
+      await fresh.loadArea({ west: 19.993, south: 50.065, east: 19.996, north: 50.070 }); // za Areną
       expect(fresh.stops().length).toBeGreaterThan(first.length);
       expect(first.every((id) => fresh.stops().some((s) => s.id === id))).toBe(true);
     });

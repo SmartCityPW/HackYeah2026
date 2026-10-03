@@ -1,37 +1,45 @@
 <div #mapContainer class="map"></div>
 
-<nav class="toolbar">
-  <span class="xp" [title]="progress().xpIntoLevel + ' / ' + progress().xpForNextLevel + ' XP do następnego poziomu'">
-    ⭐ Lv {{ progress().level }}
+<a class="level" [routerLink]="profilePath()" [attr.aria-label]="'Poziom ' + progress().level + ', ' + progress().xpIntoLevel + ' z ' + progress().xpForNextLevel + ' XP. Otwórz profil'">
+  <span class="level-num">{{ progress().level }}</span>
+  <span class="level-text">
+    <small>Poziom</small>
     <span class="xp-bar"><span [style.width.%]="(progress().xpIntoLevel / progress().xpForNextLevel) * 100"></span></span>
   </span>
-  @if (canParticipate()) {
-    @if (session.canPublishInitiatives()) {
-      <button class="tool" [class.active]="panelOpen()" (click)="togglePanel()">
-        {{ session.role() === 'org' ? '🏢 Nowa inicjatywa' : '➕ Zgłoś' }}
-      </button>
-    } @else {
-      <a class="tool" routerLink="/org/organizacja" title="Do czasu weryfikacji przez administratora nie możesz publikować inicjatyw">⏳ Czeka na weryfikację</a>
-    }
+</a>
+
+@if (canParticipate() && nearestEnemy() && !battleEncounter()) {
+  <button class="fight-now" (click)="startBattle(nearestEnemy()!)" title="Walcz z najbliższym przeciwnikiem w kółku">
+    <app-icon name="swords" /> Walcz: {{ nearestEnemy()!.name }}
+  </button>
+}
+
+@if (devTools) {
+  <button class="gps" [class.on]="gpsSimulated()" (click)="toggleSimulatedGps()"
+    [attr.aria-pressed]="gpsSimulated()" title="Tryb deweloperski: symulowana pozycja GPS (chodzenie: strzałki lub WASD, Shift = dłuższy krok)">
+    <app-icon name="locate" />
+  </button>
+}
+
+@if (canParticipate() && !panelOpen() && !selected() && !selectedEncounter() && !battleEncounter()) {
+  @if (session.canPublishInitiatives()) {
+    <button class="fab" (click)="togglePanel()"><app-icon name="plus" /> {{ session.role() === 'org' ? 'Nowa inicjatywa' : 'Zgłoś' }}</button>
+  } @else {
+    <a class="fab muted" routerLink="/org/organizacja" title="Do czasu weryfikacji przez administratora nie możesz publikować inicjatyw">Czeka na weryfikację</a>
   }
-  @if (canParticipate() && nearestEnemy() && !battleEncounter()) {
-    <button class="tool fight-now" (click)="startBattle(nearestEnemy()!)" title="Walcz z najbliższym przeciwnikiem w kółku">
-      ⚔️ Walcz {{ nearestEnemy()!.emoji }}
-    </button>
-  }
-</nav>
+}
 
 @if (needsLocation()) {
   <p class="locate" role="status">
-    📍 Nie znamy Twojej pozycji, więc nie widać kółka ani przeciwników. Zezwól przeglądarce na dostęp do lokalizacji
-    @if (devTools) { albo (tryb deweloperski) kliknij <strong>📍 GPS</strong> w lewym górnym rogu. }
+    Nie znamy Twojej pozycji, więc nie widać kółka interakcji ani przeciwników. Zezwól przeglądarce na dostęp do lokalizacji@if (devTools) {
+    albo włącz symulowany GPS przyciskiem w prawym dolnym rogu}.
   </p>
 }
 
 @if (selectedEncounter(); as enc) {
   <section class="sheet tall enemy" style="--stop-color: var(--color-pink)">
-    <button class="sheet-close" (click)="close()" aria-label="Zamknij">×</button>
-    <p class="sheet-type">⚔️ Przeciwnik · poziom {{ enc.level }} · {{ enemyTypes[enc.typeCode].emoji }} {{ enemyTypes[enc.typeCode].label }} · 💪 {{ enc.power }}</p>
+    <button class="sheet-close" (click)="close()" aria-label="Zamknij"><app-icon name="close" /></button>
+    <p class="sheet-type">Przeciwnik · poziom {{ enc.level }} · {{ enemyTypes[enc.typeCode].label }} · moc {{ enc.power }}</p>
     <h2>{{ enc.emoji }} {{ enc.name }}</h2>
     <p class="sheet-desc">{{ enc.description }}</p>
     <p class="enemy-action"><strong>Jak go pokonać:</strong> {{ enc.actionLabel }}</p>
@@ -43,7 +51,7 @@
       } @else if (!canAttack()) {
         <p class="hint warn">Jesteś {{ encounterDistance() }} m od celu. Podejdź na mniej niż {{ interactionRadius }} m.</p>
       }
-      <button class="btn btn-against fight" [disabled]="!canAttack()" (click)="startBattle(enc)">⚔️ Walcz</button>
+      <button class="btn btn-against fight" [disabled]="!canAttack()" (click)="startBattle(enc)"><app-icon name="swords" /> Walcz</button>
     }
   </section>
 }
@@ -61,18 +69,18 @@
 @if (panelOpen()) {
   <div class="crosshair" [class.out-of-range]="!pinInRange()" aria-hidden="true">📍</div>
   <section class="sheet tall" style="--stop-color: var(--color-indigo)">
-    <button class="sheet-close" (click)="panelOpen.set(false)" aria-label="Zamknij">×</button>
+    <button class="sheet-close" (click)="panelOpen.set(false)" aria-label="Zamknij"><app-icon name="close" /></button>
     <app-report-panel [pinInRange]="pinInRange()" (drafted)="onReportDrafted($event)" />
   </section>
 }
 
 @if (selected(); as stop) {
   <section class="sheet tall" [style.--stop-color]="types[stop.type].color">
-    <button class="sheet-close" (click)="close()" aria-label="Zamknij">×</button>
-    <p class="sheet-type">{{ types[stop.type].emoji }} {{ types[stop.type].label }} <app-status-chip [status]="stop.status" /></p>
+    <button class="sheet-close" (click)="close()" aria-label="Zamknij"><app-icon name="close" /></button>
+    <p class="sheet-type">{{ types[stop.type].label }} <app-status-chip [status]="stop.status" /></p>
     <h2>{{ stop.title }}</h2>
     <p class="sheet-desc">{{ stop.description }}</p>
-    <p class="sheet-author">Dodał(a): {{ stop.organization ? '🏢 ' : '' }}{{ stop.author }}</p>
+    <p class="sheet-author">Dodał(a): {{ stop.author }}</p>
 
     @if (stop.photos?.length) {
       <div class="stop-photos">
@@ -89,13 +97,13 @@
     }
 
     <div class="votes">
-      <span>👍 {{ stop.votesFor }}</span>
-      <span>👎 {{ stop.votesAgainst }}</span>
+      <span><strong>{{ stop.votesFor }}</strong> {{ types[stop.type].vote[0].toLowerCase() }}</span>
+      <span><strong>{{ stop.votesAgainst }}</strong> przeciw</span>
     </div>
 
     @if (canParticipate()) {
       @if (stop.myVote) {
-        <p class="voted">Twój głos został zapisany ✔</p>
+        <p class="voted">Twój głos został zapisany.</p>
       } @else if (stop.mine) {
         <p class="hint">To Twoje zgłoszenie: głosują na nie inni.</p>
       } @else if (stopDistance() === null) {
@@ -116,8 +124,8 @@
           </label>
         }
         <div class="actions">
-          <button class="btn btn-for" (click)="vote(stop.id, 'for')">👍 {{ types[stop.type].vote[0] }}</button>
-          <button class="btn btn-against" (click)="vote(stop.id, 'against')">👎 {{ types[stop.type].vote[1] }}</button>
+          <button class="btn btn-for" (click)="vote(stop.id, 'for')">{{ types[stop.type].vote[0] }}</button>
+          <button class="btn btn-against" (click)="vote(stop.id, 'against')">{{ types[stop.type].vote[1] }}</button>
         </div>
       }
     }

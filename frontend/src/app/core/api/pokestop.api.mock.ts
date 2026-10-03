@@ -64,7 +64,7 @@ export class MockPokestopApi extends PokestopApi {
   async comment(id: number, text: string, parentId?: number): Promise<PokestopComment> {
     const stop = this.require(id);
     const all = this.stops.flatMap((s) => s.comments.flatMap((c) => [c, ...(c.replies ?? [])]));
-    const created: PokestopComment = { id: Math.max(0, ...all.map((c) => c.id)) + 1, author: 'Ty', text, mine: true, parentId: parentId ?? null, replies: [] };
+    const created: PokestopComment = { id: Math.max(0, ...all.map((c) => c.id)) + 1, author: 'Zosia', text, mine: true, parentId: parentId ?? null, replies: [] };
     if (parentId) {
       const parent = stop.comments.find((c) => c.id === parentId);
       if (!parent) throw new ApiHttpError(422, 'validation_error', 'Można odpowiadać tylko na komentarz nadrzędny tej pinezki.');
@@ -92,7 +92,7 @@ export class MockPokestopApi extends PokestopApi {
       character,
       id: Math.max(0, ...this.stops.map((s) => s.id)) + 1,
       status: 'open',
-      author: report.organization ?? 'Ty',
+      author: report.organization ?? 'Zosia',
       mine: true,
       comments: [],
       votesFor: 0,

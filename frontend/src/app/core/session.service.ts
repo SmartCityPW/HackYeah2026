@@ -13,7 +13,7 @@ export interface Profile {
 
 // MOCK: profile przypisane do ról, gdy konto nie pochodzi z backendu (api.mode.account: mock).
 const PROFILES: Record<Role, Profile> = {
-  resident: { displayName: 'Ty', organization: null },
+  resident: { displayName: 'Zosia', organization: null },
   org: { displayName: 'Fundacja Zielone Miasto', organization: 'Fundacja Zielone Miasto' },
   admin: { displayName: 'Administrator', organization: null },
 };
