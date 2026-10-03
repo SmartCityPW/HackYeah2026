@@ -12,6 +12,11 @@ export interface Pokestop {
   author: string;
   lat: number;
   lng: number;
+  scenarioId?: string;
+  icon?: string;
+  organization?: string;
+  photos?: string[];
+  details?: Record<string, unknown>;
   votesFor: number;
   votesAgainst: number;
   myVote: 'for' | 'against' | null;
@@ -34,6 +39,12 @@ export const CHARACTERS: Record<CharacterId, { label: string; emoji: string; cat
 export const CHARACTER_IDS = Object.keys(CHARACTERS) as CharacterId[];
 
 export interface NewReport {
+  type: PokestopType;
+  scenarioId: string;
+  icon: string;
+  organization?: string;
+  photos: string[];
+  details: Record<string, unknown>;
   title: string;
   description: string;
   character: CharacterId;

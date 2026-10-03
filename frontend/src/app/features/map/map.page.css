@@ -29,6 +29,13 @@
   box-shadow: 0 -8px 30px rgb(0 0 0 / .25); border-top: 6px solid var(--stop-color);
   max-width: 560px; margin: 0 auto;
 }
+.sheet.tall { max-height: 80dvh; overflow-y: auto; }
+.tool.role { background: #fef3c7; }
+.stop-photos { display: flex; gap: 8px; overflow-x: auto; margin: 8px 0; }
+.stop-photos img { height: 110px; border-radius: 12px; }
+.details { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 10px 0; font-size: .85rem; }
+.details dt { color: #6b7280; }
+.details dd { margin: 0; font-weight: 600; }
 .sheet h2 { margin: 4px 0 8px; font-size: 1.35rem; }
 .sheet-type { margin: 0; font-size: .85rem; font-weight: 700; color: var(--stop-color); }
 .sheet-desc { margin: 0 0 8px; }

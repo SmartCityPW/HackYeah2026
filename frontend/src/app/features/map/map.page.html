@@ -1,7 +1,12 @@
 <div #mapContainer class="map"></div>
 
 <nav class="toolbar">
-  <button class="tool" [class.active]="panel() === 'report'" (click)="openPanel('report')">➕ Zgłoś</button>
+  <button class="tool role" (click)="toggleRole()" title="Przełącz widok (tryb deweloperski)">
+    {{ session.role() === 'org' ? '🏢 Organizacja' : '👤 Mieszkaniec' }}
+  </button>
+  <button class="tool" [class.active]="panel() === 'report'" (click)="openPanel('report')">
+    {{ session.role() === 'org' ? '🏢 Nowa inicjatywa' : '➕ Zgłoś' }}
+  </button>
   <button class="tool" [class.active]="panel() === 'collection'" (click)="openPanel('collection')">📖 Kolekcja</button>
 </nav>
 
@@ -14,12 +19,26 @@
 }
 
 @if (selected(); as stop) {
-  <section class="sheet" [style.--stop-color]="types[stop.type].color">
+  <section class="sheet tall" [style.--stop-color]="types[stop.type].color">
     <button class="sheet-close" (click)="close()" aria-label="Zamknij">×</button>
     <p class="sheet-type">{{ types[stop.type].emoji }} {{ types[stop.type].label }}</p>
     <h2>{{ stop.title }}</h2>
     <p class="sheet-desc">{{ stop.description }}</p>
-    <p class="sheet-author">Dodał(a): {{ stop.author }}</p>
+    <p class="sheet-author">Dodał(a): {{ stop.organization ? '🏢 ' : '' }}{{ stop.author }}</p>
+
+    @if (stop.photos?.length) {
+      <div class="stop-photos">
+        @for (p of stop.photos; track $index) { <img [src]="p" alt="Zdjęcie do zgłoszenia" /> }
+      </div>
+    }
+
+    @if (selectedDetails().length) {
+      <dl class="details">
+        @for (row of selectedDetails(); track row.label) {
+          <dt>{{ row.label }}</dt><dd>{{ row.text }}</dd>
+        }
+      </dl>
+    }
 
     <div class="votes">
       <span>👍 {{ stop.votesFor }}</span>
@@ -38,25 +57,9 @@
 }
 
 @if (panel() === 'report') {
-  <section class="sheet" style="--stop-color: #f59e0b">
+  <section class="sheet tall" style="--stop-color: #f59e0b">
     <button class="sheet-close" (click)="panel.set('none')" aria-label="Zamknij">×</button>
-    <p class="sheet-type">🚧 Nowe zgłoszenie</p>
-    <h2>Przesuń mapę pod pinezkę 📍</h2>
-    <label class="field">Tytuł
-      <input type="text" maxlength="60" placeholder="np. Dziura w chodniku" [value]="draftTitle()" (input)="onInput(draftTitle, $event)" />
-    </label>
-    <label class="field">Opis (opcjonalnie)
-      <textarea rows="2" maxlength="300" [value]="draftDescription()" (input)="onInput(draftDescription, $event)"></textarea>
-    </label>
-    <p class="field-label">Kategoria</p>
-    <div class="chips">
-      @for (id of characterIds; track id) {
-        <button class="chip" [class.on]="draftCharacter() === id" (click)="draftCharacter.set(id)">
-          {{ characterMeta[id].emoji }} {{ characterMeta[id].category }}
-        </button>
-      }
-    </div>
-    <button class="btn btn-for submit" [disabled]="!canSubmit()" (click)="submitReport()">Dodaj zgłoszenie</button>
+    <app-report-panel (drafted)="onReportDrafted($event)" (closed)="panel.set('none')" />
   </section>
 }
 

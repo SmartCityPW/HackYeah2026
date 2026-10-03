@@ -1,0 +1,95 @@
+@for (section of scenario().sections; track section.title) {
+  <fieldset class="section">
+    <legend>{{ section.title }}</legend>
+
+    @for (f of section.fields; track f.key) {
+      @if (visible(f)) {
+        <div class="field" [class.invalid]="attempted() && errors()[f.key]">
+          @switch (f.type) {
+            @case ('boolean') {
+              <label class="check">
+                <input type="checkbox" [checked]="values()[f.key] === true" (change)="onCheck(f.key, $event)" />
+                <span>{{ f.label }}</span>
+              </label>
+            }
+            @case ('character') {
+              <span class="label">{{ f.label }}</span>
+              <div class="chips">
+                @for (c of characters; track c.id) {
+                  <button type="button" class="chip" [class.on]="values()[f.key] === c.id" (click)="set(f.key, c.id)">
+                    {{ c.emoji }} {{ c.label }}
+                  </button>
+                }
+              </div>
+            }
+            @case ('multiselect') {
+              <span class="label">{{ f.label }}</span>
+              <div class="chips">
+                @for (o of f.options; track o.value) {
+                  <button type="button" class="chip" [class.on]="list(f.key).includes(o.value)" (click)="toggleMulti(f.key, o.value)">
+                    {{ o.label }}
+                  </button>
+                }
+              </div>
+            }
+            @case ('photos') {
+              <span class="label">{{ f.label }}</span>
+              <div class="photos">
+                @for (p of list(f.key); track $index) {
+                  <div class="photo">
+                    <img [src]="p" alt="Dodane zdjęcie" />
+                    <button type="button" (click)="removePhoto(f.key, $index)" aria-label="Usuń zdjęcie">×</button>
+                  </div>
+                }
+                @if (list(f.key).length < 3) {
+                  <label class="photo add">
+                    📷
+                    <input type="file" accept="image/*" multiple hidden (change)="onPhotos(f.key, $event)" />
+                  </label>
+                }
+              </div>
+              @if (photoError(); as err) { <small class="error">{{ err }}</small> }
+            }
+            @default {
+              <label>
+                <span class="label">{{ f.label }}@if (f.required) { <b> *</b> }@if (f.unit) { <i> ({{ f.unit }})</i> }</span>
+                @switch (f.type) {
+                  @case ('textarea') {
+                    <textarea rows="3" [value]="str(f.key)" (input)="onText(f.key, $event)"></textarea>
+                  }
+                  @case ('select') {
+                    <select [value]="str(f.key)" (change)="onText(f.key, $event)">
+                      <option value="">— wybierz —</option>
+                      @for (o of f.options; track o.value) {
+                        <option [value]="o.value" [selected]="str(f.key) === o.value">{{ o.label }}</option>
+                      }
+                    </select>
+                  }
+                  @case ('tags') {
+                    <input type="text" [value]="list(f.key).join(', ')" (change)="onTags(f.key, $event)" [placeholder]="f.hint ?? ''" />
+                  }
+                  @case ('number') {
+                    <input type="number" inputmode="decimal" [min]="f.min ?? null" [max]="f.max ?? null" [value]="str(f.key)" (input)="onText(f.key, $event)" />
+                  }
+                  @case ('date') {
+                    <input type="date" [value]="str(f.key)" (input)="onText(f.key, $event)" />
+                  }
+                  @default {
+                    <input type="text" [attr.maxlength]="f.key === 'title' ? 80 : 200" [value]="str(f.key)" [placeholder]="f.placeholder ?? ''" (input)="onText(f.key, $event)" />
+                  }
+                }
+              </label>
+              @if (f.hint && f.type !== 'tags') { <small class="hint">{{ f.hint }}</small> }
+            }
+          }
+          @if (attempted() && errors()[f.key]; as err) { <small class="error">{{ err }}</small> }
+        </div>
+      }
+    }
+  </fieldset>
+}
+
+<div class="actions">
+  <button type="button" class="btn ghost" (click)="cancelled.emit()">Wróć</button>
+  <button type="button" class="btn primary" (click)="submit()">{{ submitLabel() }}</button>
+</div>

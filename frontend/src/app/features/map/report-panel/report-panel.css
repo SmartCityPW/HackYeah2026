@@ -1,0 +1,9 @@
+:host { display: block; }
+.kicker { margin: 0; font-size: .85rem; font-weight: 700; color: #b45309; }
+h2 { margin: 4px 0 8px; font-size: 1.3rem; }
+.pin-hint { margin: 0 0 8px; font-size: .85rem; color: #6b7280; }
+.catalog { display: grid; gap: 8px; }
+.card { display: flex; align-items: center; gap: 12px; text-align: left; padding: 12px; border: 2px solid #e5e7eb; background: #fff; border-radius: 16px; cursor: pointer; font: inherit; }
+.card:hover { border-color: #6366f1; background: #eef2ff; }
+.emoji { font-size: 1.8rem; }
+.card small { display: block; color: #6b7280; }

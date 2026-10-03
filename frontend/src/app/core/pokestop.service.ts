@@ -43,8 +43,7 @@ export class PokestopService {
     const stop: Pokestop = {
       ...report,
       id: Math.max(0, ...this.stops().map((s) => s.id)) + 1,
-      type: 'report',
-      author: 'Ty',
+      author: report.organization ?? 'Ty',
       votesFor: 0,
       votesAgainst: 0,
       myVote: null,

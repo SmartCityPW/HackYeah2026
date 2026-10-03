@@ -1,0 +1,22 @@
+@if (chosen(); as scenario) {
+  <p class="kicker">{{ scenario.emoji }} {{ isOrg() ? 'Inicjatywa organizacji' : 'Nowe zgłoszenie' }}</p>
+  <h2>{{ scenario.label }}</h2>
+  <p class="pin-hint">Przesuń mapę, aby pinezka 📍 wskazała właściwe miejsce.</p>
+  <app-scenario-form
+    [scenario]="scenario"
+    [submitLabel]="isOrg() ? 'Opublikuj inicjatywę' : 'Dodaj zgłoszenie'"
+    (submitted)="submit(scenario, $event)"
+    (cancelled)="chosen.set(null)"
+  />
+} @else {
+  <p class="kicker">{{ isOrg() ? '🏢 ' + organization : '🚧 Nowe zgłoszenie' }}</p>
+  <h2>{{ isOrg() ? 'Wybierz rodzaj inicjatywy' : 'Co chcesz zgłosić?' }}</h2>
+  <div class="catalog">
+    @for (s of catalog(); track s.id) {
+      <button type="button" class="card" (click)="chosen.set(s)">
+        <span class="emoji">{{ s.emoji }}</span>
+        <span><strong>{{ s.label }}</strong><small>{{ s.description }}</small></span>
+      </button>
+    }
+  </div>
+}

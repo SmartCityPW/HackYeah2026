@@ -20,7 +20,7 @@ describe('PokestopService', () => {
 
   it('addReport creates a report stop with a new id', () => {
     const before = service.stops().length;
-    const stop = service.addReport({ title: 'Test', description: '', character: 'lamp', lat: 50, lng: 19 });
+    const stop = service.addReport({ type: 'report', scenarioId: 'res-lamp', icon: '💡', photos: [], details: {}, title: 'Test', description: '', character: 'lamp', lat: 50, lng: 19 });
     expect(service.stops().length).toBe(before + 1);
     expect(stop.type).toBe('report');
     expect(service.stops().filter((s) => s.id === stop.id).length).toBe(1);

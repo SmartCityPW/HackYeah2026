@@ -1,0 +1,33 @@
+import { Component, computed, inject, input, output, signal } from '@angular/core';
+import { scenariosFor } from '../../../core/scenario.catalog';
+import { FieldValues, Scenario } from '../../../core/scenario.model';
+import { toReport } from '../../../core/scenario.utils';
+import { NewReport } from '../../../core/pokestop.model';
+import { SessionService } from '../../../core/session.service';
+import { ScenarioForm } from '../../../shared/scenario-form/scenario-form';
+
+export type ReportDraft = Omit<NewReport, 'lat' | 'lng'>;
+
+/** Panel tworzenia pinezki: krok 1 wybór scenariusza z katalogu, krok 2 formularz scenariusza. */
+@Component({
+  selector: 'app-report-panel',
+  imports: [ScenarioForm],
+  templateUrl: './report-panel.html',
+  styleUrl: './report-panel.css',
+})
+export class ReportPanel {
+  private readonly session = inject(SessionService);
+
+  readonly drafted = output<ReportDraft>();
+  readonly closed = output<void>();
+
+  protected readonly isOrg = computed(() => this.session.role() === 'org');
+  protected readonly organization = this.session.organizationName;
+  protected readonly catalog = computed(() => scenariosFor(this.session.role()));
+  protected readonly chosen = signal<Scenario | null>(null);
+
+  protected submit(scenario: Scenario, values: FieldValues): void {
+    this.drafted.emit(toReport(scenario, values, this.isOrg() ? this.organization : null));
+    this.chosen.set(null);
+  }
+}
