@@ -72,7 +72,21 @@
     @if (canParticipate()) {
       @if (stop.myVote) {
         <p class="voted">Twój głos został zapisany ✔</p>
+      } @else if (stop.mine) {
+        <p class="hint">To Twoje zgłoszenie: głosują na nie inni.</p>
       } @else {
+        @if (pokemons.pokemons().length) {
+          <label class="pokemon-pick">
+            <span>Exp za głos dostanie:</span>
+            <select (change)="onPokemonChosen($event)">
+              @for (p of pokemons.pokemons(); track p.id) {
+                <option [value]="p.id" [selected]="p.id === pokemons.chosen()?.id">
+                  {{ characters[p.character].emoji }} {{ p.nickname ?? characters[p.character].label }} · poz. {{ p.level }} ({{ p.exp }} exp)
+                </option>
+              }
+            </select>
+          </label>
+        }
         <div class="actions">
           <button class="btn btn-for" (click)="vote(stop.id, 'for')">{{ types[stop.type].vote[0] }}</button>
           <button class="btn btn-against" (click)="vote(stop.id, 'against')">{{ types[stop.type].vote[1] }}</button>
@@ -80,13 +94,29 @@
       }
     }
 
-    <h3 class="comments-title">Komentarze ({{ stop.comments.length }})</h3>
+    <h3 class="comments-title">Komentarze ({{ commentTotal(stop) }})</h3>
     @for (c of stop.comments; track c.id) {
-      <p class="comment" [class.mine]="c.mine"><strong>{{ c.author }}:</strong> {{ c.text }}</p>
+      <div class="comment-thread">
+        <p class="comment" [class.mine]="c.mine"><strong>{{ c.author }}:</strong> {{ c.text }}</p>
+        @for (r of c.replies; track r.id) {
+          <p class="comment reply" [class.mine]="r.mine"><strong>{{ r.author }}:</strong> {{ r.text }}</p>
+        }
+        @if (canParticipate()) {
+          <button type="button" class="link" (click)="replyTo.set({ id: c.id, author: c.author })">Odpowiedz</button>
+        }
+      </div>
+    } @empty {
+      @if (!commentsLoading()) { <p class="hint">Nikt jeszcze nie skomentował. Napisz pierwszy.</p> }
+    }
+    @if (moreComments()) {
+      <button type="button" class="link" [disabled]="commentsLoading()" (click)="loadMoreComments(stop.id)">Pokaż starsze komentarze</button>
     }
     @if (canParticipate()) {
+      @if (replyTo(); as reply) {
+        <p class="reply-to">Odpowiedź dla {{ reply.author }} <button type="button" class="link" (click)="replyTo.set(null)">Anuluj</button></p>
+      }
       <div class="comment-form">
-        <input type="text" maxlength="300" placeholder="Dodaj komentarz…" [value]="commentDraft()" (input)="onCommentInput($event)" (keydown.enter)="sendComment(stop.id)" />
+        <input type="text" maxlength="300" [placeholder]="replyTo() ? 'Napisz odpowiedź…' : 'Dodaj komentarz…'" [value]="commentDraft()" (input)="onCommentInput($event)" (keydown.enter)="sendComment(stop.id)" />
         <button class="btn btn-for" [disabled]="!commentDraft().trim()" (click)="sendComment(stop.id)">Wyślij</button>
       </div>
     }

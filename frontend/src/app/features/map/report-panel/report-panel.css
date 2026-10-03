@@ -8,3 +8,7 @@ h2 { margin: 4px 0 8px; font-size: 1.3rem; }
 .emoji { font-size: 1.8rem; }
 .card small { display: block; color: #6b7280; }
 .back { margin-top: 10px; border: 0; background: none; color: #4338ca; font: inherit; font-weight: 700; cursor: pointer; padding: 6px 0; }
+
+.stake { display: flex; flex-direction: column; gap: 4px; margin: 0 0 12px; font-size: .85rem; font-weight: 600; }
+.stake select { padding: 10px; border: 2px solid #e5e7eb; border-radius: 12px; font: inherit; background: #fff; }
+.stake small { font-weight: 400; color: #6b7280; }

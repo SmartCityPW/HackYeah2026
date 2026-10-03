@@ -54,13 +54,10 @@
 .xp-bar { display: block; height: 4px; background: #e5e7eb; border-radius: 99px; overflow: hidden; }
 .xp-bar > span { display: block; height: 100%; background: #6366f1; }
 .toolbar { align-items: center; }
-.hint { margin: 8px 0; font-size: .85rem; color: #b45309; }
-.enemy-action { margin: 6px 0; }
-.fight { width: 100%; margin-top: 6px; }
-.fight:disabled { opacity: .4; cursor: not-allowed; }
-:host ::ng-deep .enemy-marker {
-  width: 54px; height: 54px; border-radius: 50%; border: 3px solid #fff; background: #dc2626; cursor: pointer; padding: 0;
-  display: grid; place-items: center; box-shadow: 0 0 0 0 rgb(220 38 38 / .6); animation: enemy-pulse 1.8s infinite;
-}
-:host ::ng-deep .enemy-marker span { font-size: 28px; line-height: 1; }
-@keyframes enemy-pulse { 70% { box-shadow: 0 0 0 16px rgb(220 38 38 / 0); } 100% { box-shadow: 0 0 0 0 rgb(220 38 38 / 0); } }
+.hint, .reply-to { margin: 8px 0; font-size: .8rem; color: #6b7280; }
+.reply-to, .link { color: #4f46e5; }
+.pokemon-pick { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; font-size: .8rem; color: #6b7280; }
+.pokemon-pick select { padding: 10px; border: 2px solid #e5e7eb; border-radius: 12px; font: inherit; background: #fff; }
+.comment.reply { margin-left: 18px; padding-left: 8px; border-left: 2px solid #e5e7eb; }
+.link { background: none; border: 0; padding: 2px 0; font: inherit; font-size: .8rem; cursor: pointer; }
+.link:disabled { opacity: .5; }

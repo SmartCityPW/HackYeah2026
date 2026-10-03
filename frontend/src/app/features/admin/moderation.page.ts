@@ -3,7 +3,9 @@ import { Router } from '@angular/router';
 import { MAP_PATH } from '../../core/navigation';
 import { PokestopService } from '../../core/pokestop.service';
 import { PokestopStatus, STATUS_META } from '../../core/pokestop.model';
+import { describeError } from '../../core/http/api-error';
 import { SessionService } from '../../core/session.service';
+import { ToastService } from '../../core/toast.service';
 import { InitiativeCard } from '../../shared/initiative-card/initiative-card';
 
 type Filter = PokestopStatus | 'all';
@@ -18,6 +20,11 @@ export class ModerationPage {
   private readonly pokestops = inject(PokestopService);
   private readonly router = inject(Router);
   private readonly session = inject(SessionService);
+  private readonly toast = inject(ToastService);
+
+  constructor() {
+    void this.pokestops.loadAll(true).catch((error) => this.toast.show(describeError(error)));
+  }
 
   protected readonly filters: { id: Filter; label: string }[] = [
     { id: 'all', label: 'Wszystkie' },
@@ -29,7 +36,7 @@ export class ModerationPage {
   );
 
   protected setStatus(id: number, status: PokestopStatus): void {
-    void this.pokestops.setStatus(id, status);
+    void this.pokestops.setStatus(id, status).catch((error) => this.toast.show(describeError(error)));
   }
 
   protected showOnMap(id: number): void {

@@ -11,11 +11,12 @@ a nie w kodzie. Dzięki temu można przechodzić z atrap na prawdziwy backend kr
 api:
   baseUrl: http://localhost:8000/api/v1
   mode:
-    pokestops: mock     # mock | http
-    game: mock          # mock | http
+    pokestops: mock     # mock | http   (pinezki, głosy, komentarze, kolekcja, pokemony)
+    game: mock          # mock | http   (postęp, przeciwnicy, walka)
+    account: mock       # mock | http   (rola i profil z GET /me; z http przełącznik ról jest ukryty)
 ```
 
-Zmiana wartości nie wymaga przebudowy kodu (plik jest ładowany przy starcie). Przy `http` aplikacja sama zakłada konto gościa
+Zmiana wartości nie wymaga przebudowy kodu (plik jest ładowany przy starcie). Przy `http` (w którymkolwiek obszarze) aplikacja sama zakłada konto gościa
 (`auth.autoGuest`) i dokleja token do wywołań. Wszystkie pozostałe wartości zmienne (adres mapy, domyślny widok, zasięg, limity zdjęć,
 czas komunikatów, narzędzia deweloperskie) są w tym samym pliku, a kod nigdy nie ma ich na stałe.
 
@@ -34,21 +35,37 @@ Reszta aplikacji (strony, komponenty) rozmawia tylko z abstrakcjami `PokestopApi
 
 ## Stan adaptacji
 
-| Operacja | `http` dziś | Co zrobić |
+| Operacja | `http` dziś | Co zostało |
 |---|---|---|
-| Lista pinezek | działa | ładować wg widocznej części mapy (`?bbox=`) i stronicować; dziś jedna strona 200 sztuk |
-| Kolekcja (`/me/collection`) | działa | brak |
+| Rola i profil (`GET /me`) | działa (`account: http`) | brak logowania w UI: bez niego rolą jest zawsze gość (resident). Organizacja i administrator wymagają tokenu wklejonego ręcznie (patrz README, krok 6) |
+| Lista pinezek | działa, **wg widocznego obszaru mapy** (`?bbox=`, strony pobierane do końca) | brak |
+| „Moje inicjatywy” | działa (`GET /me/interactions`) | brak |
+| Pinezka po linku `?stop=ID` | działa (`GET /pokestops/{id}`) | brak |
+| Kolekcja, postęp | działa | brak |
+| Pokemony (`GET /me/pokemons`) | działa: wybór pokemona przy głosie i przy zastawie | zakładka „Pokemony” z poziomami (opis.md) |
+| Głosowanie | działa: wybrany pokemon dostaje exp, wysyłana jest pozycja, błąd `too_far` pokazuje komunikat serwera | pozycja pochodzi z GPS przeglądarki, więc bez zgody na lokalizację nie da się głosować |
+| Zgłoszenie | działa: zastaw pokemona, wynik moderacji (`moderation_rejected`, `moderation_unavailable`), formularz zostaje przy błędzie | **zdjęcia**: `POST /photos` w backendzie to 501, więc pola zdjęć są ukryte przez `upload.enabled: false` |
+| Komentarze | działa: lista stronicowana (najnowsze pierwsze), odpowiedzi w wątku, „Pokaż starsze” | brak |
 | Zmiana statusu (admin) | działa | pole powodu przy odrzuceniu (dziś stały tekst) |
-| Postęp gracza | działa | brak |
-| Głosowanie | **`NotAdaptedYet`** | wybór pokemona z `GET /me/pokemons`, wysłanie pozycji użytkownika, obsługa `too_far` |
-| Zgłoszenie | **`NotAdaptedYet`** | krok wyboru zastawianego pokemona (`stakedPokemonId`), wgranie zdjęć przez `POST /photos` (backend: 501) |
-| Komentarze | **`NotAdaptedYet`** | `GET/POST /pokestops/{id}/comments` (stronicowane, z odpowiedziami) |
-| Przeciwnicy i walka | **`NotAdaptedYet`** | backend zwraca jeszcze 501; ekran wyboru 3 pokemonów, wynik `lost` |
-| Rola i profil | atrapa | rola z `GET /me` zamiast przełącznika (`SessionService`) |
+| Przeciwnicy i walka | `NotAdaptedYet` | backend zwraca jeszcze 501; ekran wyboru 3 pokemonów, wynik `lost` |
 | Ankiety, wydarzenia | brak | nowe ekrany (backend: 501) |
 
 Pełna lista rozbieżności z numerami: [`api-contract.md`](api-contract.md), sekcja "Co musi zmienić frontend".
 `NotAdaptedYet` rzuca czytelny komunikat z odwołaniem do punktu, więc po przełączeniu trybu widać dokładnie, czego jeszcze brakuje.
+
+### Jak frontend pokazuje błędy serwera
+
+Błędy w kształcie z kontraktu (`{ code, message }`) trafiają do `ApiHttpError`, a `describeError()` zamienia je na tekst dla użytkownika.
+Backend zwraca czytelne polskie komunikaty (np. „Jesteś za daleko (1112 m), podejdź na mniej niż 50 m”), więc pokazujemy je wprost, bez
+własnych tłumaczeń kodów. Własny tekst jest tylko dla braku połączenia i błędów spoza kontraktu. Strona mapy łapie błędy w jednym miejscu
+(`MapPage.run`) i pokazuje je w toaście, a szkic komentarza i wypełniony formularz zgłoszenia zostają, żeby można było poprawić i ponowić.
+
+### Atrapa zachowuje się jak backend
+
+`MockPokestopApi` egzekwuje te same reguły co serwer: zasięg głosu (z `game.interactionRangeM`), jeden głos na pinezkę, zakaz głosu na własną,
+exp dla wybranego pokemona, zastaw przy zgłoszeniu, odpowiedzi tylko pod komentarzem nadrzędnym tej samej pinezki. Dzięki temu logika ekranów
+jest ta sama w obu trybach. **Konsekwencja dla demo na atrapach:** żeby zagłosować, włącz 📍 GPS (pozycja na Rynku); w zasięgu jest pinezka
+„Zniszczona ławka przy Rynku”.
 
 ## Dostosowanie jednej operacji (wzór)
 
@@ -68,5 +85,6 @@ przez dwóch użytkowników-gości i zapisz odpowiedzi `GET /pokestops`, `/me/co
 ## Znane ograniczenia
 
 - **Postać `festival`** (unikalna za wydarzenia) jest w odpowiedziach backendu, ale frontend zna 5 postaci (`CharacterId`). Kolekcja ją ignoruje, a potrzebuje modelu 3D lub wersji z kodu.
-- **Tryb `http` w całości** wymaga jeszcze wyboru pokemona przy głosie i zgłoszeniu. Do tego czasu bezpiecznie jest zostawić `pokestops: mock` i przełączyć tylko to, co już działa.
+- **Tryb `http` dla `pokestops` i `account` jest kompletny dla pętli gry** (głos, zgłoszenie, komentarze). Walka (`game: http`) i zdjęcia czekają na backend, więc `game` zostaje na `mock`.
+- **Tryb `http` wymaga działającego backendu już przy starcie** (zakłada konto gościa i pobiera `/me`). Gdy backend nie odpowiada, aplikacja się nie uruchomi (biały ekran). Ekran błędu startu to zadanie na etap wdrożeniowy.
 - Narzędzia deweloperskie (przełącznik ról, symulator GPS) wyłącza `dev.tools: false`. W produkcji koniecznie.

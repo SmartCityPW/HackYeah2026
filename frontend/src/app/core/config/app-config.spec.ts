@@ -37,6 +37,15 @@ describe('parseAppConfig', () => {
     expect(() => parseAppConfig(raw)).toThrowError('"api.mode.game" musi mieć wartość mock albo http');
   });
 
+  it('requires the account mode and the new ui and upload keys', () => {
+    for (const [section, key] of [['api.mode', 'account'], ['ui', 'commentsPageSize'], ['ui', 'mapReloadDebounceMs'], ['upload', 'enabled']]) {
+      const raw = realYaml();
+      const target = section === 'api.mode' ? raw['api'].mode : raw[section];
+      delete target[key];
+      expect(() => parseAppConfig(raw), `${section}.${key}`).toThrowError(AppConfigError);
+    }
+  });
+
   it('rejects an empty document', () => {
     expect(() => parseAppConfig(null)).toThrowError(AppConfigError);
   });

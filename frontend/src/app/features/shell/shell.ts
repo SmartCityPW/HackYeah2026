@@ -32,6 +32,8 @@ export class Shell {
   protected readonly role = this.session.role;
   protected readonly navItems = computed(() => NAV_ITEMS[this.session.role()]);
   protected readonly roles = ROLES;
+  /** Przełącznik ról działa tylko na atrapie konta; z backendu rola wynika z zalogowanego użytkownika. */
+  protected readonly roleSwitchable = this.session.roleSwitchable;
 
   /** Tryb deweloperski: symuluje pozycję na Rynku, żeby testować walkę bez wychodzenia z domu. */
   protected toggleSimulatedGps(): void {

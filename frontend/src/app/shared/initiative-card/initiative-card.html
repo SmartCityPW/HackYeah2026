@@ -18,7 +18,6 @@
       @if (stop().mine) { <span>📌 Twoje zgłoszenie</span> }
       @if (stop().myVote) { <span>{{ stop().myVote === 'for' ? '👍 Zagłosowano za' : '👎 Zagłosowano przeciw' }}</span> }
       @if (myComments() > 0) { <span>💬 Skomentowano ({{ myComments() }})</span> }
-      @if (stop().myVote) { <span>{{ character().emoji }} {{ character().label }}</span> }
     </p>
   }
 

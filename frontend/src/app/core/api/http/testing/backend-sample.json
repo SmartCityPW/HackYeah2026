@@ -1,5 +1,5 @@
 {
-  "_comment": "Prawdziwe odpowiedzi backendu (manage.py runserver, dane testowe) z perspektywy użytkownika, który zagłosował. Odtwórz: patrz docs/frontend-adaptation.md",
+  "_comment": "Prawdziwe odpowiedzi backendu (manage.py runserver na PostgreSQL, dane testowe, 2026-10-03). Odtwórz: patrz docs/frontend-adaptation.md",
   "pokestopsPage": {
     "count": 1,
     "results": [
@@ -45,5 +45,134 @@
     "xp": 0,
     "xpIntoLevel": 0,
     "xpForNextLevel": 100
+  },
+  "me": {
+    "id": 14,
+    "displayName": "Gość-f0b1",
+    "role": "resident",
+    "isGuest": true,
+    "organization": null
+  },
+  "pokemons": [
+    {
+      "id": 12,
+      "character": "cyclist",
+      "typeCode": "transport",
+      "nickname": null,
+      "level": 1,
+      "exp": 0,
+      "power": 20,
+      "isStaked": false,
+      "caughtAt": "2026-10-03T19:16:10.640740+02:00"
+    }
+  ],
+  "voteResult": {
+    "stop": {
+      "id": 8,
+      "type": "report",
+      "status": "open",
+      "scenarioCode": "res-pothole",
+      "character": "cyclist",
+      "icon": "🕳️",
+      "title": "Dziura próbna do testów",
+      "description": "Próbka odpowiedzi",
+      "author": "Gość-2e3e",
+      "mine": false,
+      "organization": null,
+      "organizationId": null,
+      "photos": [],
+      "details": {},
+      "lat": 50.0617,
+      "lng": 19.9373,
+      "votesFor": 1,
+      "votesAgainst": 0,
+      "myVote": "for",
+      "commentCount": 0,
+      "rejectionReason": null,
+      "votesRequired": 10,
+      "stakedPokemonId": 11,
+      "stakeReleasedAt": null,
+      "createdAt": "2026-10-03T19:16:10.666206+02:00",
+      "questions": [],
+      "surveyAnswered": false
+    },
+    "pokemon": {
+      "id": 12,
+      "character": "cyclist",
+      "typeCode": "transport",
+      "nickname": null,
+      "level": 1,
+      "exp": 10,
+      "power": 20,
+      "isStaked": false,
+      "caughtAt": "2026-10-03T19:16:10.640740+02:00"
+    }
+  },
+  "commentsPage": {
+    "count": 1,
+    "results": [
+      {
+        "id": 3,
+        "parentCommentId": null,
+        "author": "Gość-f0b1",
+        "text": "Pierwszy komentarz",
+        "mine": true,
+        "createdAt": "2026-10-03T19:16:10.699865+02:00",
+        "replies": [
+          {
+            "id": 4,
+            "parentCommentId": 3,
+            "author": "Gość-2e3e",
+            "text": "Odpowiedź",
+            "mine": false,
+            "createdAt": "2026-10-03T19:16:10.705930+02:00",
+            "replies": []
+          }
+        ]
+      }
+    ]
+  },
+  "createdStop": {
+    "id": 8,
+    "type": "report",
+    "status": "open",
+    "scenarioCode": "res-pothole",
+    "character": "cyclist",
+    "icon": "🕳️",
+    "title": "Dziura próbna do testów",
+    "description": "Próbka odpowiedzi",
+    "author": "Gość-2e3e",
+    "mine": true,
+    "organization": null,
+    "organizationId": null,
+    "photos": [],
+    "details": {},
+    "lat": 50.0617,
+    "lng": 19.9373,
+    "votesFor": 0,
+    "votesAgainst": 0,
+    "myVote": null,
+    "commentCount": 0,
+    "rejectionReason": null,
+    "votesRequired": 10,
+    "stakedPokemonId": 11,
+    "stakeReleasedAt": null,
+    "createdAt": "2026-10-03T19:16:10.666206+02:00",
+    "questions": [],
+    "surveyAnswered": false
+  },
+  "errors": {
+    "tooFar": {
+      "code": "too_far",
+      "message": "Jesteś za daleko (1112 m), podejdź na mniej niż 50 m"
+    },
+    "moderationRejected": {
+      "code": "moderation_rejected",
+      "message": "Zgłoszenie nie spełnia zasad serwisu i nie zostało opublikowane"
+    },
+    "alreadyVoted": {
+      "code": "already_voted",
+      "message": "Już oddano głos na tę pinezkę"
+    }
   }
 }

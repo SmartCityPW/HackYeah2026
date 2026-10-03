@@ -9,6 +9,7 @@ api:
   mode:
     pokestops: mock
     game: mock
+    account: mock      # profil i rola z GET /me (mock = rola wybierana ręcznie przełącznikiem deweloperskim)
 
 auth:
   storageKeyPrefix: scgo                  # klucze w localStorage: <prefix>.role, <prefix>.access, <prefix>.refresh
@@ -27,11 +28,14 @@ game:
   simulatedGps: { lat: 50.0617, lng: 19.9373 }  # pozycja z przycisku "GPS" (narzędzia deweloperskie)
 
 upload:
+  enabled: true                          # false ukrywa pola zdjęć (tryb http, dopóki backend nie ma POST /photos: dziś 501)
   maxPhotos: 3
   maxPhotoBytes: 5242880                  # 5 MB (zgodnie z backendem: pokestops.photos.max_bytes)
 
 ui:
   toastMs: 3000
+  commentsPageSize: 10                    # komentarze nadrzędne na stronę
+  mapReloadDebounceMs: 400                # po ilu ms od zatrzymania mapy dociągamy pinezki z widocznego obszaru
 
 dev:
   tools: true                             # przełącznik ról i symulator GPS; w produkcji ustaw false

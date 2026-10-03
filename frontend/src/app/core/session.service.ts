@@ -1,4 +1,5 @@
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { AccountApi } from './api/account.api';
 import { AppConfigService } from './config/app-config.service';
 
 export type Role = 'resident' | 'org' | 'admin';
@@ -9,22 +10,32 @@ export interface Profile {
   organization: string | null;
 }
 
-// MOCK: profile przypisane do ról. Docelowo profil i rola przyjdą z API po zalogowaniu.
+// MOCK: profile przypisane do ról, gdy konto nie pochodzi z backendu (api.mode.account: mock).
 const PROFILES: Record<Role, Profile> = {
   resident: { displayName: 'Ty', organization: null },
   org: { displayName: 'Fundacja Zielone Miasto', organization: 'Fundacja Zielone Miasto' },
   admin: { displayName: 'Administrator', organization: null },
 };
 
-/** Rola zalogowanego użytkownika (przełączana ręcznie do czasu logowania z backendu). */
+/**
+ * Rola i profil zalogowanego użytkownika. Z backendem (`api.mode.account: http`) pochodzą z GET /me
+ * i nie da się ich zmienić z poziomu aplikacji; w trybie mock rolę przełącza się ręcznie (narzędzia deweloperskie).
+ */
 @Injectable({ providedIn: 'root' })
 export class SessionService {
+  private readonly api = inject(AccountApi);
   private readonly storageKey = `${inject(AppConfigService).config.auth.storageKeyPrefix}.role`;
+  private readonly remoteProfile = signal<Profile | null>(null);
+
   readonly role = signal<Role>(this.load());
-  readonly profile = computed(() => PROFILES[this.role()]);
+  readonly profile = computed(() => this.remoteProfile() ?? PROFILES[this.role()]);
+  /** Czy rolę da się przełączyć ręcznie (tylko gdy konto nie pochodzi z backendu). */
+  readonly roleSwitchable = signal(true);
+  readonly isGuest = signal(false);
 
   constructor() {
     effect(() => {
+      if (!this.roleSwitchable()) return;
       try {
         localStorage.setItem(this.storageKey, this.role());
       } catch {
@@ -33,8 +44,18 @@ export class SessionService {
     });
   }
 
+  /** Wywoływane przy starcie aplikacji (po założeniu konta gościa): pobiera rolę i profil z backendu, jeśli on jest źródłem. */
+  async init(): Promise<void> {
+    const me = await this.api.me();
+    if (!me) return;
+    this.roleSwitchable.set(false);
+    this.role.set(me.role);
+    this.remoteProfile.set({ displayName: me.displayName, organization: me.organization });
+    this.isGuest.set(me.isGuest);
+  }
+
   setRole(role: Role): void {
-    this.role.set(role);
+    if (this.roleSwitchable()) this.role.set(role);
   }
 
   private load(): Role {

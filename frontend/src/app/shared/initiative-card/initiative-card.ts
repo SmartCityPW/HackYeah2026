@@ -1,5 +1,5 @@
 import { Component, computed, input, output } from '@angular/core';
-import { CHARACTERS, POKESTOP_TYPES, Pokestop } from '../../core/pokestop.model';
+import { POKESTOP_TYPES, Pokestop } from '../../core/pokestop.model';
 import { supportPercent } from '../../core/pokestop.utils';
 import { StatusChip } from '../status-chip/status-chip';
 
@@ -16,7 +16,6 @@ export class InitiativeCard {
   readonly opened = output<void>();
 
   protected readonly type = computed(() => POKESTOP_TYPES[this.stop().type]);
-  protected readonly character = computed(() => CHARACTERS[this.stop().character]);
   protected readonly support = computed(() => supportPercent(this.stop()));
   protected readonly myComments = computed(() => this.stop().comments.filter((c) => c.mine).length);
 }

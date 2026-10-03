@@ -19,9 +19,4 @@ export class CollectionService {
   async refresh(): Promise<void> {
     this.counts.set(await this.api.listCollection());
   }
-
-  /** Lokalnie dolicza zdobytą postać (serwer jest źródłem prawdy, `refresh()` ją zsynchronizuje). */
-  grant(id: CharacterId): void {
-    this.counts.update((c) => ({ ...c, [id]: c[id] + 1 }));
-  }
 }

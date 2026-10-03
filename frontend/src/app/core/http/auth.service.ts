@@ -30,8 +30,8 @@ export class AuthService {
 
   /** Czy jakikolwiek obszar korzysta z prawdziwego backendu (wtedy potrzebujemy sesji). */
   get needsSession(): boolean {
-    const { pokestops, game } = this.config.api.mode;
-    return pokestops === 'http' || game === 'http';
+    const { pokestops, game, account } = this.config.api.mode;
+    return pokestops === 'http' || game === 'http' || account === 'http';
   }
 
   /** Wywoływane przy starcie aplikacji: bez tokenu zakłada konto gościa (gdy `auth.autoGuest`). */

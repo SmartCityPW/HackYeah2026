@@ -1,4 +1,5 @@
-import { CharacterId, Pokestop } from '../pokestop.model';
+import { Pokemon } from '../pokemon.model';
+import { Pokestop } from '../pokestop.model';
 
 export const MOCK_STOPS: Pokestop[] = [
   { id: 1, character: 'cyclist', type: 'report', status: 'resolved', icon: '🕳️', title: 'Dziura w chodniku', description: 'Głęboka dziura przy przejściu, łatwo się potknąć.', author: 'Kasia', lat: 50.0617, lng: 19.9373, votesFor: 12, votesAgainst: 0, myVote: 'for',
@@ -14,7 +15,12 @@ export const MOCK_STOPS: Pokestop[] = [
     details: { rating: '4', cost: 'medium', vibes: ['calm', 'date'], bestTime: ['morning', 'weekend'], accessible: true, offer: 'coffee', vegan: true, wifi: true, tips: 'Zapytaj o ciasto dnia.' }, comments: [] },
   { id: 8, character: 'train', type: 'idea', status: 'open', icon: '🥕', scenarioId: 'idea-shop', title: 'Sklep warzywny na osiedlu', description: 'Na osiedlu nie ma żadnego warzywniaka, a do najbliższego trzeba jechać autobusem.', author: 'Pani Halina', lat: 50.0598, lng: 19.9470, votesFor: 32, votesAgainst: 3, myVote: null,
     details: { shopKind: 'veg', whoBenefits: ['seniors', 'parents'] }, comments: [] },
+  // Tuż przy symulowanym GPS (Rynek, ~30 m): dzięki niej da się w atrapach oddać głos bez wychodzenia z domu.
+  { id: 9, character: 'tree', type: 'report', status: 'open', icon: '🪑', title: 'Zniszczona ławka przy Rynku', description: 'Połamane deski, nie da się usiąść.', author: 'Marek', lat: 50.0619, lng: 19.9376, votesFor: 2, votesAgainst: 0, myVote: null, comments: [] },
 ];
 
-/** Postacie zdobyte przez zalogowanego użytkownika (zgodne z głosami w MOCK_STOPS). */
-export const MOCK_COLLECTION: Record<CharacterId, number> = { cyclist: 1, bin: 0, tree: 0, train: 0, lamp: 1 };
+/** Pokemony zalogowanego użytkownika (zgodne z głosami w MOCK_STOPS). Poziom = 1 + exp / 100, jak na backendzie. */
+export const MOCK_POKEMONS: Pokemon[] = [
+  { id: 1, character: 'cyclist', nickname: null, level: 1, exp: 10, power: 20, isStaked: false },
+  { id: 2, character: 'lamp', nickname: null, level: 1, exp: 10, power: 20, isStaked: false },
+];

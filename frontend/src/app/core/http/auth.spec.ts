@@ -9,13 +9,13 @@ const BASE = TEST_CONFIG.api.baseUrl;
 const ACCESS = 'test.access';
 const REFRESH = 'test.refresh';
 
-function setup(mode: 'mock' | 'http', autoGuest = true) {
+function setup(mode: 'mock' | 'http', autoGuest = true, account: 'mock' | 'http' = 'mock') {
   localStorage.clear();
   TestBed.configureTestingModule({
     providers: [
       provideHttpClient(withInterceptors([authInterceptor])),
       provideHttpClientTesting(),
-      provideTestConfig({ api: { ...TEST_CONFIG.api, mode: { pokestops: mode, game: 'mock' } }, auth: { ...TEST_CONFIG.auth, autoGuest } }),
+      provideTestConfig({ api: { ...TEST_CONFIG.api, mode: { pokestops: mode, game: 'mock', account } }, auth: { ...TEST_CONFIG.auth, autoGuest } }),
     ],
   });
   return { http: TestBed.inject(HttpTestingController), auth: TestBed.inject(AuthService), client: TestBed.inject(HttpClient) };
@@ -36,6 +36,14 @@ describe('AuthService.ensureSession', () => {
     await done;
     expect(auth.accessToken).toBe('A');
     expect(localStorage.getItem(REFRESH)).toBe('R');
+  });
+
+  it('also needs a session when only the account (GET /me) comes from the backend', async () => {
+    const { http, auth } = setup('mock', true, 'http');
+    const done = auth.ensureSession();
+    http.expectOne(`${BASE}/auth/guest`).flush({ access: 'A', refresh: 'R' });
+    await done;
+    expect(auth.accessToken).toBe('A');
   });
 
   it('keeps an existing session and respects auth.autoGuest = false', async () => {

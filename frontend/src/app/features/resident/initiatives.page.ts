@@ -3,7 +3,9 @@ import { Router } from '@angular/router';
 import { MAP_PATH } from '../../core/navigation';
 import { PokestopService } from '../../core/pokestop.service';
 import { Pokestop } from '../../core/pokestop.model';
+import { describeError } from '../../core/http/api-error';
 import { SessionService } from '../../core/session.service';
+import { ToastService } from '../../core/toast.service';
 import { InitiativeCard } from '../../shared/initiative-card/initiative-card';
 
 type Filter = 'all' | 'mine' | 'voted' | 'resolved';
@@ -25,6 +27,11 @@ export class InitiativesPage {
   private readonly pokestops = inject(PokestopService);
   private readonly router = inject(Router);
   private readonly session = inject(SessionService);
+  private readonly toast = inject(ToastService);
+
+  constructor() {
+    void this.pokestops.loadInteractions().catch((error) => this.toast.show(describeError(error)));
+  }
 
   protected readonly filters = FILTERS;
   protected readonly filter = signal<Filter>('all');

@@ -2,7 +2,9 @@ import { Component, ElementRef, computed, effect, inject, input, signal, untrack
 import { EncounterService } from '../../core/encounter.service';
 import { AppConfigService } from '../../core/config/app-config.service';
 import { distanceMeters } from '../../core/geo.utils';
-import { CHARACTERS, POKESTOP_TYPES } from '../../core/pokestop.model';
+import { describeError } from '../../core/http/api-error';
+import { CHARACTERS, POKESTOP_TYPES, Pokestop } from '../../core/pokestop.model';
+import { PokemonService } from '../../core/pokemon.service';
 import { GeolocationService } from '../../core/geolocation.service';
 import { PokestopService } from '../../core/pokestop.service';
 import { ProgressService } from '../../core/progress.service';
@@ -29,6 +31,10 @@ export class MapPage {
   private readonly encounterService = inject(EncounterService);
   private readonly toast = inject(ToastService);
   private readonly container = viewChild.required<ElementRef<HTMLDivElement>>('mapContainer');
+  protected readonly pokemons = inject(PokemonService);
+  private readonly reloadDebounceMs = inject(AppConfigService).config.ui.mapReloadDebounceMs;
+  private reloadTimer?: ReturnType<typeof setTimeout>;
+  private readonly reportPanel = viewChild(ReportPanel);
   protected readonly session = inject(SessionService);
   protected readonly progress = inject(ProgressService).progress;
   protected readonly attackRange = inject(AppConfigService).config.game.interactionRangeM;
@@ -37,6 +43,7 @@ export class MapPage {
   readonly stop = input<string>();
 
   protected readonly types = POKESTOP_TYPES;
+  protected readonly characters = CHARACTERS;
   protected readonly selectedId = signal<number | null>(null);
   protected readonly selected = computed(() => this.pokestops.stops().find((s) => s.id === this.selectedId()) ?? null);
   protected readonly selectedEncounterId = signal<number | null>(null);
@@ -54,6 +61,13 @@ export class MapPage {
   protected readonly attacking = this.encounterService.attacking;
   protected readonly panelOpen = signal(false);
   protected readonly commentDraft = signal('');
+  /** Komentarz nadrzędny, na który odpowiadamy (null: piszemy nowy komentarz najwyższego poziomu). */
+  protected readonly replyTo = signal<{ id: number; author: string } | null>(null);
+  protected readonly commentsLoading = signal(false);
+  protected readonly moreComments = computed(() => {
+    const stop = this.selected();
+    return !!stop && this.pokestops.hasMoreComments(stop);
+  });
   /** Administrator tylko przegląda: nie zgłasza, nie głosuje i nie komentuje. */
   protected readonly canParticipate = computed(() => this.session.role() !== 'admin');
   protected readonly selectedDetails = computed(() => {
@@ -72,6 +86,16 @@ export class MapPage {
     effect(() => {
       if (this.mapCtl.ready()) this.mapCtl.showStops(this.pokestops.visibleStops(), (id) => this.select(id));
     });
+    // Pinezki dociągamy z widocznego obszaru mapy (po każdym jej ruchu, z opóźnieniem z konfiguracji).
+    effect(() => {
+      if (!this.mapCtl.ready()) return;
+      untracked(() => {
+        this.mapCtl.onMoveEnd(() => this.scheduleReload());
+        this.scheduleReload();
+        void this.run(() => this.pokemons.refresh());
+      });
+    });
+    inject(DestroyRef).onDestroy(() => clearTimeout(this.reloadTimer));
     effect(() => {
       if (this.mapCtl.ready()) this.mapCtl.showEncounters(this.encounterService.encounters(), (id) => this.selectEncounter(id));
     });
@@ -81,17 +105,49 @@ export class MapPage {
     });
     effect(() => {
       const id = Number(this.stop());
-      if (id && this.mapCtl.ready() && this.pokestops.loaded()) untracked(() => this.select(id));
+      if (id && this.mapCtl.ready()) untracked(() => void this.select(id));
     });
   }
 
-  protected select(id: number): void {
-    const stop = this.pokestops.stops().find((s) => s.id === id);
+  /** Wykonuje operację i zamiast zgłaszać błąd w konsoli pokazuje użytkownikowi jego opis (np. "za daleko"). Zwraca undefined przy błędzie. */
+  private async run<T>(operation: () => Promise<T>): Promise<T | undefined> {
+    try {
+      return await operation();
+    } catch (error) {
+      this.toast.show(describeError(error));
+      return undefined;
+    }
+  }
+
+  /** Jak `run`, ale dla operacji bez wyniku: zwraca, czy się udała. */
+  private async attempt(operation: () => Promise<unknown>): Promise<boolean> {
+    return (await this.run(async () => {
+      await operation();
+      return true;
+    })) === true;
+  }
+
+  private scheduleReload(): void {
+    clearTimeout(this.reloadTimer);
+    this.reloadTimer = setTimeout(() => {
+      const area = this.mapCtl.bounds();
+      if (area) void this.run(() => this.pokestops.loadArea(area));
+    }, this.reloadDebounceMs);
+  }
+
+  /** Otwiera kartę pinezki (pobiera ją z serwera, jeśli jeszcze jej nie mamy) wraz z pierwszą stroną komentarzy. */
+  protected async select(id: number): Promise<void> {
+    const stop = await this.pokestops.open(id);
     if (!stop) return;
     this.panelOpen.set(false);
     this.selectedEncounterId.set(null);
+    this.replyTo.set(null);
+    this.commentDraft.set('');
     this.selectedId.set(id);
     this.mapCtl.focus(stop.lat, stop.lng);
+    this.commentsLoading.set(true);
+    await this.run(() => this.pokestops.loadComments(id));
+    this.commentsLoading.set(false);
   }
 
   protected selectEncounter(id: number): void {
@@ -125,32 +181,66 @@ export class MapPage {
     this.panelOpen.update((open) => !open);
   }
 
+  protected onPokemonChosen(event: Event): void {
+    this.pokemons.choose(Number((event.target as HTMLSelectElement).value));
+  }
+
+  /** Głos wymaga wybranego pokemona (dostaje exp) i pozycji użytkownika (serwer sprawdza, czy jest na miejscu). */
   protected async vote(id: number, vote: 'for' | 'against'): Promise<void> {
-    const won = await this.pokestops.vote(id, vote);
-    if (won) this.toast.show(`Dziękujemy za głos! Zdobywasz: ${CHARACTERS[won].emoji} ${CHARACTERS[won].label}`);
+    const pokemon = this.pokemons.chosen();
+    const position = this.encounterService.userPosition();
+    if (!pokemon) {
+      this.toast.show('Nie masz jeszcze pokemona, który mógłby dostać exp.');
+      return;
+    }
+    if (!position) {
+      this.toast.show('Włącz lokalizację, żeby głosować. Musisz być na miejscu.');
+      return;
+    }
+    const rewarded = await this.run(() => this.pokestops.vote(id, vote, { pokemonId: pokemon.id, position }));
+    if (rewarded) {
+      const character = CHARACTERS[rewarded.character];
+      this.toast.show(`Dziękujemy za głos! ${character.emoji} ${character.label} ma teraz ${rewarded.exp} exp (poziom ${rewarded.level})`);
+    }
   }
 
   protected async sendComment(id: number): Promise<void> {
     const text = this.commentDraft().trim();
     if (!text) return;
-    await this.pokestops.comment(id, text);
+    const reply = this.replyTo();
+    // Przy błędzie szkic zostaje w polu, żeby nie trzeba go było pisać od nowa.
+    if (!(await this.attempt(() => this.pokestops.comment(id, text, reply?.id)))) return;
     this.commentDraft.set('');
+    this.replyTo.set(null);
+  }
+
+  protected async loadMoreComments(id: number): Promise<void> {
+    this.commentsLoading.set(true);
+    await this.run(() => this.pokestops.loadMoreComments(id));
+    this.commentsLoading.set(false);
+  }
+
+  protected commentTotal(stop: Pokestop): number {
+    return stop.commentCount ?? stop.comments.length;
   }
 
   protected onCommentInput(event: Event): void {
     this.commentDraft.set((event.target as HTMLInputElement).value);
   }
 
+  /** Przy błędzie (np. moderacja odrzuciła treść) panel zostaje otwarty z wypełnionym formularzem, żeby można było poprawić i spróbować ponownie. */
   protected async onReportDrafted(draft: ReportDraft): Promise<void> {
     const center = this.mapCtl.center();
     if (!center) return;
-    const stop = await this.pokestops.addReport({ ...draft, lat: center.lat, lng: center.lng });
+    const stop = await this.run(() => this.pokestops.addReport({ ...draft, lat: center.lat, lng: center.lng }));
+    if (!stop) return;
+    this.reportPanel()?.reset();
     this.panelOpen.set(false);
-    this.selectedId.set(stop.id);
+    void this.select(stop.id);
     this.toast.show(
       draft.type === 'ngo'
         ? 'Inicjatywa opublikowana! Mieszkańcy mogą teraz głosować.'
-        : 'Zgłoszenie dodane! Gdy inni je potwierdzą, dostaniesz postać.',
+        : 'Zgłoszenie dodane! Gdy inni je potwierdzą, odzyskasz pokemona z premią exp.',
     );
   }
 }

@@ -1,3 +1,6 @@
+import { Position } from './game.model';
+import { Pokemon } from './pokemon.model';
+
 export type PokestopType = 'report' | 'idea' | 'place' | 'ngo' | 'consultation';
 export type CharacterId = 'cyclist' | 'bin' | 'tree' | 'train' | 'lamp';
 export type PokestopStatus = 'open' | 'in_progress' | 'resolved' | 'rejected';
@@ -7,6 +10,15 @@ export interface PokestopComment {
   author: string;
   text: string;
   mine: boolean;
+  /** Id komentarza nadrzędnego; brak dla komentarzy najwyższego poziomu (wątki mają jeden poziom). */
+  parentId?: number | null;
+  replies?: PokestopComment[];
+}
+
+/** Strona komentarzy nadrzędnych (każdy z odpowiedziami). `total` to liczba komentarzy nadrzędnych w całej dyskusji. */
+export interface CommentPage {
+  total: number;
+  items: PokestopComment[];
 }
 
 export interface Pokestop {
@@ -45,14 +57,30 @@ export interface NewReport {
   title: string;
   description: string;
   character: CharacterId;
+  /** Własny pokemon zostawiany na zgłoszeniu (tylko `report` i `idea`). Serwer ustala wtedy `character` z jego gatunku. */
+  stakedPokemonId?: number;
   lat: number;
   lng: number;
 }
 
+/** Współrzędne obszaru mapy: zachód, południe, wschód, północ (stopnie). */
+export interface Bbox {
+  west: number;
+  south: number;
+  east: number;
+  north: number;
+}
+
+/** Dane, które serwer musi dostać razem z głosem: kto dostaje exp i gdzie głosujący faktycznie stoi. */
+export interface VoteContext {
+  pokemonId: number;
+  position: Position;
+}
+
 export interface VoteResult {
   stop: Pokestop;
-  /** Postać zdobyta za ten głos (null, gdy użytkownik już wcześniej głosował). */
-  awarded: CharacterId | null;
+  /** Pokemon nagrodzony za ten głos, już po doliczeniu exp. */
+  pokemon: Pokemon;
 }
 
 export interface PokestopTypeMeta {

@@ -36,7 +36,7 @@ narzędzie do konsultacji, ankiet i wydarzeń. Wymagania źródłowe: [`docs/opi
 | Część | Co działa | Co jest atrapą lub brakuje |
 |---|---|---|
 | **Backend** (`backend/`) | **25 z 36 operacji** kontraktu: konta, gość, organizacje, katalog, scenariusze, pinezki (tworzenie, głos, wycofanie, status, komentarze), kolekcja, postęp. 79 testów | 11 operacji odpowiada jawnym `501`: zdjęcia, ankiety, wydarzenia, walka, edycja scenariusza |
-| **Frontend** (`frontend/`) | Cała aplikacja na **atrapach** (mapa 3D, trzy widoki, zgłaszanie, głosowanie, walka). 47 testów | Tryb prawdziwego backendu jest częściowy: lista pinezek, kolekcja, status i postęp działają, głos/zgłoszenie/komentarze/walka jeszcze nie ([`docs/frontend-adaptation.md`](docs/frontend-adaptation.md)) |
+| **Frontend** (`frontend/`) | Aplikacja na **atrapach** (mapa 3D, trzy widoki, zgłaszanie, głosowanie, walka) albo, per obszar, na prawdziwym backendzie. 70 testów | **Pętla gry działa na backendzie** (pinezki wg obszaru mapy, głos z wyborem pokemona i pozycją, zgłoszenie z zastawem i moderacją, komentarze z odpowiedziami, rola z `/me`). Walka, zdjęcia, ankiety, wydarzenia i logowanie jeszcze nie ([`docs/frontend-adaptation.md`](docs/frontend-adaptation.md)) |
 | **Kontrakt i baza** (`docs/`) | `openapi.yaml` (36 operacji), schemat 26 tabel, seedy | Schemat nie był wykonany na żywym PostgreSQL (testy lecą na SQLite) |
 
 ## Wymagania
@@ -110,14 +110,14 @@ Domyślnie wszystko działa na danych w pamięci, więc backend nie jest potrzeb
 
 Przełącznik w lewym górnym rogu (👤 / 🏢 / 🛡️ i 📍 GPS) to narzędzia deweloperskie (`dev.tools` w konfiguracji).
 
-- **Mieszkaniec 👤:** mapa pokazuje Kraków w 3D z pinezkami i obracającymi się postaciami. Kliknij pinezkę → karta ze szczegółami, **Potwierdzam** → komunikat o nagrodzie. **➕ Zgłoś** → trzy kategorie (problem / inicjatywa / cool miejsce) → formularz (cool miejsce ma gwiazdki, koszt, klimat). Dolne menu: **Spryciaki** (kolekcja i poziom), **Inicjatywy** (moje, z filtrami).
+- **Mieszkaniec 👤:** mapa pokazuje Kraków w 3D z pinezkami i obracającymi się postaciami. Kliknij pinezkę → karta ze szczegółami. Żeby zagłosować, włącz **📍 GPS** (głos działa tylko w promieniu 50 m): wybierz pokemona, który dostanie exp, i kliknij **Potwierdzam** (w zasięgu GPS jest „Zniszczona ławka przy Rynku”). **➕ Zgłoś** → trzy kategorie (problem / inicjatywa / cool miejsce) → formularz (cool miejsce ma gwiazdki, koszt, klimat). Dolne menu: **Spryciaki** (kolekcja i poziom), **Inicjatywy** (moje, z filtrami).
 - **Walka:** włącz **📍 GPS** (symuluje Twoją pozycję na Rynku). Czerwony przeciwnik obok jest w zasięgu, kliknij go → **⚔️ Walcz**. Pozostali są dalej i pokażą „Za daleko”.
 - **Organizacja 🏢:** **🏢 Nowa inicjatywa** → szczegółowe scenariusze (przystanek ze wszystkimi polami, drzewo, mała architektura, szkoda na powierzchni). Zakładki: Inicjatywy (statystyki poparcia), Organizacja (profil).
 - **Administrator 🛡️:** **Moderacja** (zmiana statusu, odrzucone znikają z mapy), **Organizacje** (weryfikacja), **Scenariusze** (podgląd katalogu), **Mapa** (bez przycisku zgłaszania).
 
 > Ten przegląd wizualny nie był wykonany przeze mnie w przeglądarce, tylko sprawdzone testami i buildem. Zgłoś, co wygląda lub działa źle.
 
-### 6. Frontend na prawdziwym backendzie (częściowo)
+### 6. Frontend na prawdziwym backendzie
 
 Z uruchomionym backendem z kroku 2 zmień w [`frontend/public/config/app-config.yaml`](frontend/public/config/app-config.yaml):
 
@@ -125,10 +125,20 @@ Z uruchomionym backendem z kroku 2 zmień w [`frontend/public/config/app-config.
 api:
   mode:
     pokestops: http      # było: mock
+    account: http        # było: mock
+    # game zostaw na mock: walka czeka na backend (501)
+upload:
+  enabled: false         # backend nie ma jeszcze POST /photos, więc ukrywamy pola zdjęć
 ```
 
-Odśwież stronę. Aplikacja sama założy konto gościa, a mapa pokaże **6 pinezek z bazy**. Działa: lista pinezek, kolekcja, zmiana statusu (administrator).
-Głosowanie, zgłaszanie i komentarze rzucą komunikat `NotAdaptedYet` w konsoli przeglądarki: to zamierzony znacznik tego, co jeszcze trzeba dopasować.
+Odśwież stronę. Aplikacja sama założy konto gościa, pobierze rolę z `/me` (przełącznik 👤/🏢/🛡️ znika, bo rolę ustala serwer) i dociągnie pinezki z widocznej części mapy. Działa cała pętla gry:
+
+- **Głos:** włącz 📍 GPS, otwórz pinezkę z Rynku, wybierz pokemona i zagłosuj. Serwer dolicza exp (toast pokazuje nowy poziom). Z innego miejsca dostaniesz „Jesteś za daleko (… m)”.
+- **Zgłoszenie:** ➕ Zgłoś → problem → wybierz pokemona do zastawienia. Tytuł ze znacznikiem `[odrzuć]` zasymuluje odrzucenie przez moderację (tryb `stub`): komunikat serwera, formularz zostaje wypełniony.
+- **Komentarze:** pod pinezką, z odpowiedziami („Odpowiedz”) i „Pokaż starsze komentarze”.
+- Walka, zdjęcia, ankiety i wydarzenia są jeszcze tylko w kontrakcie albo w modelach.
+
+Aplikacja w trybie `http` wymaga działającego backendu już przy starcie: gdy go nie ma, strona zostaje pusta.
 
 **Jak sprawdzić panel administratora na prawdziwych danych** (aplikacja nie ma jeszcze ekranu logowania): pobierz token i wstaw go do przeglądarki.
 
@@ -137,7 +147,7 @@ curl -s -X POST http://localhost:8000/api/v1/auth/login -H 'Content-Type: applic
   -d '{"email":"admin@demo.smartcity.example","password":"demo-haslo-1234"}'
 ```
 
-W konsoli przeglądarki: `localStorage.setItem('scgo.access', '<access>'); localStorage.setItem('scgo.refresh', '<refresh>')`, odśwież stronę, przełącz na 🛡️ i w **Moderacji** zmień status pinezki.
+W konsoli przeglądarki: `localStorage.setItem('scgo.access', '<access>'); localStorage.setItem('scgo.refresh', '<refresh>')`, odśwież stronę: rola (🛡️) przyjdzie z `/me`, więc w **Moderacji** zmienisz status pinezki.
 Dla widoku organizacji zaloguj się jako `fundacja@demo.smartcity.example`.
 
 ### 7. Docker (jak na produkcji)
@@ -197,7 +207,7 @@ Kod nie zawiera wartości zmiennych na stałe, a testy pilnują, że w plikach Y
 
 1. **Walka** po stronie backendu (generowanie przeciwników, rozstrzyganie) i ekran wyboru drużyny we frontendzie.
 2. **Zdjęcia** (odblokowują zgłoszenia ze zdjęciem), potem **ankiety** i **wydarzenia**.
-3. Dopasowanie frontendu do kontraktu: wybór pokemona przy głosie i zgłoszeniu, pozycja użytkownika, logowanie ([`docs/frontend-adaptation.md`](docs/frontend-adaptation.md)).
+3. Logowanie i rejestracja w interfejsie (dziś rolą jest gość, a organizację lub administratora ustawia wklejony token), moderacja AI z prawdziwym agentem ([`docs/plan.md`](docs/plan.md)).
 
 ## Rozwiązywanie problemów
 

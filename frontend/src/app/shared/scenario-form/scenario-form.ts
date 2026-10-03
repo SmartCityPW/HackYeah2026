@@ -13,6 +13,7 @@ import { initialValues, isVisible, parseTags, validate } from '../../core/scenar
 export class ScenarioForm {
   private readonly upload = inject(AppConfigService).config.upload;
   protected readonly maxPhotos = this.upload.maxPhotos;
+  protected readonly uploadEnabled = this.upload.enabled;
   readonly scenario = input.required<Scenario>();
   readonly submitLabel = input('Dodaj zgłoszenie');
   readonly submitted = output<FieldValues>();

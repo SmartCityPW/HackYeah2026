@@ -7,12 +7,12 @@ export interface LatLng {
 }
 
 export interface AppConfig {
-  api: { baseUrl: string; mode: { pokestops: ApiMode; game: ApiMode } };
+  api: { baseUrl: string; mode: { pokestops: ApiMode; game: ApiMode; account: ApiMode } };
   auth: { storageKeyPrefix: string; autoGuest: boolean };
   map: { styleUrl: string; workerUrl: string; center: LatLng; zoom: number; pitch: number; bearing: number };
   game: { interactionRangeM: number; simulatedGps: LatLng };
-  upload: { maxPhotos: number; maxPhotoBytes: number };
-  ui: { toastMs: number };
+  upload: { enabled: boolean; maxPhotos: number; maxPhotoBytes: number };
+  ui: { toastMs: number; commentsPageSize: number; mapReloadDebounceMs: number };
   dev: { tools: boolean };
 }
 
@@ -67,7 +67,11 @@ export function parseAppConfig(raw: unknown): AppConfig {
   return {
     api: {
       baseUrl: text(api, 'baseUrl', 'api.baseUrl').replace(/\/+$/, ''),
-      mode: { pokestops: mode(apiMode, 'pokestops', 'api.mode.pokestops'), game: mode(apiMode, 'game', 'api.mode.game') },
+      mode: {
+        pokestops: mode(apiMode, 'pokestops', 'api.mode.pokestops'),
+        game: mode(apiMode, 'game', 'api.mode.game'),
+        account: mode(apiMode, 'account', 'api.mode.account'),
+      },
     },
     auth: { storageKeyPrefix: text(auth, 'storageKeyPrefix', 'auth.storageKeyPrefix'), autoGuest: flag(auth, 'autoGuest', 'auth.autoGuest') },
     map: {
@@ -79,8 +83,16 @@ export function parseAppConfig(raw: unknown): AppConfig {
       bearing: num(map, 'bearing', 'map.bearing'),
     },
     game: { interactionRangeM: num(game, 'interactionRangeM', 'game.interactionRangeM'), simulatedGps: latLng(game, 'simulatedGps', 'game.simulatedGps') },
-    upload: { maxPhotos: num(upload, 'maxPhotos', 'upload.maxPhotos'), maxPhotoBytes: num(upload, 'maxPhotoBytes', 'upload.maxPhotoBytes') },
-    ui: { toastMs: num(ui, 'toastMs', 'ui.toastMs') },
+    upload: {
+      enabled: flag(upload, 'enabled', 'upload.enabled'),
+      maxPhotos: num(upload, 'maxPhotos', 'upload.maxPhotos'),
+      maxPhotoBytes: num(upload, 'maxPhotoBytes', 'upload.maxPhotoBytes'),
+    },
+    ui: {
+      toastMs: num(ui, 'toastMs', 'ui.toastMs'),
+      commentsPageSize: num(ui, 'commentsPageSize', 'ui.commentsPageSize'),
+      mapReloadDebounceMs: num(ui, 'mapReloadDebounceMs', 'ui.mapReloadDebounceMs'),
+    },
     dev: { tools: flag(dev, 'tools', 'dev.tools') },
   };
 }

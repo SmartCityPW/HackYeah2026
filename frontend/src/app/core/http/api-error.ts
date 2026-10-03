@@ -31,3 +31,14 @@ export class NotAdaptedYet extends Error {
     super(`Tryb "http": ${operation} nie jest jeszcze dopasowane do kontraktu. ${todo}`);
   }
 }
+
+/**
+ * Komunikat dla użytkownika. Backend zwraca czytelne polskie komunikaty (too_far, moderation_rejected, already_voted…),
+ * więc pokazujemy je wprost; własny tekst mamy tylko dla braku połączenia i błędów spoza kontraktu.
+ */
+export function describeError(error: unknown): string {
+  const e = toApiError(error);
+  if (e.code === 'network_error') return 'Brak połączenia z serwerem. Sprawdź internet i spróbuj ponownie.';
+  if (e.code === 'unknown_error' || e.code === 'http_error') return 'Coś poszło nie tak. Spróbuj ponownie.';
+  return e.message;
+}

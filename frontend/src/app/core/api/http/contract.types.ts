@@ -32,3 +32,47 @@ export interface PlayerProgressDto {
   xpIntoLevel: number;
   xpForNextLevel: number;
 }
+
+export interface PokemonDto {
+  id: number;
+  character: string;
+  nickname: string | null;
+  level: number;
+  exp: number;
+  power: number;
+  isStaked: boolean;
+}
+
+export interface VoteResultDto {
+  stop: PokestopDto;
+  pokemon: PokemonDto;
+}
+
+export interface CommentDto {
+  id: number;
+  parentCommentId?: number | null;
+  author: string;
+  text: string;
+  mine: boolean;
+  replies?: CommentDto[];
+}
+
+export interface MeDto {
+  id: number;
+  displayName: string;
+  role: 'resident' | 'org' | 'admin';
+  isGuest: boolean;
+  organization: { id: number; name: string } | null;
+}
+
+/** Ciało POST /pokestops (wycinek `NewPokestop` z docs/openapi.yaml). */
+export interface NewPokestopDto {
+  scenarioCode: string;
+  title: string;
+  description: string;
+  character?: string;
+  stakedPokemonId?: number;
+  lat: number;
+  lng: number;
+  details: Record<string, unknown>;
+}

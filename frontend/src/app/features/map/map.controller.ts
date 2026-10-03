@@ -2,7 +2,7 @@ import { Injectable, OnDestroy, inject, signal } from '@angular/core';
 import { AppConfigService } from '../../core/config/app-config.service';
 import * as maplibregl from 'maplibre-gl';
 import { Encounter } from '../../core/game.model';
-import { POKESTOP_TYPES, Pokestop } from '../../core/pokestop.model';
+import { Bbox, POKESTOP_TYPES, Pokestop } from '../../core/pokestop.model';
 import { CharactersLayer } from './three/characters-layer';
 
 /**
@@ -87,6 +87,17 @@ export class MapController implements OnDestroy {
 
   focus(lat: number, lng: number): void {
     this.map?.easeTo({ center: [lng, lat], duration: 600 });
+  }
+
+  /** Widoczny obszar mapy; po nim dociągamy pinezki z backendu (?bbox=). */
+  bounds(): Bbox | null {
+    const b = this.map?.getBounds();
+    return b ? { west: b.getWest(), south: b.getSouth(), east: b.getEast(), north: b.getNorth() } : null;
+  }
+
+  /** Wywołuje funkcję po każdym zakończonym ruchu lub przybliżeniu mapy. */
+  onMoveEnd(callback: () => void): void {
+    this.map?.on('moveend', callback);
   }
 
   /** Środek widoku, czyli miejsce wskazywane celownikiem przy dodawaniu zgłoszenia. */

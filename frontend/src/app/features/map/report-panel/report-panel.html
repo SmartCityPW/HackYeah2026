@@ -4,6 +4,23 @@
     <p class="kicker">{{ scenario.emoji }} {{ isOrg() ? 'Inicjatywa organizacji' : categoryMeta()?.label }}</p>
     <h2>{{ scenario.label }}</h2>
     <p class="pin-hint">Przesuń mapę, aby pinezka 📍 wskazała właściwe miejsce.</p>
+    @if (needsStake()) {
+      <label class="stake">
+        <span>Pokemon, którego zostawisz na zgłoszeniu:</span>
+        @if (available().length) {
+          <select (change)="onStakedChosen($event)">
+            @for (p of available(); track p.id) {
+              <option [value]="p.id" [selected]="p.id === stakedId()">
+                {{ characters[p.character].emoji }} {{ p.nickname ?? characters[p.character].label }} · poz. {{ p.level }}
+              </option>
+            }
+          </select>
+          <small>Wróci do Ciebie z premią exp, gdy zgłoszenie zdobędzie poparcie.</small>
+        } @else {
+          <small>Wszystkie Twoje pokemony czekają na innych zgłoszeniach. Odzyskasz je po poparciu tych zgłoszeń.</small>
+        }
+      </label>
+    }
     <app-scenario-form
       [scenario]="scenario"
       [submitLabel]="isOrg() ? 'Opublikuj inicjatywę' : 'Dodaj na mapę'"

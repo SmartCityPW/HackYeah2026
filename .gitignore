@@ -12,3 +12,4 @@ __pycache__/
 
 # lokalne nadpisania konfiguracji
 backend/config/demo.yaml
+docs/plan.md
