@@ -1,9 +1,10 @@
 :host { display: block; position: relative; height: 100%; width: 100%; }
 .map { position: absolute; inset: 0; }
 
-.toolbar { position: absolute; top: 12px; right: 12px; z-index: 15; display: flex; gap: 8px; }
+.toolbar { position: absolute; top: 12px; right: 12px; z-index: 15; display: flex; gap: 8px; align-items: center; }
 .tool { background: #fff; border: 0; border-radius: 999px; padding: 10px 16px; font-weight: 700; box-shadow: 0 4px 14px rgb(0 0 0 / .25); cursor: pointer; }
 .tool.active { background: #111827; color: #fff; }
+.tool.fight-now { background: #dc2626; color: #fff; }
 .crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); font-size: 40px; z-index: 5; pointer-events: none; filter: drop-shadow(0 4px 4px rgb(0 0 0 / .4)); }
 
 .sheet {
@@ -53,7 +54,6 @@
 .xp { display: inline-flex; flex-direction: column; gap: 2px; align-items: stretch; background: #fff; border-radius: 999px; padding: 6px 14px; font-weight: 700; font-size: .85rem; box-shadow: 0 4px 14px rgb(0 0 0 / .25); }
 .xp-bar { display: block; height: 4px; background: #e5e7eb; border-radius: 99px; overflow: hidden; }
 .xp-bar > span { display: block; height: 100%; background: #6366f1; }
-.toolbar { align-items: center; }
 .hint { margin: 8px 0; font-size: .85rem; color: #b45309; }
 .enemy-action { margin: 6px 0; }
 .fight { width: 100%; margin-top: 6px; }
@@ -69,3 +69,4 @@
 :host ::ng-deep .stop-marker.out-of-range, :host ::ng-deep .enemy-marker.out-of-range { opacity: .45; filter: grayscale(.6); }
 :host ::ng-deep .enemy-marker.out-of-range { animation: none; }
 .crosshair.out-of-range { opacity: .45; filter: grayscale(1) drop-shadow(0 4px 4px rgb(0 0 0 / .4)); }
+.locate { position: absolute; top: 64px; left: 16px; right: 16px; z-index: 15; max-width: 520px; margin: 0 auto; padding: 10px 14px; border-radius: 16px; background: #fff; font-size: .85rem; box-shadow: 0 4px 14px #0004; border-left: 5px solid #38bdf8; }

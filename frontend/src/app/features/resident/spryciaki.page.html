@@ -1,16 +1,62 @@
 <div class="page">
   <h1>Moje Spryciaki</h1>
-  <p class="lead">Zdobyto {{ collection.unlocked() }} z {{ total }}. Głosuj i komentuj inicjatywy, żeby poznać kolejne.</p>
+  <p class="lead">Wygrywaj walki, żeby zdobywać nowe Spryciaki i podnosić poziom tych, którzy walczyli.</p>
 
   <p class="level">⭐ Poziom {{ progress().level }} · {{ progress().xpIntoLevel }} / {{ progress().xpForNextLevel }} XP</p>
 
+  <div class="stat-grid">
+    <div class="stat"><strong>{{ owned().length }}</strong><span>Spryciaków</span></div>
+    <div class="stat"><strong>{{ ready().length }}</strong><span>gotowych do walki</span></div>
+    <div class="stat"><strong>💪 {{ bestTeamPower() }}</strong><span>moc najlepszej drużyny ({{ maxTeam }})</span></div>
+    <div class="stat"><strong>{{ collection.unlocked() }} / {{ species.length }}</strong><span>odkrytych gatunków</span></div>
+  </div>
+
+  <h2>Drużyna</h2>
+  <div class="chip-row">
+    @for (f of filters; track f.id) {
+      <button [class.on]="filter() === f.id" (click)="filter.set(f.id)">{{ f.label }}</button>
+    }
+  </div>
+
+  @if (shown().length === 0) {
+    <p class="empty">
+      @if (owned().length === 0) { Nie masz jeszcze Spryciaków. } @else { Brak Spryciaków w tym widoku. }
+    </p>
+  } @else {
+    <div class="roster">
+      @for (p of shown(); track p.id) {
+        @let c = characters[p.character];
+        <article class="mon" [class.staked]="p.isStaked" [class.best]="p.id === strongest()?.id">
+          <span class="mon-emoji" aria-hidden="true">{{ c.emoji }}</span>
+          <div class="mon-body">
+            <header>
+              <strong>{{ c.label }}</strong>
+              <span class="lvl">poz. {{ p.level }}</span>
+            </header>
+            <p class="mon-meta">
+              <span class="chip">{{ types[p.typeCode].emoji }} {{ types[p.typeCode].label }}</span>
+              <span class="chip power">💪 {{ p.power }}</span>
+              @if (p.isStaked) { <span class="chip pin">📌 Na zgłoszeniu</span> }
+              @if (p.id === strongest()?.id) { <span class="chip star">👑 Najsilniejszy</span> }
+            </p>
+            <div class="exp" role="progressbar" [attr.aria-valuenow]="p.expIntoLevel" [attr.aria-valuemax]="p.expForNextLevel" aria-label="Exp do następnego poziomu">
+              <span [style.width.%]="(p.expIntoLevel / p.expForNextLevel) * 100"></span>
+            </div>
+            <small>{{ p.expIntoLevel }} / {{ p.expForNextLevel }} exp do poziomu {{ p.level + 1 }}</small>
+          </div>
+        </article>
+      }
+    </div>
+  }
+
+  <h2>Atlas</h2>
   <div class="dex">
-    @for (c of characters; track c.id) {
-      @let count = collection.counts()[c.id];
+    @for (s of species; track s.id) {
+      @let count = collection.counts()[s.id];
       <div class="card" [class.locked]="count === 0">
-        <span class="emoji">{{ count > 0 ? c.emoji : '❔' }}</span>
-        <strong>{{ count > 0 ? c.label : '???' }}</strong>
-        <small>{{ count > 0 ? 'Zdobyty ×' + count : 'Wskazówka: ' + c.category }}</small>
+        <span class="emoji">{{ count > 0 ? s.emoji : '❔' }}</span>
+        <strong>{{ count > 0 ? s.label : '???' }}</strong>
+        <small>{{ count > 0 ? 'Zdobyty ×' + count : 'Wskazówka: ' + s.category }}</small>
       </div>
     }
   </div>

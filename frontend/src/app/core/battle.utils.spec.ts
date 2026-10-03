@@ -3,7 +3,7 @@ import { Encounter, Pokemon } from './game.model';
 
 const enemy = { typeCode: 'transport', power: 50 } as Encounter;
 const pokemon = (id: number, power: number, typeCode: Pokemon['typeCode']): Pokemon =>
-  ({ id, character: 'cyclist', typeCode, level: 1, exp: 0, power, isStaked: false });
+  ({ id, character: 'cyclist', typeCode, level: 1, exp: 0, expIntoLevel: 0, expForNextLevel: 100, power, isStaked: false });
 
 describe('typeMultiplier', () => {
   it('gives 1.2 only for a matching type', () => {

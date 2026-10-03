@@ -21,6 +21,7 @@ h3 { margin: 0 0 8px; font-size: 1.05rem; }
 .chip.power { background: #fee2e2; color: #b91c1c; }
 
 .panel { margin-top: 14px; }
+.grace { margin: 12px 0 0; padding: 8px 12px; border-radius: 12px; background: #fef3c7; color: #92400e; font-size: .85rem; font-weight: 700; }
 .task { margin: 0 0 12px; font-weight: 600; }
 .hint { margin: 8px 0 0; font-size: .82rem; color: #6b7280; }
 
@@ -59,6 +60,7 @@ h3 { margin: 0 0 8px; font-size: 1.05rem; }
 .btn.go { background: #2563eb; }
 .btn.ghost { background: #f3f4f6; color: #111827; }
 .actions { display: grid; gap: 8px; }
+.skip { margin-top: 12px; }
 .flee { margin-top: 12px; width: 100%; border: 0; background: none; color: #6b7280; font: inherit; font-weight: 700; cursor: pointer; padding: 6px; }
 
 .result h3 { font-size: 1.4rem; }

@@ -10,6 +10,6 @@
   <button [class.on]="gpsSimulated()" (click)="toggleSimulatedGps()" title="Symuluj GPS na Rynku (chodzenie: strzałki/WASD, Shift = dłuższy krok)">📍 GPS</button>
 </div>
 
-@if (toast.message(); as text) {
-  <div class="toast" role="status">🎁 {{ text }}</div>
+@if (toast.message(); as t) {
+  <div class="toast" role="status">{{ t.icon }} {{ t.text }}</div>
 }

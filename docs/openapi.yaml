@@ -247,9 +247,10 @@ paths:
         są widoczne z góry, żeby gracz mógł dobrać pokemony przed podejściem.
 
         Klient pyta z promieniem kółka interakcji (`radius=50`) po każdych ~10 m ruchu i co ~30 s na postoju.
-        W kółku krąży od **0 do 5** przeciwników: serwer losuje docelową liczbę (na nowo po ~40 m marszu gracza),
-        dogenerowuje brakujących w losowych miejscach kółka, a przeciwnicy, od których gracz odszedł, znikają
-        z odpowiedzi.
+        Przeciwnicy są **przypisani do miejsc**, nie do gracza: teren dzieli się na kwadraty 100 × 100 m, a każdy
+        kwadrat przy pierwszym odwiedzeniu losuje 0–6 przeciwników, którzy stoją tam, dopóki nie zostaną pokonani
+        albo nie wygasną (wspólni dla wszystkich graczy w okolicy). Wyczyszczony kwadrat zasiedla się na nowo po
+        ~60 s. Odpowiedź zawiera najbliższych przeciwników w promieniu, **najwyżej 5** (może być pusta).
       parameters:
         - { name: lat, in: query, required: true, schema: { type: number, format: double } }
         - { name: lng, in: query, required: true, schema: { type: number, format: double } }
@@ -542,7 +543,7 @@ components:
     # ---- kolekcja (posiadane pokemony)
     Pokemon:
       type: object
-      required: [id, character, typeCode, level, exp, power, isStaked]
+      required: [id, character, typeCode, level, exp, expIntoLevel, expForNextLevel, power, isStaked]
       properties:
         id: { type: integer }
         character: { $ref: '#/components/schemas/CharacterCode' }
@@ -550,6 +551,8 @@ components:
         nickname: { type: string, nullable: true }
         level: { type: integer, description: Wyliczone przez serwer z `exp` (wzór może się zmieniać) }
         exp: { type: integer }
+        expIntoLevel: { type: integer, description: 'Exp zdobyte w obecnym poziomie (do paska postępu, jak `PlayerProgress.xpIntoLevel`)' }
+        expForNextLevel: { type: integer, description: Exp potrzebne do kolejnego poziomu }
         power: { type: integer, description: Aktualna moc do walki, wyliczona z `level` }
         isStaked: { type: boolean, description: Zostawiony na własnym zgłoszeniu/pomyśle — niedostępny do walki }
         caughtAt: { type: string, format: date-time }

@@ -5,12 +5,24 @@
     ⭐ Lv {{ progress().level }}
     <span class="xp-bar"><span [style.width.%]="(progress().xpIntoLevel / progress().xpForNextLevel) * 100"></span></span>
   </span>
+  @if (canParticipate() && nearestEnemy() && !battleEncounter()) {
+    <button class="tool fight-now" (click)="startBattle(nearestEnemy()!)" title="Walcz z najbliższym przeciwnikiem w kółku">
+      ⚔️ Walcz {{ nearestEnemy()!.emoji }}
+    </button>
+  }
   @if (canParticipate()) {
     <button class="tool" [class.active]="panelOpen()" (click)="togglePanel()">
       {{ session.role() === 'org' ? '🏢 Nowa inicjatywa' : '➕ Zgłoś' }}
     </button>
   }
 </nav>
+
+@if (needsLocation()) {
+  <p class="locate" role="status">
+    📍 Nie znamy Twojej pozycji, więc nie widać kółka ani przeciwników. Zezwól przeglądarce na dostęp do lokalizacji
+    albo (tryb deweloperski) kliknij <strong>📍 GPS</strong> w lewym górnym rogu.
+  </p>
+}
 
 @if (selectedEncounter(); as enc) {
   <section class="sheet tall enemy" style="--stop-color: #dc2626">

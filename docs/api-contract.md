@@ -56,10 +56,12 @@ i do wyboru 3 pokemonów do walki.
   więc dwóch graczy nie pokona tego samego przeciwnika. Klient liczy odległość i podgląd mocy tylko na wyświetlanie —
   serwer rozstrzyga walkę od nowa.
 - **Przeciwnicy:** generuje wyłącznie serwer (losowanie z `game_enemy_type` wg wag, czas życia `expiresAt`); moc i
-  typ przeciwnika są widoczne w `GET /encounters`, żeby gracz mógł dobrać pokemony przed podejściem. Pojawiają się
-  wokół gracza: w kółku interakcji krąży od **0 do 5** przeciwników. Serwer losuje docelową liczbę (na nowo po ~40 m
-  marszu), dogenerowuje brakujących w losowych miejscach kółka, a ci, od których gracz odszedł, znikają. Klient
-  pyta `GET /encounters?radius=50` po każdych ~10 m ruchu i co ~30 s na postoju.
+  typ przeciwnika są widoczne w `GET /encounters`, żeby gracz mógł dobrać pokemony przed podejściem. Są
+  **przypisani do miejsc**: teren dzieli się na kwadraty 100 × 100 m, każdy kwadrat przy pierwszym odwiedzeniu losuje
+  0–6 przeciwników, którzy stoją w miejscu do pokonania albo wygaśnięcia, a wyczyszczony kwadrat zasiedla się na nowo
+  po ~60 s. Wracając w to samo miejsce, gracz spotyka tych samych przeciwników, a gracze stojący obok siebie widzą
+  tych samych. `GET /encounters?radius=50` zwraca najbliższych w kółku, **najwyżej 5** (może nie być żadnego). Klient
+  pyta po każdych ~10 m ruchu i co ~30 s na postoju.
 - **Pokemon startowy:** `POST /auth/guest` i `POST /auth/register` przyznają jeden egzemplarz gatunku startowego —
   inaczej nowy gracz nie miałby czym głosować.
 - **Moderacja:** zmiana statusu zapisuje wpis w historii (`pokestops_status_change`). Odrzucona pinezka znika z mapy mieszkańców.
@@ -100,9 +102,10 @@ Dzisiejsze atrapy (`core/api/*.mock.ts`) działają inaczej w kilku miejscach. T
    to zahardkodować?
 5. **Farmienie walk:** gracz może dowolną liczbę razy przegrać i spróbować ponownie tym samym przeciwnikiem (nie ma
    cooldownu). Czy to problem (np. przy teście różnych trójek pokemonów), czy zostaje tak jak jest?
-6. **Generowanie przeciwników:** zasada jest ustalona (0–5 w kółku gracza, patrz wyżej), otwarte zostaje, czy
-   przeciwnicy są osobni dla każdego gracza, czy wspólni dla graczy stojących obok siebie (wtedy limit 5 dotyczy
-   obszaru, nie gracza), oraz jak serwer ma się bronić przed "teleportowaniem" w celu losowania nowych przeciwników.
+6. **Generowanie przeciwników:** zasada jest ustalona (kwadraty 100 m, przeciwnicy wspólni dla graczy, patrz wyżej).
+   Otwarte zostaje: zasiedlanie kwadratów przy zapytaniu czy zadaniem okresowym (Celery beat/cron), wagi w zależności
+   od miejsca (np. Smogowy Duch przy ruchliwych ulicach) i czy pokonany przeciwnik znika dla wszystkich graczy (dziś
+   tak: jedno zwycięstwo na przeciwnika).
 7. **RODO i lokalizacja:** jak długo trzymamy pozycje z prób walki, czy anonimizujemy użytkowników zamiast ich usuwać (klucze obce `RESTRICT` na autorach są pod to przygotowane).
 8. **Moderacja treści:** zdjęcia i komentarze (dziś komentarz można ukryć, zdjęcia nie mają jeszcze statusu moderacji).
 9. **Moderacja zgłoszeń przez agenta AI:** dziś nie ma dedykowanej tabeli na jego werdykt — zakładamy, że ocena

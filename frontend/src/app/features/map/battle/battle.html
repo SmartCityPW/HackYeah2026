@@ -12,6 +12,10 @@
     </div>
   </header>
 
+  @if (graceLeft() !== null && (phase() === 'action' || phase() === 'team')) {
+    <p class="grace" role="alert">🚶 Jesteś poza kółkiem! Wróć w ciągu {{ graceLeft() }} s, inaczej walka się przerwie.</p>
+  }
+
   @switch (phase()) {
     @case ('action') {
       <div class="panel">
@@ -20,7 +24,8 @@
         <div class="dwell" [style.--progress]="(dwellTotal - dwellLeft()) / dwellTotal">
           <span>{{ dwellLeft() }} s</span>
         </div>
-        <p class="hint">Zostań w niebieskim kółku. Wyjście z niego przerywa walkę.</p>
+        <p class="hint">Zostań w niebieskim kółku. Jeśli z niego wyjdziesz, masz 5 s na powrót, inaczej walka się przerwie.</p>
+        <button class="btn ghost skip" (click)="skipAction()">⏩ Pomiń odliczanie (demo)</button>
       </div>
     }
 

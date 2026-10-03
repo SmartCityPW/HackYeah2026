@@ -72,6 +72,18 @@ export class MapPage {
   });
   private readonly stopsInRange = computed(() => this.idsInRange(this.pokestops.visibleStops()));
   private readonly encountersInRange = computed(() => this.idsInRange(this.encounterService.encounters()));
+  /** Najbliższy przeciwnik w kółku (do szybkiego startu walki z paska); null, gdy nikogo nie ma w zasięgu. */
+  protected readonly nearestEnemy = computed(() => {
+    const inRange = this.encountersInRange();
+    return (
+      this.encounterService
+        .encounters()
+        .filter((e) => inRange.has(e.id))
+        .sort((a, b) => (this.distanceTo(a) ?? 0) - (this.distanceTo(b) ?? 0))[0] ?? null
+    );
+  });
+  /** Bez pozycji nie ma kółka ani przeciwników, więc mówimy graczowi, co zrobić. */
+  protected readonly needsLocation = computed(() => this.mapCtl.ready() && this.geo.position() === null);
   protected readonly panelOpen = signal(false);
   protected readonly commentDraft = signal('');
   /** Administrator tylko przegląda: nie zgłasza, nie głosuje i nie komentuje. */
@@ -137,6 +149,8 @@ export class MapPage {
   }
 
   protected startBattle(enc: Encounter): void {
+    this.panelOpen.set(false);
+    this.selectedId.set(null);
     this.selectedEncounterId.set(null);
     this.battleEncounter.set(enc);
     this.mapCtl.enterBattle(enc.lat, enc.lng);
@@ -146,7 +160,7 @@ export class MapPage {
   protected endBattle(message?: string): void {
     this.battleEncounter.set(null);
     this.mapCtl.exitBattle();
-    if (message) this.toast.show(message);
+    if (message) this.toast.show(message, '⚠️');
   }
 
   protected close(): void {
@@ -169,14 +183,14 @@ export class MapPage {
       return { value: await action() };
     } catch (e) {
       if (!(e instanceof TooFarError)) throw e;
-      this.toast.show(`Za daleko: ${e.distanceM} m. Podejdź na mniej niż ${INTERACTION_RADIUS_M} m.`);
+      this.toast.show(`Za daleko: ${e.distanceM} m. Podejdź na mniej niż ${INTERACTION_RADIUS_M} m.`, '🚶');
       return null;
     }
   }
 
   protected async vote(id: number, vote: 'for' | 'against'): Promise<void> {
     const won = (await this.inRange(() => this.pokestops.vote(id, vote)))?.value;
-    if (won) this.toast.show(`Dziękujemy za głos! Zdobywasz: ${CHARACTERS[won].emoji} ${CHARACTERS[won].label}`);
+    if (won) this.toast.show(`Dziękujemy za głos! Zdobywasz: ${CHARACTERS[won].emoji} ${CHARACTERS[won].label}`, '🎁');
   }
 
   protected async sendComment(id: number): Promise<void> {
@@ -202,6 +216,7 @@ export class MapPage {
       draft.type === 'ngo'
         ? 'Inicjatywa opublikowana! Mieszkańcy mogą teraz głosować.'
         : 'Zgłoszenie dodane! Gdy inni je potwierdzą, dostaniesz postać.',
+      '✅',
     );
   }
 }

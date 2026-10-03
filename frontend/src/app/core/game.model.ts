@@ -50,6 +50,9 @@ export interface Pokemon {
   typeCode: TypeCode;
   level: number;
   exp: number;
+  /** Exp zdobyte w obecnym poziomie i potrzebne do następnego (jak `PlayerProgress`). */
+  expIntoLevel: number;
+  expForNextLevel: number;
   power: number;
   /** Zostawiony na własnym zgłoszeniu: niedostępny do walki. */
   isStaked: boolean;
@@ -95,8 +98,10 @@ export const ACTION_DWELL_S = 20;
  */
 export const INTERACTION_RADIUS_M = 50;
 
-/** Ilu przeciwników może naraz krążyć w kółku gracza (backend losuje liczbę z tego zakresu). */
-export const MIN_ENEMIES_IN_RANGE = 0;
+/**
+ * Najwyżej tylu przeciwników (najbliższych) serwer pokazuje w kółku gracza; może ich też nie być wcale.
+ * Przeciwnicy są przypisani do miejsc (kwadraty terenu), więc pojawiają się i znikają z kółka wraz z ruchem gracza.
+ */
 export const MAX_ENEMIES_IN_RANGE = 5;
 
 /** Serwer odrzucił akcję, bo gracz stoi poza kółkiem interakcji (kod błędu API `too_far`). */

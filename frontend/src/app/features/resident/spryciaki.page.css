@@ -1,6 +1,25 @@
+h2 { margin: 22px 0 10px; font-size: 1.15rem; }
+.level { display: inline-block; margin: 0 0 14px; padding: 4px 12px; border-radius: 99px; background: #eef2ff; color: #4338ca; font-weight: 700; }
+
+.roster { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+.mon { display: flex; gap: 12px; align-items: center; padding: 12px 14px; background: #fff; border-radius: 18px; box-shadow: 0 1px 4px rgb(0 0 0 / .08); border: 2px solid transparent; }
+.mon.best { border-color: #fcd34d; }
+.mon.staked { opacity: .7; }
+.mon-emoji { font-size: 2.4rem; width: 56px; height: 56px; flex: none; display: grid; place-items: center; background: #eef2ff; border-radius: 50%; }
+.mon-body { flex: 1; min-width: 0; }
+.mon-body header { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.lvl { font-size: .8rem; font-weight: 800; color: #4338ca; }
+.mon-meta { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+.chip { background: #f3f4f6; border-radius: 999px; padding: 2px 8px; font-size: .72rem; font-weight: 700; }
+.chip.power { background: #fee2e2; color: #b91c1c; }
+.chip.pin { background: #fef3c7; color: #b45309; }
+.chip.star { background: #fef9c3; color: #a16207; }
+.exp { height: 6px; background: #e5e7eb; border-radius: 99px; overflow: hidden; }
+.exp > span { display: block; height: 100%; background: linear-gradient(90deg, #38bdf8, #6366f1); }
+.mon-body small { color: #6b7280; font-size: .72rem; }
+
 .dex { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
 .card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 18px 8px; border-radius: 20px; background: #eef2ff; text-align: center; box-shadow: 0 1px 4px rgb(0 0 0 / .08); }
 .card.locked { background: #f3f4f6; color: #9ca3af; }
 .emoji { font-size: 3rem; line-height: 1.1; }
-small { color: inherit; opacity: .8; }
-.level { display: inline-block; margin: 0 0 14px; padding: 4px 12px; border-radius: 99px; background: #eef2ff; color: #4338ca; font-weight: 700; }
+.card small { color: inherit; opacity: .8; }

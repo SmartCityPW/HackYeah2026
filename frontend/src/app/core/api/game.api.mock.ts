@@ -6,25 +6,26 @@ import {
   INTERACTION_RADIUS_M,
   MAX_BATTLE_TEAM,
   MAX_ENEMIES_IN_RANGE,
-  MIN_ENEMIES_IN_RANGE,
   PlayerProgress,
   Pokemon,
   Position,
   TYPE_MULTIPLIER,
   TypeCode,
 } from '../game.model';
-import { distanceMeters, offsetMeters } from '../geo.utils';
+import { distanceMeters } from '../geo.utils';
 import { CHARACTER_IDS, CharacterId } from '../pokestop.model';
 import { GameApi } from './game.api';
 
 const XP_PER_LEVEL = 100;
 const EXP_PER_POKEMON_LEVEL = 100;
 const LIFETIME_MS = 30 * 60_000;
-/** Po tylu metrach marszu serwer losuje na nowo, ilu przeciwników ma być w kółku. */
-const REROLL_AFTER_M = 40;
-/** Przeciwnicy nie pojawiają się tuż na krawędzi kółka ani pod nogami gracza. */
-const SPAWN_MIN_M = 8;
-const SPAWN_EDGE_MARGIN = 0.9;
+const METERS_PER_DEG_LAT = 111_320;
+/** Teren jest podzielony na kwadraty o tym boku; każdy kwadrat ma własnych przeciwników. */
+const CELL_M = 100;
+/** Ilu przeciwników (0..CELL_MAX_ENEMIES) losuje kwadrat przy zasiedleniu. */
+const CELL_MAX_ENEMIES = 6;
+/** Wyczyszczony kwadrat (wszyscy pokonani albo wygaśli) zasiedla się na nowo dopiero po tym czasie. */
+const RESPAWN_MS = 60_000;
 
 const toProgress = (xp: number): PlayerProgress => ({
   level: Math.floor(xp / XP_PER_LEVEL) + 1,
@@ -73,10 +74,21 @@ const STARTING_POKEMONS: OwnedPokemon[] = [
   { id: 3, character: 'tree', exp: 0, isStaked: false },
 ];
 
+interface Cell {
+  row: number;
+  col: number;
+  /** Kiedy pusty kwadrat zasiedli się na nowo (ustawiane, gdy zostanie wyczyszczony). */
+  refillAt?: number;
+}
+
 /**
  * Atrapa backendu gry: sama generuje przeciwników i rozstrzyga walki, jak zrobiłby to serwer.
- * W kółku gracza krąży od MIN do MAX przeciwników; ci, od których gracz odszedł (albo wygaśli), znikają,
- * a w ich miejsce pojawiają się nowi wokół aktualnej pozycji.
+ *
+ * Przeciwnicy są przypisani do miejsc, nie do gracza: teren dzieli się na kwadraty CELL_M × CELL_M, a każdy
+ * kwadrat przy pierwszym odwiedzeniu losuje 0..CELL_MAX_ENEMIES przeciwników, którzy stoją tam, dopóki nie
+ * zostaną pokonani albo nie wygasną. Wracając w to samo miejsce, gracz spotyka tych samych przeciwników
+ * (i widziałby ich każdy inny gracz). Wyczyszczony kwadrat odradza się po RESPAWN_MS. Gracz widzi najbliższych
+ * MAX_ENEMIES_IN_RANGE z tych, którzy stoją w jego kółku.
  */
 @Injectable()
 export class MockGameApi extends GameApi {
@@ -87,18 +99,21 @@ export class MockGameApi extends GameApi {
   private encounters: Encounter[] = [];
   private pokemons: OwnedPokemon[] = STARTING_POKEMONS.map((p) => ({ ...p }));
   private nextId = 1;
-  private target = 0;
-  private rolledAt?: Position;
+  private readonly cells = new Map<string, Cell>();
+  /** Kwadrat, do którego należy przeciwnik (id -> klucz kwadratu). */
+  private readonly cellOf = new Map<number, string>();
 
   async listEncounters(around: Position, radiusM: number): Promise<Encounter[]> {
     const now = Date.now();
-    this.encounters = this.encounters.filter((e) => Date.parse(e.expiresAt) > now && distanceMeters(around, e) <= radiusM);
-    if (!this.rolledAt || distanceMeters(this.rolledAt, around) >= REROLL_AFTER_M) {
-      this.rolledAt = around;
-      this.target = MIN_ENEMIES_IN_RANGE + Math.floor(this.random() * (MAX_ENEMIES_IN_RANGE - MIN_ENEMIES_IN_RANGE + 1));
-    }
-    while (this.encounters.length < this.target) this.encounters.push(this.spawn(around, radiusM, now));
-    return clone(this.encounters);
+    this.encounters = this.encounters.filter((e) => Date.parse(e.expiresAt) > now);
+    for (const cell of this.cellsAround(around, radiusM)) this.settle(cell, now);
+    const visible = this.encounters
+      .map((e) => ({ e, d: distanceMeters(around, e) }))
+      .filter(({ d }) => d <= radiusM)
+      .sort((a, b) => a.d - b.d)
+      .slice(0, MAX_ENEMIES_IN_RANGE)
+      .map(({ e }) => e);
+    return clone(visible);
   }
 
   async attack(id: number, position: Position, pokemonIds: number[]): Promise<AttackResult> {
@@ -152,11 +167,38 @@ export class MockGameApi extends GameApi {
     });
   }
 
-  /** Losowy punkt w kółku (równomiernie po powierzchni), szablon wg wag i poziom z jego zakresu. */
-  private spawn(around: Position, radiusM: number, now: number): Encounter {
-    const maxR = radiusM * SPAWN_EDGE_MARGIN;
-    const r = Math.sqrt(SPAWN_MIN_M ** 2 + this.random() * (maxR ** 2 - SPAWN_MIN_M ** 2));
-    const angle = this.random() * 2 * Math.PI;
+  /** Kwadraty terenu, które zahaczają o kółko gracza (zasiedlane od razu, gdy gracz pierwszy raz je zobaczy). */
+  private cellsAround(around: Position, radiusM: number): Cell[] {
+    const northM = around.lat * METERS_PER_DEG_LAT;
+    const cells: Cell[] = [];
+    for (let row = Math.floor((northM - radiusM) / CELL_M); row <= Math.floor((northM + radiusM) / CELL_M); row++) {
+      const eastM = around.lng * metersPerDegLng(row);
+      for (let col = Math.floor((eastM - radiusM) / CELL_M); col <= Math.floor((eastM + radiusM) / CELL_M); col++) {
+        const key = `${row}:${col}`;
+        if (!this.cells.has(key)) this.cells.set(key, { row, col, refillAt: 0 });
+        cells.push(this.cells.get(key)!);
+      }
+    }
+    return cells;
+  }
+
+  /** Zasiedla nowy kwadrat; pusty (wyczyszczony) dopiero po RESPAWN_MS. */
+  private settle(cell: Cell, now: number): void {
+    const key = `${cell.row}:${cell.col}`;
+    if (this.encounters.some((e) => this.cellOf.get(e.id) === key)) return;
+    if (cell.refillAt === undefined) cell.refillAt = now + RESPAWN_MS;
+    if (now < cell.refillAt) return;
+    cell.refillAt = undefined;
+    const count = Math.floor(this.random() * (CELL_MAX_ENEMIES + 1));
+    for (let i = 0; i < count; i++) {
+      const enemy = this.spawn(cell, now);
+      this.cellOf.set(enemy.id, key);
+      this.encounters.push(enemy);
+    }
+  }
+
+  /** Losowy punkt w kwadracie, szablon wg wag i poziom z jego zakresu. */
+  private spawn(cell: Cell, now: number): Encounter {
     const { minLevel, maxLevel, basePower, growth, baseXp, weight, ...template } = this.pickTemplate();
     const level = minLevel + Math.floor(this.random() * (maxLevel - minLevel + 1));
     return {
@@ -165,7 +207,8 @@ export class MockGameApi extends GameApi {
       level,
       power: basePower + growth * (level - 1),
       xpReward: baseXp,
-      ...offsetMeters(around, r * Math.cos(angle), r * Math.sin(angle)),
+      lat: ((cell.row + this.random()) * CELL_M) / METERS_PER_DEG_LAT,
+      lng: ((cell.col + this.random()) * CELL_M) / metersPerDegLng(cell.row),
       expiresAt: new Date(now + LIFETIME_MS).toISOString(),
     };
   }
@@ -182,9 +225,22 @@ export class MockGameApi extends GameApi {
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 
+/** Metry na stopień długości geograficznej w danym rzędzie kwadratów (liczone dla środka rzędu, żeby siatka była stała). */
+function metersPerDegLng(row: number): number {
+  const lat = ((row + 0.5) * CELL_M) / METERS_PER_DEG_LAT;
+  return METERS_PER_DEG_LAT * Math.cos((lat * Math.PI) / 180);
+}
+
 /** Poziom i moc z exp, jak wylicza je serwer (100 exp na poziom, base_power + growth × (poziom − 1)). */
 function toPokemon(p: OwnedPokemon): Pokemon {
   const species = SPECIES[p.character];
   const level = Math.floor(p.exp / EXP_PER_POKEMON_LEVEL) + 1;
-  return { ...p, typeCode: species.typeCode, level, power: species.basePower + species.growth * (level - 1) };
+  return {
+    ...p,
+    typeCode: species.typeCode,
+    level,
+    expIntoLevel: p.exp % EXP_PER_POKEMON_LEVEL,
+    expForNextLevel: EXP_PER_POKEMON_LEVEL,
+    power: species.basePower + species.growth * (level - 1),
+  };
 }
