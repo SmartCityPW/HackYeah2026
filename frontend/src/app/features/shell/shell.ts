@@ -6,6 +6,15 @@ import { Role, SessionService } from '../../core/session.service';
 import { ToastService } from '../../core/toast.service';
 import { Navbar } from '../../shared/navbar/navbar';
 
+/** Krok "spaceru" symulowanym GPS w metrach (z Shiftem 5x dłuższy). */
+const WALK_STEP_M = 10;
+const WALK_KEYS: Record<string, [number, number]> = {
+  ArrowUp: [1, 0], w: [1, 0],
+  ArrowDown: [-1, 0], s: [-1, 0],
+  ArrowLeft: [0, -1], a: [0, -1],
+  ArrowRight: [0, 1], d: [0, 1],
+};
+
 const ROLES: { role: Role; label: string }[] = [
   { role: 'resident', label: '👤 Mieszkaniec' },
   { role: 'org', label: '🏢 Zaufana organizacja' },
@@ -18,6 +27,7 @@ const ROLES: { role: Role; label: string }[] = [
   imports: [RouterOutlet, Navbar],
   templateUrl: './shell.html',
   styleUrl: './shell.css',
+  host: { '(window:keydown)': 'onKeydown($event)' },
 })
 export class Shell {
   private readonly session = inject(SessionService);
@@ -33,6 +43,16 @@ export class Shell {
   /** Tryb deweloperski: symuluje pozycję na Rynku, żeby testować walkę bez wychodzenia z domu. */
   protected toggleSimulatedGps(): void {
     this.geo.simulate(this.geo.isSimulated() ? null : [19.9373, 50.0617]);
+  }
+
+  /** Tryb deweloperski: przy symulowanym GPS strzałki/WASD przesuwają gracza po mapie. */
+  protected onKeydown(event: KeyboardEvent): void {
+    const dir = WALK_KEYS[event.key.length === 1 ? event.key.toLowerCase() : event.key];
+    const target = event.target as HTMLElement | null;
+    if (!dir || !this.geo.isSimulated() || target?.closest('input, textarea, select, [contenteditable]')) return;
+    event.preventDefault();
+    const step = event.shiftKey ? WALK_STEP_M * 5 : WALK_STEP_M;
+    this.geo.walk(dir[0] * step, dir[1] * step);
   }
 
   /** Tryb deweloperski: przełączanie widoku do czasu logowania z backendu. */

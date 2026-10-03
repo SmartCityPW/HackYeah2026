@@ -1,4 +1,6 @@
 import { Injectable, computed, signal } from '@angular/core';
+import { Position } from './game.model';
+import { offsetMeters } from './geo.utils';
 
 /**
  * Pozycja użytkownika [lng, lat]. `position` to prawdziwy GPS albo, w trybie deweloperskim,
@@ -12,6 +14,11 @@ export class GeolocationService {
 
   readonly position = computed(() => this.simulated() ?? this.actual());
   readonly isSimulated = computed(() => this.simulated() !== null);
+  /** Ta sama pozycja w formacie {lat, lng}; null, gdy jej nie znamy. */
+  readonly latLng = computed<Position | null>(() => {
+    const p = this.position();
+    return p ? { lat: p[1], lng: p[0] } : null;
+  });
 
   start(): void {
     if (this.watchId !== undefined || !('geolocation' in navigator)) return;
@@ -32,5 +39,13 @@ export class GeolocationService {
   /** Tryb deweloperski: ustawia sztuczną pozycję (null wyłącza symulację). */
   simulate(position: [number, number] | null): void {
     this.simulated.set(position);
+  }
+
+  /** Tryb deweloperski: "spacer" symulowaną pozycją o `dn` metrów na północ i `de` na wschód. */
+  walk(dn: number, de: number): void {
+    const current = this.simulated();
+    if (!current) return;
+    const next = offsetMeters({ lat: current[1], lng: current[0] }, dn, de);
+    this.simulated.set([next.lng, next.lat]);
   }
 }

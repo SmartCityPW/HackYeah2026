@@ -15,6 +15,7 @@ const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 export class ScenarioForm {
   readonly scenario = input.required<Scenario>();
   readonly submitLabel = input('Dodaj zgłoszenie');
+  readonly submitDisabled = input(false);
   readonly submitted = output<FieldValues>();
   readonly cancelled = output<void>();
 

@@ -1,6 +1,7 @@
 import { Injectable, OnDestroy, signal } from '@angular/core';
 import * as maplibregl from 'maplibre-gl';
-import { Encounter } from '../../core/game.model';
+import { Encounter, INTERACTION_RADIUS_M } from '../../core/game.model';
+import { circleRing } from '../../core/geo.utils';
 import { POKESTOP_TYPES, Pokestop } from '../../core/pokestop.model';
 import { CharactersLayer } from './three/characters-layer';
 
@@ -8,6 +9,10 @@ import { CharactersLayer } from './three/characters-layer';
 maplibregl.setWorkerUrl('/maplibre/maplibre-gl-worker.mjs');
 
 const KRAKOW: [number, number] = [19.9373, 50.0617];
+const RANGE_SOURCE = 'interaction-range';
+const RANGE_COLOR = '#38bdf8';
+/** Okres pulsowania kółka interakcji (ms). */
+const PULSE_MS = 1800;
 
 /**
  * Jedyne miejsce w aplikacji, które zna MapLibre: tworzy mapę, rysuje pinezki i postacie 3D.
@@ -16,12 +21,15 @@ const KRAKOW: [number, number] = [19.9373, 50.0617];
 @Injectable()
 export class MapController implements OnDestroy {
   readonly ready = signal(false);
+  /** Środek widoku (tam celuje celownik przy dodawaniu zgłoszenia), aktualizowany przy każdym ruchu mapy. */
+  readonly centerPosition = signal<{ lat: number; lng: number } | null>(null);
 
   private map?: maplibregl.Map;
   private readonly characters = new CharactersLayer();
   private readonly markers = new Map<number, maplibregl.Marker>();
   private readonly enemyMarkers = new Map<number, maplibregl.Marker>();
   private userMarker?: maplibregl.Marker;
+  private pulseFrame?: number;
 
   init(container: HTMLElement): void {
     this.map = new maplibregl.Map({
@@ -33,7 +41,14 @@ export class MapController implements OnDestroy {
       bearing: -15,
       attributionControl: { compact: true },
     });
+    const syncCenter = () => {
+      const { lat, lng } = this.map!.getCenter();
+      this.centerPosition.set({ lat, lng });
+    };
+    this.map.on('move', syncCenter);
     this.map.on('load', () => {
+      syncCenter();
+      this.addRangeLayers();
       this.map!.addLayer(this.characters);
       this.ready.set(true);
     });
@@ -76,6 +91,12 @@ export class MapController implements OnDestroy {
 
   showUser(lngLat: [number, number]): void {
     if (!this.map) return;
+    const ring = circleRing({ lng: lngLat[0], lat: lngLat[1] }, INTERACTION_RADIUS_M);
+    (this.map.getSource(RANGE_SOURCE) as maplibregl.GeoJSONSource | undefined)?.setData({
+      type: 'Feature',
+      properties: {},
+      geometry: { type: 'Polygon', coordinates: [ring] },
+    });
     if (this.userMarker) {
       this.userMarker.setLngLat(lngLat);
       return;
@@ -90,13 +111,34 @@ export class MapController implements OnDestroy {
     this.map?.easeTo({ center: [lng, lat], duration: 600 });
   }
 
-  /** Środek widoku, czyli miejsce wskazywane celownikiem przy dodawaniu zgłoszenia. */
-  center(): { lat: number; lng: number } | null {
-    return this.map?.getCenter() ?? null;
+  /** Przygasza pinezki i przeciwników spoza kółka interakcji (z nimi nie da się nic zrobić, trzeba podejść). */
+  markInRange(stopIds: ReadonlySet<number>, encounterIds: ReadonlySet<number>): void {
+    for (const [id, marker] of this.markers) marker.getElement().classList.toggle('out-of-range', !stopIds.has(id));
+    for (const [id, marker] of this.enemyMarkers) marker.getElement().classList.toggle('out-of-range', !encounterIds.has(id));
   }
 
   ngOnDestroy(): void {
+    if (this.pulseFrame !== undefined) cancelAnimationFrame(this.pulseFrame);
     this.map?.remove();
+  }
+
+  /**
+   * Kółko interakcji jako wielokąt w metrach (nie w pikselach): przy przybliżaniu i oddalaniu mapy obejmuje
+   * zawsze ten sam obszar terenu. Pozycję ustawia `showUser`, dopóki jej nie znamy kółko jest puste.
+   */
+  private addRangeLayers(): void {
+    const map = this.map!;
+    map.addSource(RANGE_SOURCE, { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
+    map.addLayer({ id: 'interaction-range-fill', type: 'fill', source: RANGE_SOURCE, paint: { 'fill-color': RANGE_COLOR, 'fill-opacity': 0.15 } });
+    map.addLayer({ id: 'interaction-range-line', type: 'line', source: RANGE_SOURCE, paint: { 'line-color': RANGE_COLOR, 'line-width': 2, 'line-opacity': 0.9 } });
+    const pulse = (now: number) => {
+      const t = (Math.sin((now / PULSE_MS) * 2 * Math.PI) + 1) / 2;
+      map.setPaintProperty('interaction-range-fill', 'fill-opacity', 0.08 + 0.17 * t);
+      map.setPaintProperty('interaction-range-line', 'line-width', 2 + 3 * t);
+      map.setPaintProperty('interaction-range-line', 'line-opacity', 0.5 + 0.5 * t);
+      this.pulseFrame = requestAnimationFrame(pulse);
+    };
+    this.pulseFrame = requestAnimationFrame(pulse);
   }
 
   private createMarker(stop: Pokestop, onSelect: (id: number) => void): maplibregl.Marker {

@@ -64,3 +64,8 @@
 }
 :host ::ng-deep .enemy-marker span { font-size: 28px; line-height: 1; }
 @keyframes enemy-pulse { 70% { box-shadow: 0 0 0 16px rgb(220 38 38 / 0); } 100% { box-shadow: 0 0 0 0 rgb(220 38 38 / 0); } }
+
+/* Cele poza kółkiem interakcji: widoczne, ale przygaszone, bo trzeba do nich podejść. */
+:host ::ng-deep .stop-marker.out-of-range, :host ::ng-deep .enemy-marker.out-of-range { opacity: .45; filter: grayscale(.6); }
+:host ::ng-deep .enemy-marker.out-of-range { animation: none; }
+.crosshair.out-of-range { opacity: .45; filter: grayscale(1) drop-shadow(0 4px 4px rgb(0 0 0 / .4)); }

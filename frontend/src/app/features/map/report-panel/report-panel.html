@@ -3,9 +3,14 @@
     @let scenario = chosen()!;
     <p class="kicker">{{ scenario.emoji }} {{ isOrg() ? 'Inicjatywa organizacji' : categoryMeta()?.label }}</p>
     <h2>{{ scenario.label }}</h2>
-    <p class="pin-hint">Przesuń mapę, aby pinezka 📍 wskazała właściwe miejsce.</p>
+    @if (pinInRange()) {
+      <p class="pin-hint">Przesuń mapę, aby pinezka 📍 wskazała właściwe miejsce w niebieskim kółku.</p>
+    } @else {
+      <p class="pin-hint out">Pinezka 📍 jest poza Twoim kółkiem. Przesuń mapę albo podejdź bliżej.</p>
+    }
     <app-scenario-form
       [scenario]="scenario"
+      [submitDisabled]="!pinInRange()"
       [submitLabel]="isOrg() ? 'Opublikuj inicjatywę' : 'Dodaj na mapę'"
       (submitted)="submit(scenario, $event)"
       (cancelled)="back()"

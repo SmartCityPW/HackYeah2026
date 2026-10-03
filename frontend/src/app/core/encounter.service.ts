@@ -1,32 +1,50 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { DestroyRef, Injectable, effect, inject, signal, untracked } from '@angular/core';
 import { GameApi } from './api/game.api';
-import { AttackResult, Encounter, Position } from './game.model';
+import { AttackResult, Encounter, INTERACTION_RADIUS_M, Position } from './game.model';
+import { distanceMeters } from './geo.utils';
 import { GeolocationService } from './geolocation.service';
 import { ProgressService } from './progress.service';
 
-const DEFAULT_CENTER: Position = { lat: 50.0617, lng: 19.9373 };
+/** Po tylu metrach ruchu pytamy serwer o przeciwników na nowo (żeby nie pytać przy każdym odczycie GPS). */
+const REFRESH_AFTER_M = 10;
+/** Odświeżanie także na postoju: przeciwnicy wygasają, a serwer może wygenerować nowych. */
+const REFRESH_EVERY_MS = 30_000;
 
-/** Przeciwnicy na mapie i próby ataku. Wynik walki zawsze rozstrzyga backend. */
+/** Przeciwnicy w kółku gracza i próby ataku. Generuje ich i rozstrzyga walki wyłącznie backend. */
 @Injectable({ providedIn: 'root' })
 export class EncounterService {
   private readonly api = inject(GameApi);
   private readonly geo = inject(GeolocationService);
   private readonly progress = inject(ProgressService);
+  private lastFetchedAt?: Position;
 
   readonly encounters = signal<Encounter[]>([]);
   readonly attacking = signal(false);
   /** Aktualna pozycja użytkownika w formacie {lat, lng} albo null, gdy jej nie znamy. */
-  readonly userPosition = computed<Position | null>(() => {
-    const p = this.geo.position();
-    return p ? { lat: p[1], lng: p[0] } : null;
-  });
+  readonly userPosition = this.geo.latLng;
 
   constructor() {
-    void this.refresh();
+    // Przeciwnicy są tam, gdzie gracz: bez pozycji nie ma kogo pokazać.
+    effect(() => {
+      const position = this.userPosition();
+      if (!position) {
+        this.lastFetchedAt = undefined;
+        this.encounters.set([]);
+        return;
+      }
+      if (!this.lastFetchedAt || distanceMeters(this.lastFetchedAt, position) >= REFRESH_AFTER_M) untracked(() => void this.refresh());
+    });
+    const timer = setInterval(() => void this.refresh(), REFRESH_EVERY_MS);
+    inject(DestroyRef).onDestroy(() => clearInterval(timer));
   }
 
   async refresh(): Promise<void> {
-    this.encounters.set(await this.api.listEncounters(this.userPosition() ?? DEFAULT_CENTER));
+    const position = this.userPosition();
+    if (!position) return;
+    this.lastFetchedAt = position;
+    const encounters = await this.api.listEncounters(position, INTERACTION_RADIUS_M);
+    // Odpowiedź na starą pozycję nie może nadpisać nowszej (gracz zdążył się ruszyć albo wyłączyć GPS).
+    if (this.lastFetchedAt === position) this.encounters.set(encounters);
   }
 
   /** Zwraca null, gdy nie znamy pozycji użytkownika (nie ma czego wysłać). */

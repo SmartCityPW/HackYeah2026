@@ -7,7 +7,7 @@
   @for (r of roles; track r.role) {
     <button [class.on]="role() === r.role" (click)="switchRole(r.role)">{{ r.label }}</button>
   }
-  <button [class.on]="gpsSimulated()" (click)="toggleSimulatedGps()" title="Symuluj GPS na Rynku">📍 GPS</button>
+  <button [class.on]="gpsSimulated()" (click)="toggleSimulatedGps()" title="Symuluj GPS na Rynku (chodzenie: strzałki/WASD, Shift = dłuższy krok)">📍 GPS</button>
 </div>
 
 @if (toast.message(); as text) {

@@ -1,9 +1,17 @@
 import { Injectable } from '@angular/core';
+import { INTERACTION_RADIUS_M, Position, TooFarError } from '../game.model';
+import { distanceMeters } from '../geo.utils';
 import { CharacterId, NewReport, Pokestop, PokestopStatus, VoteResult } from '../pokestop.model';
 import { PokestopApi } from './pokestop.api';
 import { MOCK_COLLECTION, MOCK_STOPS } from './pokestop.mock-data';
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
+
+/** Tak jak serwer: głos, komentarz i nowa pinezka tylko w kółku interakcji gracza. */
+function assertInRange(player: Position, target: Position): void {
+  const distanceM = Math.round(distanceMeters(player, target));
+  if (distanceM > INTERACTION_RADIUS_M) throw new TooFarError(distanceM);
+}
 
 /** Atrapa backendu w pamięci. Robi to, co zrobiłby serwer: nadaje ID, ustala autora i przyznaje nagrody. */
 @Injectable()
@@ -15,8 +23,9 @@ export class MockPokestopApi extends PokestopApi {
     return clone(this.stops);
   }
 
-  async vote(id: number, vote: 'for' | 'against'): Promise<VoteResult> {
+  async vote(id: number, vote: 'for' | 'against', position: Position): Promise<VoteResult> {
     const stop = this.require(id);
+    assertInRange(position, stop);
     if (stop.myVote) return { stop: clone(stop), awarded: null };
     stop.myVote = vote;
     if (vote === 'for') stop.votesFor++;
@@ -25,14 +34,16 @@ export class MockPokestopApi extends PokestopApi {
     return { stop: clone(stop), awarded: stop.character };
   }
 
-  async comment(id: number, text: string): Promise<Pokestop> {
+  async comment(id: number, text: string, position: Position): Promise<Pokestop> {
     const stop = this.require(id);
+    assertInRange(position, stop);
     const nextId = Math.max(0, ...this.stops.flatMap((s) => s.comments.map((c) => c.id))) + 1;
     stop.comments.push({ id: nextId, author: 'Ty', text, mine: true });
     return clone(stop);
   }
 
-  async create(report: NewReport): Promise<Pokestop> {
+  async create(report: NewReport, position: Position): Promise<Pokestop> {
+    assertInRange(position, report);
     const stop: Pokestop = {
       ...clone(report),
       id: Math.max(0, ...this.stops.map((s) => s.id)) + 1,

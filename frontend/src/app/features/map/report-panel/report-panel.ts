@@ -18,6 +18,8 @@ export type ReportDraft = Omit<NewReport, 'lat' | 'lng'>;
 export class ReportPanel {
   private readonly session = inject(SessionService);
 
+  /** Czy celownik stoi w kółku interakcji gracza (tylko tam można dodać pinezkę). */
+  readonly pinInRange = input(true);
   readonly drafted = output<ReportDraft>();
 
   protected readonly isOrg = computed(() => this.session.role() === 'org');
@@ -41,6 +43,7 @@ export class ReportPanel {
   }
 
   protected submit(scenario: Scenario, values: FieldValues): void {
+    if (!this.pinInRange()) return;
     this.drafted.emit(toReport(scenario, values, this.organization()));
     this.chosen.set(null);
     this.category.set(null);

@@ -1,6 +1,6 @@
 # Kontrakt frontend ↔ backend
 
-Źródłem prawdy jest **[`openapi.yaml`](openapi.yaml)** (OpenAPI 3.0.3, 23 operacje, 30 schematów). Ten dokument je omawia.
+Źródłem prawdy jest **[`openapi.yaml`](openapi.yaml)** (OpenAPI 3.0.3, 24 operacje, 36 schematów). Ten dokument je omawia.
 Kształt bazy danych: [`db/README.md`](db/README.md).
 
 ## Założenia
@@ -28,6 +28,13 @@ i do wyboru 3 pokemonów do walki.
 
 ## Reguły, które egzekwuje backend
 
+- **Kółko interakcji (jak w Pokémon GO):** wokół gracza jest kółko o promieniu **50 m** (stała aplikacji, ta sama
+  co zasięg ataku). Tylko w nim można **głosować, komentować, dodawać pinezki i walczyć**. Klient wysyła w tych
+  akcjach swoją pozycję (`position: PlayerPosition` przy głosie, komentarzu i nowej pinezce; `lat`/`lng` przy
+  ataku), a serwer sam liczy odległość od celu: przy głosie i komentarzu od pinezki, przy nowej pinezce od jej
+  `lat`/`lng`. Poza kółkiem odpowiada `422` z kodem `too_far` (`TooFarError`: `distanceM`, `radiusM`) i niczego nie
+  zapisuje (głos, exp, komentarz, pinezka). Podgląd pinezki (`GET /pokestops/{id}`) działa z każdej odległości.
+  Na mapie kółko ma stały promień w metrach, więc przybliżanie mapy nie zwiększa zasięgu i trzeba podejść.
 - **Głosowanie:** jeden głos na użytkownika (klucz główny w bazie), bez zmiany. Głosujący wskazuje `pokemonId`
   (jeden z własnych, dowolny — może być zastawiony) i **przy pierwszym głosie** ten pokemon dostaje +10 exp
   (`VoteResult.pokemon`, patrz niżej); kolejna próba głosu na tę samą pinezkę zwraca `409` i exp się nie powtarza.
@@ -49,7 +56,10 @@ i do wyboru 3 pokemonów do walki.
   więc dwóch graczy nie pokona tego samego przeciwnika. Klient liczy odległość i podgląd mocy tylko na wyświetlanie —
   serwer rozstrzyga walkę od nowa.
 - **Przeciwnicy:** generuje wyłącznie serwer (losowanie z `game_enemy_type` wg wag, czas życia `expiresAt`); moc i
-  typ przeciwnika są widoczne w `GET /encounters`, żeby gracz mógł dobrać pokemony przed podejściem.
+  typ przeciwnika są widoczne w `GET /encounters`, żeby gracz mógł dobrać pokemony przed podejściem. Pojawiają się
+  wokół gracza: w kółku interakcji krąży od **0 do 5** przeciwników. Serwer losuje docelową liczbę (na nowo po ~40 m
+  marszu), dogenerowuje brakujących w losowych miejscach kółka, a ci, od których gracz odszedł, znikają. Klient
+  pyta `GET /encounters?radius=50` po każdych ~10 m ruchu i co ~30 s na postoju.
 - **Pokemon startowy:** `POST /auth/guest` i `POST /auth/register` przyznają jeden egzemplarz gatunku startowego —
   inaczej nowy gracz nie miałby czym głosować.
 - **Moderacja:** zmiana statusu zapisuje wpis w historii (`pokestops_status_change`). Odrzucona pinezka znika z mapy mieszkańców.
@@ -67,7 +77,10 @@ Dzisiejsze atrapy (`core/api/*.mock.ts`) działają inaczej w kilku miejscach. T
 7. **Rola i organizacja:** z `GET /me` i `/me/organization`, a tryb deweloperski (przełącznik ról, symulowany GPS) ma zniknąć lub zostać tylko w buildzie deweloperskim.
 8. **Tokeny:** interceptor HTTP z JWT i odświeżaniem.
 9. **Wybór pokemona przy głosowaniu i zgłaszaniu:** ekran głosu musi dać wybrać `pokemonId` z `/me/pokemons` (nie wysyłać samego `vote`), a formularz zgłoszenia problemu/pomysłu — `stakedPokemonId` (i pokazać, że ten pokemon jest "zablokowany" do zwrotu progu głosów).
-10. **Ekran walki:** wybór do 3 pokemonów z `/me/pokemons` (z podglądem mocy/typu i mnożnika, jeśli typ = typ przeciwnika z `GET /encounters`) zamiast samego przycisku "atakuj"; obsłużyć nowy wynik `lost` (dziś atrapa znała tylko `won`/`too_far`).
+10. **Pozycja gracza w akcjach na pinezkach:** atrapa (`MockPokestopApi`) już wymaga `position` i rzuca
+    `TooFarError` poza kółkiem — implementacja HTTP ma wysyłać `position` w `POST /pokestops`, `/vote` i `/comments`
+    oraz zamieniać odpowiedź `422 too_far` na `TooFarError`.
+11. **Ekran walki:** wybór do 3 pokemonów z `/me/pokemons` (z podglądem mocy/typu i mnożnika, jeśli typ = typ przeciwnika z `GET /encounters`) zamiast samego przycisku "atakuj"; obsłużyć nowy wynik `lost` (dziś atrapa znała tylko `won`/`too_far`).
 
 ## Pytania otwarte (do rozmowy o backendzie)
 
@@ -80,7 +93,9 @@ Dzisiejsze atrapy (`core/api/*.mock.ts`) działają inaczej w kilku miejscach. T
    to zahardkodować?
 5. **Farmienie walk:** gracz może dowolną liczbę razy przegrać i spróbować ponownie tym samym przeciwnikiem (nie ma
    cooldownu). Czy to problem (np. przy teście różnych trójek pokemonów), czy zostaje tak jak jest?
-6. **Generowanie przeciwników:** gęstość, limity na obszar, odnawianie, zadanie okresowe (Celery beat albo cron). Czy mają zależeć od liczby graczy w okolicy?
+6. **Generowanie przeciwników:** zasada jest ustalona (0–5 w kółku gracza, patrz wyżej), otwarte zostaje, czy
+   przeciwnicy są osobni dla każdego gracza, czy wspólni dla graczy stojących obok siebie (wtedy limit 5 dotyczy
+   obszaru, nie gracza), oraz jak serwer ma się bronić przed "teleportowaniem" w celu losowania nowych przeciwników.
 7. **RODO i lokalizacja:** jak długo trzymamy pozycje z prób walki, czy anonimizujemy użytkowników zamiast ich usuwać (klucze obce `RESTRICT` na autorach są pod to przygotowane).
 8. **Moderacja treści:** zdjęcia i komentarze (dziś komentarz można ukryć, zdjęcia nie mają jeszcze statusu moderacji).
 9. **Moderacja zgłoszeń przez agenta AI:** dziś nie ma dedykowanej tabeli na jego werdykt — zakładamy, że ocena

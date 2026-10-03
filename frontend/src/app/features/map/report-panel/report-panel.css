@@ -8,3 +8,4 @@ h2 { margin: 4px 0 8px; font-size: 1.3rem; }
 .emoji { font-size: 1.8rem; }
 .card small { display: block; color: #6b7280; }
 .back { margin-top: 10px; border: 0; background: none; color: #4338ca; font: inherit; font-weight: 700; cursor: pointer; padding: 6px 0; }
+.pin-hint.out { color: #b45309; font-weight: 700; }

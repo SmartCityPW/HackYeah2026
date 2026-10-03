@@ -25,7 +25,7 @@
       @if (encounterDistance() === null) {
         <p class="hint">Włącz lokalizację, żeby walczyć. Musisz być na miejscu.</p>
       } @else if (!canAttack()) {
-        <p class="hint">Jesteś {{ encounterDistance() }} m od celu. Podejdź na mniej niż {{ attackRange }} m.</p>
+        <p class="hint">Jesteś {{ encounterDistance() }} m od celu. Podejdź na mniej niż {{ interactionRadius }} m.</p>
       }
       <button class="btn btn-against fight" [disabled]="!canAttack()" (click)="attack(enc.id)">
         {{ attacking() ? 'Walczysz…' : '⚔️ Walcz' }}
@@ -35,10 +35,10 @@
 }
 
 @if (panelOpen()) {
-  <div class="crosshair" aria-hidden="true">📍</div>
+  <div class="crosshair" [class.out-of-range]="!pinInRange()" aria-hidden="true">📍</div>
   <section class="sheet tall" style="--stop-color: #f59e0b">
     <button class="sheet-close" (click)="panelOpen.set(false)" aria-label="Zamknij">×</button>
-    <app-report-panel (drafted)="onReportDrafted($event)" />
+    <app-report-panel [pinInRange]="pinInRange()" (drafted)="onReportDrafted($event)" />
   </section>
 }
 
@@ -72,6 +72,10 @@
     @if (canParticipate()) {
       @if (stop.myVote) {
         <p class="voted">Twój głos został zapisany ✔</p>
+      } @else if (stopDistance() === null) {
+        <p class="hint">Włącz lokalizację, żeby głosować. Musisz być na miejscu.</p>
+      } @else if (!stopInRange()) {
+        <p class="hint">Jesteś {{ stopDistance() }} m stąd. Podejdź na mniej niż {{ interactionRadius }} m, żeby głosować i komentować.</p>
       } @else {
         <div class="actions">
           <button class="btn btn-for" (click)="vote(stop.id, 'for')">{{ types[stop.type].vote[0] }}</button>
@@ -84,7 +88,7 @@
     @for (c of stop.comments; track c.id) {
       <p class="comment" [class.mine]="c.mine"><strong>{{ c.author }}:</strong> {{ c.text }}</p>
     }
-    @if (canParticipate()) {
+    @if (canParticipate() && stopInRange()) {
       <div class="comment-form">
         <input type="text" maxlength="300" placeholder="Dodaj komentarz…" [value]="commentDraft()" (input)="onCommentInput($event)" (keydown.enter)="sendComment(stop.id)" />
         <button class="btn btn-for" [disabled]="!commentDraft().trim()" (click)="sendComment(stop.id)">Wyślij</button>
