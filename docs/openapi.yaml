@@ -1,0 +1,524 @@
+openapi: 3.0.3
+info:
+  title: Smart City Go API
+  version: 0.1.0
+  description: |
+    Kontrakt między frontendem (Angular PWA) a backendem (Django).
+
+    Zasady:
+    * **Serwer jest źródłem prawdy.** Klient nie liczy nagród, wyników walk ani XP, tylko wysyła intencję i wyświetla odpowiedź.
+    * Pola JSON w **camelCase**, daty w ISO 8601 (UTC), współrzędne jako `lat` i `lng` (stopnie, WGS84).
+    * Autoryzacja: `Authorization: Bearer <access token>` (JWT). Konto gościa powstaje jednym wywołaniem bez danych.
+    * Błędy mają jednolity kształt `Error`. Błędy walidacji formularzy (422) wskazują pola w `fields`.
+    * Identyfikatory to liczby całkowite. Postacie i scenariusze identyfikują stabilne kody tekstowe (`code`).
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Lokalny backend deweloperski
+tags:
+  - { name: auth, description: Konta i tokeny }
+  - { name: scenarios, description: Katalog formularzy zgłoszeń }
+  - { name: pokestops, description: 'Pinezki, głosy, komentarze, zdjęcia' }
+  - { name: me, description: Dane zalogowanego użytkownika }
+  - { name: game, description: 'Przeciwnicy, walki, postęp' }
+  - { name: admin, description: 'Moderacja i zarządzanie (rola administratora)' }
+security:
+  - bearerAuth: []
+
+paths:
+  /auth/guest:
+    post:
+      tags: [auth]
+      summary: Utwórz anonimowe konto gościa
+      description: Pozwala zacząć grę bez rejestracji. Postęp można później zapisać przez `/auth/upgrade`.
+      security: []
+      responses:
+        '201': { description: Konto gościa, content: { application/json: { schema: { $ref: '#/components/schemas/AuthTokens' } } } }
+  /auth/register:
+    post:
+      tags: [auth]
+      summary: Zarejestruj konto mieszkańca
+      security: []
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Credentials' } } } }
+      responses:
+        '201': { description: Utworzono konto, content: { application/json: { schema: { $ref: '#/components/schemas/AuthTokens' } } } }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Zaloguj się
+      security: []
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Credentials' } } } }
+      responses:
+        '200': { description: Zalogowano, content: { application/json: { schema: { $ref: '#/components/schemas/AuthTokens' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /auth/refresh:
+    post:
+      tags: [auth]
+      summary: Odśwież token dostępu
+      security: []
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [refresh], properties: { refresh: { type: string } } } } }
+      responses:
+        '200': { description: Nowy token dostępu, content: { application/json: { schema: { $ref: '#/components/schemas/AuthTokens' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /auth/upgrade:
+    post:
+      tags: [auth]
+      summary: Zamień konto gościa na pełne ("zapisz postęp")
+      description: Zachowuje wszystkie głosy, kolekcję i XP gościa.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Credentials' } } } }
+      responses:
+        '200': { description: Konto zapisane, content: { application/json: { schema: { $ref: '#/components/schemas/Me' } } } }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /me:
+    get:
+      tags: [me]
+      summary: Profil zalogowanego użytkownika
+      responses:
+        '200': { description: Profil, content: { application/json: { schema: { $ref: '#/components/schemas/Me' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /me/collection:
+    get:
+      tags: [me]
+      summary: Kolekcja postaci ("Moje Spryciaki")
+      responses:
+        '200':
+          description: Liczba zdobytych sztuk każdej postaci (klucz = kod postaci)
+          content:
+            application/json:
+              schema: { type: object, additionalProperties: { type: integer, minimum: 0 }, example: { cyclist: 1, bin: 0, tree: 0, train: 0, lamp: 2 } }
+  /me/progress:
+    get:
+      tags: [me]
+      summary: Poziom i doświadczenie
+      responses:
+        '200': { description: Postęp gracza, content: { application/json: { schema: { $ref: '#/components/schemas/PlayerProgress' } } } }
+  /me/interactions:
+    get:
+      tags: [me]
+      summary: Inicjatywy, z którymi użytkownik miał styczność (zgłosił, zagłosował lub skomentował)
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PageSize' }
+      responses:
+        '200': { description: Strona wyników, content: { application/json: { schema: { $ref: '#/components/schemas/PokestopPage' } } } }
+  /me/organization:
+    get:
+      tags: [me]
+      summary: Organizacja zalogowanego użytkownika (rola `org`)
+      responses:
+        '200': { description: Organizacja, content: { application/json: { schema: { $ref: '#/components/schemas/Organization' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /scenarios:
+    get:
+      tags: [scenarios]
+      summary: Katalog scenariuszy dostępnych dla roli użytkownika
+      description: Mieszkaniec dostaje scenariusze `resident`, organizacja `org`. Administrator wszystkie.
+      parameters:
+        - { name: category, in: query, required: false, schema: { $ref: '#/components/schemas/ScenarioCategory' } }
+      responses:
+        '200': { description: Scenariusze wraz z sekcjami i polami, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Scenario' } } } } }
+
+  /pokestops:
+    get:
+      tags: [pokestops]
+      summary: Pinezki w widocznym fragmencie mapy
+      description: Odrzucone (`rejected`) są pomijane, chyba że zapyta administrator z `status=rejected`.
+      parameters:
+        - { name: bbox, in: query, required: false, description: 'minLng,minLat,maxLng,maxLat', schema: { type: string, example: '19.90,50.04,19.98,50.08' } }
+        - { name: type, in: query, required: false, schema: { $ref: '#/components/schemas/PokestopType' } }
+        - { name: status, in: query, required: false, schema: { $ref: '#/components/schemas/PokestopStatus' } }
+        - { name: organizationId, in: query, required: false, schema: { type: integer } }
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PageSize' }
+      responses:
+        '200': { description: Strona pinezek, content: { application/json: { schema: { $ref: '#/components/schemas/PokestopPage' } } } }
+    post:
+      tags: [pokestops]
+      summary: Dodaj pinezkę (zgłoszenie, pomysł, cool miejsce, inicjatywa organizacji)
+      description: |
+        Serwer ustala autora, status `open`, rodzaj pinezki (z scenariusza) i organizację (z członkostwa).
+        `details` jest walidowane względem definicji scenariusza (pola wymagane, zakresy, warunki widoczności).
+        Scenariusze `org` wymagają roli `org` i zweryfikowanej organizacji.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/NewPokestop' } } } }
+      responses:
+        '201': { description: Utworzono, content: { application/json: { schema: { $ref: '#/components/schemas/PokestopDetail' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /pokestops/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [pokestops]
+      summary: Szczegóły pinezki wraz z komentarzami
+      responses:
+        '200': { description: Pinezka, content: { application/json: { schema: { $ref: '#/components/schemas/PokestopDetail' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [admin]
+      summary: Zmień status pinezki (moderacja)
+      description: Tylko administrator. Zapisuje wpis w historii zmian statusu.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/StatusChange' } } } }
+      responses:
+        '200': { description: Zaktualizowana pinezka, content: { application/json: { schema: { $ref: '#/components/schemas/PokestopDetail' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /pokestops/{id}/vote:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      tags: [pokestops]
+      summary: Zagłosuj za lub przeciw
+      description: |
+        Jeden głos na użytkownika, bez zmiany. Pierwszy głos przyznaje postać z pinezki (`awarded`),
+        kolejna próba zwraca `409`. Administrator nie głosuje (`403`).
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [vote], properties: { vote: { $ref: '#/components/schemas/VoteValue' } } } } }
+      responses:
+        '200': { description: Zapisano głos, content: { application/json: { schema: { $ref: '#/components/schemas/VoteResult' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /pokestops/{id}/comments:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      tags: [pokestops]
+      summary: Dodaj komentarz
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [text], properties: { text: { type: string, minLength: 1, maxLength: 300 } } } } }
+      responses:
+        '201': { description: Pinezka z nowym komentarzem, content: { application/json: { schema: { $ref: '#/components/schemas/PokestopDetail' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /photos:
+    post:
+      tags: [pokestops]
+      summary: Wgraj zdjęcie (przed utworzeniem zgłoszenia)
+      description: Max 5 MB, tylko obrazy. Zwrócone `id` podaje się w `photoIds` przy tworzeniu pinezki (max 3). Niepodpięte zdjęcia są sprzątane po kilku godzinach.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema: { type: object, required: [file], properties: { file: { type: string, format: binary } } }
+      responses:
+        '201': { description: Zdjęcie wgrane, content: { application/json: { schema: { $ref: '#/components/schemas/Photo' } } } }
+        '413': { description: Plik za duży, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+  /encounters:
+    get:
+      tags: [game]
+      summary: Przeciwnicy w okolicy użytkownika
+      description: Przeciwników generuje serwer (losowo, z czasem życia). Klient tylko ich wyświetla.
+      parameters:
+        - { name: lat, in: query, required: true, schema: { type: number, format: double } }
+        - { name: lng, in: query, required: true, schema: { type: number, format: double } }
+        - { name: radius, in: query, required: false, description: Promień w metrach, schema: { type: integer, default: 1000, maximum: 5000 } }
+      responses:
+        '200': { description: Aktywni przeciwnicy, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Encounter' } } } } }
+  /encounters/{id}/attack:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      tags: [game]
+      summary: Spróbuj pokonać przeciwnika
+      description: |
+        Klient wysyła swoją pozycję. Serwer sprawdza odległość (dziś 50 m), wiarygodność pozycji (dokładność, skoki, tempo ruchu)
+        i limity częstotliwości, zapisuje próbę i rozstrzyga walkę. Zwycięstwo jest atomowe: tylko jeden gracz pokona danego przeciwnika.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AttackRequest' } } } }
+      responses:
+        '200': { description: Wynik próby, content: { application/json: { schema: { $ref: '#/components/schemas/AttackResult' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: Przeciwnik pokonany lub wygasły, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '429': { description: Za dużo prób, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  /admin/organizations:
+    get:
+      tags: [admin]
+      summary: Lista organizacji (do weryfikacji)
+      parameters:
+        - { name: verificationStatus, in: query, required: false, schema: { $ref: '#/components/schemas/VerificationStatus' } }
+      responses:
+        '200': { description: Organizacje, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Organization' } } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /admin/organizations/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    patch:
+      tags: [admin]
+      summary: Zweryfikuj lub zawieś organizację
+      requestBody:
+        required: true
+        content: { application/json: { schema: { type: object, required: [verificationStatus], properties: { verificationStatus: { $ref: '#/components/schemas/VerificationStatus' } } } } }
+      responses:
+        '200': { description: Zaktualizowana organizacja, content: { application/json: { schema: { $ref: '#/components/schemas/Organization' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /admin/scenarios/{code}:
+    parameters: [{ name: code, in: path, required: true, schema: { type: string } }]
+    put:
+      tags: [admin]
+      summary: Zastąp definicję scenariusza (podnosi jego `version`)
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Scenario' } } } }
+      responses:
+        '200': { description: Zapisany scenariusz, content: { application/json: { schema: { $ref: '#/components/schemas/Scenario' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+
+  parameters:
+    Id: { name: id, in: path, required: true, schema: { type: integer } }
+    Page: { name: page, in: query, required: false, schema: { type: integer, minimum: 1, default: 1 } }
+    PageSize: { name: pageSize, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+
+  responses:
+    Unauthorized: { description: Brak lub nieważny token, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Forbidden: { description: Rola nie ma uprawnień do tej operacji, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    NotFound: { description: Zasób nie istnieje, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Conflict: { description: 'Konflikt stanu (np. głos już oddany, e-mail zajęty)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    ValidationError: { description: Błędne dane, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+
+  schemas:
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string, example: validation_error }
+        message: { type: string }
+        fields:
+          type: object
+          description: Błędy per pole formularza (klucz = `key` pola scenariusza)
+          additionalProperties: { type: string }
+          example: { rating: To pole jest wymagane }
+
+    # ---- enumy (zgodne z typami ENUM w bazie)
+    Role: { type: string, enum: [resident, org, admin] }
+    PokestopType: { type: string, enum: [report, idea, place, ngo, consultation] }
+    PokestopStatus: { type: string, enum: [open, in_progress, resolved, rejected] }
+    VoteValue: { type: string, enum: ['for', 'against'] }
+    ScenarioCategory: { type: string, enum: [problem, initiative, place] }
+    FieldType: { type: string, enum: [text, textarea, number, select, multiselect, boolean, tags, date, photos, character, choice, rating] }
+    VerificationStatus: { type: string, enum: [pending, verified, suspended] }
+    CharacterCode: { type: string, enum: [cyclist, bin, tree, train, lamp], description: 'Kody postaci ze słownika `collection_character` (lista rośnie wraz z grą)' }
+
+    # ---- konta
+    Credentials:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password, minLength: 8 }
+        displayName: { type: string, maxLength: 60 }
+    AuthTokens:
+      type: object
+      required: [access, refresh]
+      properties:
+        access: { type: string }
+        refresh: { type: string }
+    Me:
+      type: object
+      required: [id, displayName, role, isGuest]
+      properties:
+        id: { type: integer }
+        displayName: { type: string }
+        role: { $ref: '#/components/schemas/Role' }
+        isGuest: { type: boolean }
+        organization: { allOf: [{ $ref: '#/components/schemas/Organization' }], nullable: true }
+    Organization:
+      type: object
+      required: [id, name, kind, verificationStatus]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        kind: { type: string, enum: [ngo, foundation, association, city_office, district_council, municipality, other] }
+        krs: { type: string, nullable: true }
+        contactPerson: { type: string, nullable: true }
+        contactEmail: { type: string, format: email, nullable: true }
+        contactPhone: { type: string, nullable: true }
+        verificationStatus: { $ref: '#/components/schemas/VerificationStatus' }
+
+    # ---- scenariusze
+    Scenario:
+      type: object
+      required: [code, audience, pokestopType, label, emoji, character, version, sections]
+      properties:
+        code: { type: string, example: org-bus-stop }
+        audience: { type: string, enum: [resident, org] }
+        category: { allOf: [{ $ref: '#/components/schemas/ScenarioCategory' }], nullable: true }
+        pokestopType: { $ref: '#/components/schemas/PokestopType' }
+        label: { type: string }
+        description: { type: string }
+        emoji: { type: string }
+        character: { $ref: '#/components/schemas/CharacterCode' }
+        defaultTitle: { type: string, nullable: true }
+        version: { type: integer }
+        sections: { type: array, items: { $ref: '#/components/schemas/ScenarioSection' } }
+    ScenarioSection:
+      type: object
+      required: [title, fields]
+      properties:
+        title: { type: string }
+        fields: { type: array, items: { $ref: '#/components/schemas/ScenarioField' } }
+    ScenarioField:
+      type: object
+      required: [key, label, type]
+      properties:
+        key: { type: string, example: shelterSize }
+        label: { type: string }
+        type: { $ref: '#/components/schemas/FieldType' }
+        required: { type: boolean, default: false }
+        hint: { type: string, nullable: true }
+        placeholder: { type: string, nullable: true }
+        unit: { type: string, nullable: true }
+        min: { type: number, nullable: true }
+        max: { type: number, nullable: true }
+        options:
+          type: array
+          items: { type: object, required: [value, label], properties: { value: { type: string }, label: { type: string } } }
+        showIf:
+          type: object
+          nullable: true
+          description: Pole widoczne (i walidowane) tylko, gdy pole `key` ma wartość `equals`
+          required: [key, equals]
+          properties:
+            key: { type: string }
+            equals: {}
+
+    # ---- pinezki
+    Photo:
+      type: object
+      required: [id, url]
+      properties:
+        id: { type: integer }
+        url: { type: string, format: uri }
+    Comment:
+      type: object
+      required: [id, author, text, mine]
+      properties:
+        id: { type: integer }
+        author: { type: string }
+        text: { type: string }
+        mine: { type: boolean }
+        createdAt: { type: string, format: date-time }
+    Pokestop:
+      type: object
+      required: [id, type, status, scenarioCode, character, icon, title, author, mine, lat, lng, votesFor, votesAgainst, myVote, commentCount, createdAt]
+      properties:
+        id: { type: integer }
+        type: { $ref: '#/components/schemas/PokestopType' }
+        status: { $ref: '#/components/schemas/PokestopStatus' }
+        scenarioCode: { type: string }
+        character: { $ref: '#/components/schemas/CharacterCode' }
+        icon: { type: string, description: Emoji scenariusza }
+        title: { type: string }
+        description: { type: string }
+        author: { type: string, description: Nazwa wyświetlana autora (dla organizacji jej nazwa) }
+        mine: { type: boolean, description: Czy autorem jest zalogowany użytkownik }
+        organization: { type: string, nullable: true }
+        organizationId: { type: integer, nullable: true }
+        photos: { type: array, items: { $ref: '#/components/schemas/Photo' } }
+        details: { type: object, additionalProperties: true, description: Pola scenariusza (klucz = `key` pola) }
+        lat: { type: number, format: double }
+        lng: { type: number, format: double }
+        votesFor: { type: integer }
+        votesAgainst: { type: integer }
+        myVote: { allOf: [{ $ref: '#/components/schemas/VoteValue' }], nullable: true }
+        commentCount: { type: integer }
+        rejectionReason: { type: string, nullable: true }
+        createdAt: { type: string, format: date-time }
+    PokestopDetail:
+      allOf:
+        - $ref: '#/components/schemas/Pokestop'
+        - type: object
+          required: [comments]
+          properties:
+            comments: { type: array, items: { $ref: '#/components/schemas/Comment' } }
+    PokestopPage:
+      type: object
+      required: [count, results]
+      properties:
+        count: { type: integer }
+        results: { type: array, items: { $ref: '#/components/schemas/Pokestop' } }
+    NewPokestop:
+      type: object
+      required: [scenarioCode, title, character, lat, lng]
+      properties:
+        scenarioCode: { type: string }
+        title: { type: string, minLength: 3, maxLength: 80 }
+        description: { type: string }
+        character: { $ref: '#/components/schemas/CharacterCode' }
+        lat: { type: number, format: double }
+        lng: { type: number, format: double }
+        photoIds: { type: array, maxItems: 3, items: { type: integer } }
+        details: { type: object, additionalProperties: true }
+        organizationId: { type: integer, description: 'Wymagane tylko, gdy użytkownik należy do kilku organizacji' }
+    StatusChange:
+      type: object
+      required: [status]
+      properties:
+        status: { $ref: '#/components/schemas/PokestopStatus' }
+        note: { type: string, description: Powód (wymagany przy `rejected`) }
+    VoteResult:
+      type: object
+      required: [stop]
+      properties:
+        stop: { $ref: '#/components/schemas/PokestopDetail' }
+        awarded: { allOf: [{ $ref: '#/components/schemas/CharacterCode' }], nullable: true, description: Postać zdobyta za ten głos }
+
+    # ---- gra
+    Encounter:
+      type: object
+      required: [id, name, emoji, level, actionLabel, xpReward, lat, lng, expiresAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        emoji: { type: string }
+        level: { type: integer }
+        description: { type: string }
+        actionLabel: { type: string, description: Co trzeba zrobić na miejscu }
+        xpReward: { type: integer }
+        lat: { type: number, format: double }
+        lng: { type: number, format: double }
+        expiresAt: { type: string, format: date-time }
+    AttackRequest:
+      type: object
+      required: [lat, lng]
+      properties:
+        lat: { type: number, format: double }
+        lng: { type: number, format: double }
+        accuracyM: { type: number, description: Deklarowana dokładność GPS w metrach }
+        clientTime: { type: string, format: date-time }
+    AttackResult:
+      oneOf:
+        - $ref: '#/components/schemas/AttackWon'
+        - $ref: '#/components/schemas/AttackTooFar'
+      discriminator:
+        propertyName: outcome
+        mapping: { won: '#/components/schemas/AttackWon', too_far: '#/components/schemas/AttackTooFar' }
+    AttackWon:
+      type: object
+      required: [outcome, xpGained, progress]
+      properties:
+        outcome: { type: string, enum: [won] }
+        xpGained: { type: integer }
+        progress: { $ref: '#/components/schemas/PlayerProgress' }
+    AttackTooFar:
+      type: object
+      required: [outcome, distanceM]
+      properties:
+        outcome: { type: string, enum: [too_far] }
+        distanceM: { type: integer }
+    PlayerProgress:
+      type: object
+      required: [level, xp, xpIntoLevel, xpForNextLevel]
+      properties:
+        level: { type: integer }
+        xp: { type: integer }
+        xpIntoLevel: { type: integer }
+        xpForNextLevel: { type: integer }
