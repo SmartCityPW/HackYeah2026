@@ -1,0 +1,14 @@
+# Sekrety i dane lokalne
+.env
+backend/data/
+backend/config/local.yaml
+backend/config/local.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# lokalne nadpisania konfiguracji
+backend/config/demo.yaml

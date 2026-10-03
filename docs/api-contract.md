@@ -1,7 +1,7 @@
 # Kontrakt frontend ↔ backend
 
-Źródłem prawdy jest **[`openapi.yaml`](openapi.yaml)** (OpenAPI 3.0.3, 23 operacje, 30 schematów). Ten dokument je omawia.
-Kształt bazy danych: [`db/README.md`](db/README.md).
+Źródłem prawdy jest **[`openapi.yaml`](openapi.yaml)** (OpenAPI 3.0.3, 36 operacji, 51 schematów). Ten dokument je omawia.
+Wymagania: [`opis.md`](opis.md). Kształt bazy danych: [`db/README.md`](db/README.md).
 
 ## Założenia
 
@@ -15,10 +15,13 @@ Kształt bazy danych: [`db/README.md`](db/README.md).
 
 | Obszar | Operacje |
 |---|---|
-| Konta | `POST /auth/guest`, `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/upgrade`; `GET /me` |
-| Scenariusze | `GET /scenarios?category=` (katalog dla roli); admin: `PUT /admin/scenarios/{code}` |
-| Pinezki | `GET /pokestops?bbox=&type=&status=&organizationId=`, `POST /pokestops`, `GET /pokestops/{id}`, `POST /pokestops/{id}/vote`, `POST /pokestops/{id}/comments`, `POST /photos` |
-| Użytkownik | `GET /me/collection`, `/me/pokemons`, `/me/progress`, `/me/interactions`, `/me/organization` |
+| Konta | `POST /auth/guest`, `/auth/register`, `/auth/register-organization`, `/auth/login`, `/auth/refresh`, `/auth/upgrade`; `GET /me` |
+| Scenariusze i słowniki | `GET /scenarios?category=` (katalog dla roli), `GET /catalog` (postacie i typy); admin: `PUT /admin/scenarios/{code}` |
+| Pinezki | `GET /pokestops?bbox=&type=&status=&organizationId=`, `POST /pokestops`, `GET /pokestops/{id}`, `POST /pokestops/{id}/vote`, `POST /pokestops/{id}/withdraw`, `POST /photos` |
+| Dyskusja | `GET /pokestops/{id}/comments` (stronicowane, z odpowiedziami), `POST /pokestops/{id}/comments` |
+| Ankiety | `POST /pokestops/{id}/survey-responses`, `GET /pokestops/{id}/survey-results` (organizacja i administrator) |
+| Wydarzenia | `GET /events?bbox=&from=&to=`, `POST /events`, `GET /events/{id}`, `PATCH /events/{id}` (odwołanie), `POST /events/{id}/check-in` |
+| Użytkownik | `GET /me/collection`, `/me/pokemons`, `/me/progress`, `/me/interactions`, `/me/organization`; publicznie `GET /organizations/{id}` |
 | Gra | `GET /encounters?lat=&lng=&radius=`, `POST /encounters/{id}/attack` |
 | Administracja | `PATCH /pokestops/{id}` (status), `GET /admin/organizations`, `PATCH /admin/organizations/{id}` |
 
@@ -28,18 +31,23 @@ i do wyboru 3 pokemonów do walki.
 
 ## Reguły, które egzekwuje backend
 
+- **Głosowanie tylko z bliska** (`opis.md`): klient wysyła swoją pozycję, serwer liczy odległość od pinezki i przy przekroczeniu zasięgu (dziś 50 m) odpowiada `403` z kodem `too_far`. To samo dotyczy ankiet i zameldowania na wydarzeniu. Komentowanie nie wymaga bliskości.
 - **Głosowanie:** jeden głos na użytkownika (klucz główny w bazie), bez zmiany. Głosujący wskazuje `pokemonId`
   (jeden z własnych, dowolny — może być zastawiony) i **przy pierwszym głosie** ten pokemon dostaje +10 exp
   (`VoteResult.pokemon`, patrz niżej); kolejna próba głosu na tę samą pinezkę zwraca `409` i exp się nie powtarza.
-  Administrator nie głosuje (`403`).
+  Administrator nie głosuje (`403`), autor nie głosuje na własną pinezkę (`403`, kod `own_pokestop`).
 - **Zgłoszenie:** serwer ustala autora, status `open`, rodzaj pinezki (z scenariusza) i organizację (z członkostwa).
   Dla `report`/`idea` klient **musi** podać `stakedPokemonId` — jeden z własnych, niezastawionych pokemonów; serwer
   wymusza, że jego gatunek = `character` pinezki, i oznacza go jako zastawiony (nie da się go użyć do walki, dopóki
   nie wróci). `details` jest walidowane względem definicji scenariusza (pola wymagane, zakresy liczb, `showIf`).
   Błędy wracają w `fields` (klucz = `key` pola).
-- **Zwrot zastawionego pokemona:** gdy `votesFor` zgłoszenia osiągnie próg scenariusza (`votesRequired`, domyślnie
-  10), serwer automatycznie zwraca pokemona autorowi i dopisuje mu +50 exp — bez dodatkowego wywołania API, widoczne
-  przy kolejnym `GET /pokestops/{id}` jako `stakeReleasedAt`.
+- **Zwrot zastawionego pokemona.** Decyzję i wysokość premii podejmuje aplikacja w jednej transakcji, bez zadań w tle:
+  - `votesFor` osiąga próg scenariusza (`votesRequired`, domyślnie 10) → zwrot **+50 exp**, w tej samej transakcji co głos,
+  - administrator ustawia `resolved` → zwrot **+50 exp** (zgłoszenie zrobiło swoje), o ile zwrot nie nastąpił wcześniej,
+  - administrator ustawia `rejected` albo autor wycofuje zgłoszenie (`POST /pokestops/{id}/withdraw`) → zwrot **bez premii**.
+
+  Bez ostatnich dwóch punktów pokemon zastawiony na odrzuconym lub martwym zgłoszeniu byłby zablokowany na zawsze.
+  Skutek jest widoczny w `GET /pokestops/{id}` jako `stakeReleasedAt`.
 - **Walka:** klient wybiera do 3 własnych, niezastawionych pokemonów (`pokemonIds`) i wysyła pozycję. Serwer liczy
   odległość (dziś 50 m; za daleko → `too_far`, pokemony się nie liczą), dla pokemonów w zasięgu liczy moc każdego
   (z jego exp) × **1.2, jeśli jego typ = typ przeciwnika**, sumuje i porównuje z mocą przeciwnika
@@ -52,7 +60,22 @@ i do wyboru 3 pokemonów do walki.
   typ przeciwnika są widoczne w `GET /encounters`, żeby gracz mógł dobrać pokemony przed podejściem.
 - **Pokemon startowy:** `POST /auth/guest` i `POST /auth/register` przyznają jeden egzemplarz gatunku startowego —
   inaczej nowy gracz nie miałby czym głosować.
-- **Moderacja:** zmiana statusu zapisuje wpis w historii (`pokestops_status_change`). Odrzucona pinezka znika z mapy mieszkańców.
+- **Moderacja AI (tylko zgłoszenia mieszkańców):** przed zapisem agent ze zahardkodowanym promptem dostaje treść zgłoszenia i
+  zwraca wyłącznie tak/nie (`opis.md`). Nie → `422` z kodem `moderation_rejected` i ogólnym komunikatem (agent nie podaje
+  powodu), nic się nie zapisuje, pokemon nie jest zastawiany. Brak odpowiedzi w 5 s → `503` z kodem `moderation_unavailable`,
+  zgłoszenie nie powstaje i użytkownik może ponowić. Zgłoszenia zweryfikowanych organizacji agenta nie przechodzą.
+  Każdy werdykt trafia do `pokestops_moderation_log`.
+- **Ankiety:** pinezka `ngo`/`consultation` może mieć pytania (typy: tekst, liczba, wybór, wielokrotny wybór, tak/nie,
+  ocena). Jedno wypełnienie na użytkownika (`409`). Odpowiedzi walidowane względem pytań. Za wypełnioną ankietę serwer
+  przyznaje **nowego pokemona** gatunku pinezki. Organizacja widzi zbiorcze wyniki (`survey-results`): to, co zbierałaby
+  w konsultacjach.
+- **Wydarzenia:** tworzy je zweryfikowana organizacja albo samorząd. Udział to zameldowanie na miejscu, w czasie trwania i w
+  zasięgu (`check-in`), z limitem miejsc i jednorazowością. Nagroda: **unikalny pokemon** (gatunek oznaczony `is_event_exclusive`,
+  który nie wypada z walk ani ankiet).
+- **Dyskusja:** komentarze nadrzędne i odpowiedzi (jeden poziom). Lista jest stronicowana po komentarzach nadrzędnych.
+- **Rejestracja organizacji:** `POST /auth/register-organization` tworzy konto `org` i organizację `pending`. Do weryfikacji przez
+  administratora nie można publikować inicjatyw, ankiet ani wydarzeń.
+- **Moderacja administratora:** zmiana statusu zapisuje wpis w historii (`pokestops_status_change`). Odrzucona pinezka znika z mapy mieszkańców.
 
 ## Co musi zmienić frontend, żeby się spiąć z tym kontraktem
 
@@ -60,7 +83,7 @@ Dzisiejsze atrapy (`core/api/*.mock.ts`) działają inaczej w kilku miejscach. T
 
 1. **Zdjęcia:** najpierw `POST /photos` (multipart), potem `photoIds` w `POST /pokestops`. Dziś frontend trzyma zdjęcia jako data URL w pamięci.
 2. **Lista vs szczegóły:** lista ma tylko `commentCount`, komentarze przychodzą w `GET /pokestops/{id}` przy otwarciu pinezki.
-3. **Nazwy:** `scenarioId` → `scenarioCode`. Odpowiedź na głos to `{stop, awarded}` (zgodnie z obecnym `VoteResult`).
+3. **Nazwy i odpowiedzi:** `scenarioId` → `scenarioCode`. Odpowiedź na głos to `{stop, pokemon}` (pokemon po doliczeniu exp), a nie `{stop, awarded}` jak w dzisiejszej atrapie.
 4. **Pobieranie pinezek:** wg widocznego fragmentu mapy (`bbox`) i ze stronicowaniem, a nie "wszystkie naraz".
 5. **Interakcje i kolekcja:** z `/me/interactions` i `/me/collection`, a nie wyliczane po stronie klienta.
 6. **Katalog scenariuszy:** z `GET /scenarios` zamiast `scenario.catalog.ts` (ten plik zostaje źródłem seedu: `npm run db:seed-scenarios`).
@@ -68,27 +91,71 @@ Dzisiejsze atrapy (`core/api/*.mock.ts`) działają inaczej w kilku miejscach. T
 8. **Tokeny:** interceptor HTTP z JWT i odświeżaniem.
 9. **Wybór pokemona przy głosowaniu i zgłaszaniu:** ekran głosu musi dać wybrać `pokemonId` z `/me/pokemons` (nie wysyłać samego `vote`), a formularz zgłoszenia problemu/pomysłu — `stakedPokemonId` (i pokazać, że ten pokemon jest "zablokowany" do zwrotu progu głosów).
 10. **Ekran walki:** wybór do 3 pokemonów z `/me/pokemons` (z podglądem mocy/typu i mnożnika, jeśli typ = typ przeciwnika z `GET /encounters`) zamiast samego przycisku "atakuj"; obsłużyć nowy wynik `lost` (dziś atrapa znała tylko `won`/`too_far`).
+11. **Słownik z API:** postacie i typy z `GET /catalog` zamiast stałych `CHARACTERS` w kodzie (modele 3D zostają we frontendzie, wiązane po `code`).
+12. **Zgłoszenie z pokemonem:** postać na pinezce `report`/`idea` to gatunek zastawionego pokemona, a nie pole scenariusza. Wymaga to kroku wyboru pokemona w formularzu i przycisku "Wycofaj zgłoszenie".
+13. **Odrzucenie przez moderację:** błąd `moderation_rejected` pokazać użytkownikowi (komunikat ogólny, bez powodu) bez utraty wpisanych danych, a `moderation_unavailable` jako "spróbuj ponownie".
+14. **Głosowanie z pozycją:** `POST .../vote` wymaga `lat`/`lng` (i `accuracyM`). Dziś atrapa nie sprawdza odległości, a przycisk głosu jest zawsze aktywny. Dochodzi obsługa `too_far`.
+15. **Ankiety:** wyświetlenie `questions` na karcie pinezki `ngo`/`consultation`, formularz odpowiedzi (z nagrodą-pokemonem) oraz po stronie organizacji kreator pytań i widok wyników.
+16. **Wydarzenia:** nowy rodzaj pinezki na mapie, szczegóły, przycisk zameldowania i panel organizacji do tworzenia wydarzeń.
+17. **Komentarze:** `GET .../comments` ze stronicowaniem i odpowiedziami zamiast pełnej listy w szczegółach pinezki (dziś `comments` siedzą w obiekcie pinezki).
+18. **Rejestracja organizacji:** formularz zakładania konta organizacji i widok "oczekuje na weryfikację".
+19. **Postać `festival`** (unikalna za wydarzenia) dochodzi do słownika postaci frontendu: potrzebuje modelu 3D albo wersji z kodu.
 
-## Pytania otwarte (do rozmowy o backendzie)
+## Decyzje
 
-1. **Wiele miast?** Schemat zakłada jedno wdrożenie. Jeśli aplikacja ma obsługiwać kilka miast, potrzebna jest tabela `city` i zakres (tenant) na pinezkach, organizacjach i przeciwnikach. To najtańsze zrobić teraz.
-2. **Antyoszustwo w walce:** jakie sygnały uznajemy za podejrzane (skoki pozycji, nierealna prędkość, mock location, wiele kont z jednego urządzenia) i co robimy (odrzucenie, flaga, blokada)? Dziennik `game_attack` zbiera dane, a decyzje wymagają ustaleń.
-3. **"Akcja na miejscu":** dziś weryfikuje się tylko obecność, zanim można zaatakować. Czy potrzebne jest potwierdzenie (zdjęcie, kod QR, czas pobytu)? Schemat ma `action_kind` na to miejsce.
-4. **Stałe gry (exp za głos = 10, za potwierdzone zgłoszenie = 50, mnożnik typu = 1.2, próg głosów = 10):** to
-   wartości-placeholder do wytuningowania na podstawie testów, dziś stałe w kodzie backendu. Jeśli mają się zmieniać
-   bez wdrożenia, potrzebna osobna tabela `game_config` (key/value) — czy to jest potrzebne na hackathon, czy można
-   to zahardkodować?
-5. **Farmienie walk:** gracz może dowolną liczbę razy przegrać i spróbować ponownie tym samym przeciwnikiem (nie ma
-   cooldownu). Czy to problem (np. przy teście różnych trójek pokemonów), czy zostaje tak jak jest?
-6. **Generowanie przeciwników:** gęstość, limity na obszar, odnawianie, zadanie okresowe (Celery beat albo cron). Czy mają zależeć od liczby graczy w okolicy?
-7. **RODO i lokalizacja:** jak długo trzymamy pozycje z prób walki, czy anonimizujemy użytkowników zamiast ich usuwać (klucze obce `RESTRICT` na autorach są pod to przygotowane).
-8. **Moderacja treści:** zdjęcia i komentarze (dziś komentarz można ukryć, zdjęcia nie mają jeszcze statusu moderacji).
-9. **Moderacja zgłoszeń przez agenta AI:** dziś nie ma dedykowanej tabeli na jego werdykt — zakładamy, że ocena
-   dzieje się synchronicznie przy `POST /pokestops` (odrzucone przez agenta nigdy nie trafia do bazy jako widoczne;
-   `pokestops_status_change` z `changedById = null` służy tylko do późniejszych zmian przez administratora). Czy to
-   wystarczające, czy potrzebny jest log samych decyzji agenta (np. do testów/promptu)?
-10. **Aktualizacje na żywo** (nowe pinezki, głosy, walki w okolicy): wystarczy odpytywanie, czy potrzebne WebSockety?
-11. **Słownik postaci i typów:** frontend trzyma jego opis (nazwy, ikony, modele 3D). Czy ma być też dostępny z API (`GET /characters`, `GET /types`)?
-12. **Podział na aplikacje Django (SRP):** `accounts`, `scenarios`, `pokestops`, `collection`, `game`. `collection` i
-    `game` zależą teraz od siebie nawzajem (walka używa posiadanych pokemonów, wygrana tworzy nowego) — patrz
-    [`db/README.md`](db/README.md) sekcja "Podział na aplikacje". To jest zamierzone, nie przeoczenie.
+Podjęte na podstawie założeń: hackathon (liczy się działające demo, nie pełna produkcyjność), jeden zespół i jedno wdrożenie,
+reguły w jednym miejscu (SRP). Gdzie decyzja ma świadomy koszt, jest on wypisany.
+
+| # | Kwestia | Decyzja | Uzasadnienie / koszt |
+|---|---|---|---|
+| 1 | Wiele miast | **Nie w MVP.** Jedno wdrożenie, bez tabeli `city`. | Dodanie `city_id` do pinezek, organizacji i przeciwników to później zmiana addytywna (nowa kolumna z domyślną wartością). Dziś tylko komplikuje każde zapytanie. |
+| 2 | Antyoszustwo w walce | **Minimum po stronie serwera:** odrzucenie próby z `accuracyM > 100`, odrzucenie, gdy prędkość od poprzedniej pozycji gracza przekracza 40 m/s, limit 1 próby na 5 s i 20 na godzinę (`429`). Wynik `rejected` z powodem w `game_attack`. | Wykrywanie sztucznej lokalizacji z poziomu PWA jest niemożliwe, więc nie obiecujemy tego. Ryzyko znane. |
+| 3 | "Akcja na miejscu" | **Tylko obecność** (`action_kind = 'checkin'` dla wszystkich). `actionLabel` to instrukcja w interfejsie, bez weryfikacji. | Weryfikacja zdjęciem lub kodem QR to osobna funkcja. Kolumna zostaje na przyszłość. W demo mówimy to otwarcie. |
+| 4 | Stałe gry | **Wartości w pliku YAML** (`backend/config/default.yaml`, sekcja `game`): exp za głos 10, premia za zwrot 50, mnożnik typu 1.2, zasięg interakcji 50 m (głos, ankieta, zameldowanie, atak), drużyna 3, poziomy, limity antyoszustwa. **Bez tabeli `game_config`.** | Pierwotnie zahardkodowane w module, ale zasada projektu mówi, że wszystkie wartości zmienne leżą w YAML-u (sekrety w zmiennych środowiskowych). Zmiana = edycja pliku, bez migracji i bez przebudowy. Triggery nagród usunięte, baza zapisuje tylko wynik (`exp_granted`, `stake_bonus_exp`, `type_multiplier_applied`), więc zmiana wartości nie psuje historii. Test sprawdza, że zmiana w konfiguracji rzeczywiście zmienia zachowanie. |
+| 5 | Farmienie walk | **Bez cooldownu po porażce.** | Moc przeciwnika jest jawna, a próba kosztuje tylko czas i mieści się w limicie z pkt 2. Cooldown utrudniałby testowanie różnych trójek. |
+| 6 | Generowanie przeciwników | **Leniwie przy `GET /encounters`, bez Celery.** Siatka ok. 500 m, do 3 aktywnych na komórkę, dolosowanie wg `spawn_weight`, życie 30 min, blokada `pg_advisory_xact_lock` na komórkę. Wygasłe odfiltrowane po `expires_at` i hurtowo oznaczane `expired`. Niezależne od liczby graczy. | Zero infrastruktury w tle. Koszt: pierwsze zapytanie w pustej okolicy jest wolniejsze. |
+| 7 | RODO i lokalizacja | **Pozycje z `game_attack` kasowane po 30 dniach** (komenda zarządzania uruchamiana z crona). Usunięcie konta = anonimizacja (nazwa "Usunięty użytkownik", e-mail `NULL`), historia i pokemony zostają. Zgoda na lokalizację przy pierwszym użyciu. | Zgodne z kluczami `RESTRICT` na autorach. Na hackathon wystarczy komenda, nie harmonogram. |
+| 8 | Moderacja treści | **Agent AI przy tworzeniu zgłoszeń mieszkańców** (tytuł, opis, pola tekstowe). Zgłoszenia zweryfikowanych organizacji agenta nie przechodzą. Komentarze: administrator może je ukryć, brak automatu. **Zdjęcia: tylko limity techniczne** (typ, 5 MB), bez analizy treści. | `opis.md`: agent moderuje zgłoszenia od użytkowników. Organizacje są weryfikowane przez administratora, więc im ufamy. Brak analizy zdjęć to świadomie zaakceptowane ryzyko na demo, do dodania przed produkcją. |
+| 9 | Log agenta AI i awaria agenta | **Log: tak** (`pokestops_moderation_log`: treść, werdykt tak/nie/błąd, model, czas). **Awaria lub timeout 5 s: zgłoszenie nie powstaje** (`503`, ponowienie przez użytkownika), a nie przechodzi bez oceny. | Agent zwraca tylko tak/nie, więc bez logu nie da się ocenić ani poprawić promptu. Wcześniejszy pomysł "przepuść przy awarii" odrzucony: treść bez oceny nie powinna trafić na publiczną mapę, a wymuszone ponowienie kosztuje użytkownika kilka sekund. |
+| 10 | Aktualizacje na żywo | **Odpytywanie:** pinezki co 30 s i po przesunięciu mapy, przeciwnicy co 20 s. **Bez WebSocketów.** | Prostsze i wystarczające dla demo. |
+| 11 | Słownik postaci i typów | **Tak:** `GET /catalog`. | Frontend potrzebuje nazw i typów pokemonów, a trzymanie ich w dwóch miejscach się rozjeżdża. |
+| 12 | Podział na aplikacje Django | **Bez cykli.** `collection` nie zna już `game`: nagrodą za walkę jest pokemon wskazany z `game_attack.reward_pokemon_id`, a nie z dziennika po stronie `collection`. | Dwustronny związek `collection` ↔ `game` łamał SRP i wymuszał cykliczne FK. Po zmianie zależności idą w jedną stronę (`db/README.md`). |
+
+Decyzje dodatkowe, wynikające z przeglądu:
+
+| # | Kwestia | Decyzja |
+|---|---|---|
+| 13 | Zastaw na odrzuconym lub martwym zgłoszeniu | Zwrot przy progu głosów i przy `resolved` (z +50 exp) oraz przy `rejected` i wycofaniu (bez premii). Nowy endpoint `POST /pokestops/{id}/withdraw`. |
+| 14 | Głos na własną pinezkę | **Zabroniony** (`403`, `own_pokestop`). Inaczej autor sam odblokowywałby swojego pokemona. |
+| 15 | Konta gościa a oszustwa | **Ryzyko zaakceptowane.** Gość głosuje i liczy się do progu, bo wymuszona rejestracja zabija wejście. Ograniczenie: limit zakładania kont gościa na adres IP (5/h). Pełna ochrona przed wieloma kontami wykracza poza MVP. |
+| 16 | Wzór poziomu pokemona | **100 exp na poziom** (jak u gracza), moc `base_power + power_growth × (poziom − 1)`, przeliczana przez serwer. Placeholdery mocy w `seed_reference.sql` do strojenia po pierwszych testach. |
+
+Decyzje wynikające z `opis.md` (funkcja 5, ankiety, głosowanie z bliska):
+
+| # | Kwestia | Decyzja |
+|---|---|---|
+| 17 | Walka i generowanie wrogów | **Backend.** `opis.md` zostawiał to otwarte, tu jest rozstrzygnięte: serwer generuje przeciwników i rozstrzyga walkę, żeby klient nie mógł oszukiwać. |
+| 18 | Zasięg głosowania | **50 m, ten sam co zasięg ataku** (jedna stała `INTERACTION_RANGE_M`). Dotyczy głosu, ankiety i zameldowania na wydarzeniu. Pozycja i odległość zapisywane przy każdym z nich (audyt). Komentarze bez ograniczeń. |
+| 19 | Nagroda za głos w pomysłach NGO i konsultacjach | **Exp dla wybranego pokemona**, jak przy każdym głosie. `opis.md` w punktach 2 i 3 mówi "pokemona lub coś", ale sekcja funkcji precyzuje, że głos daje exp. Nowego pokemona dają ankiety, walki, wydarzenia i start. |
+| 20 | Ankiety | **Jeden nowy pokemon (gatunku pinezki) za jedną wypełnioną ankietę**, jedna ankieta na użytkownika. Pytania typowane (7 rodzajów), odpowiedzi znormalizowane (`pokestops_survey_answer`), żeby organizacja dostała zbiorcze wyniki bez przetwarzania tekstu. Odpowiedzi tylko w zasięgu punktu. |
+| 21 | Wydarzenia | **Zameldowanie na miejscu w czasie trwania** = udział = jeden unikalny pokemon. Gatunek wyłączny dla wydarzeń (`is_event_exclusive`). Opcjonalny limit miejsc i przedział wieku. Tworzy zweryfikowana organizacja lub samorząd. W bazie osobna aplikacja `events`. |
+| 22 | Dyskusja | **Jeden poziom odpowiedzi**, stronicowanie po komentarzach nadrzędnych (zgodnie z uwagą w `opis.md` o paginacji). |
+| 23 | Rejestracja organizacji | **Konto `org` powstaje od razu, ale ma status `pending`** do weryfikacji przez administratora. Może oglądać panel, nie może publikować. |
+
+Decyzje wdrożeniowe backendu (Django):
+
+| # | Kwestia | Decyzja |
+|---|---|---|
+| 24 | Konfiguracja i sekrety | **Wartości zmienne w YAML** (`backend/config/`, frontend: `public/config/app-config.yaml`), **sekrety wyłącznie w zmiennych środowiskowych** (`DJANGO_SECRET_KEY`, `DB_PASSWORD`, `AI_API_KEY`). Konfiguracja jest walidowana przy starcie, a testy pilnują, że w YAML-ach nie ma kluczy wyglądających na sekrety i że `.env.example` zgadza się z kodem. Ścieżki względne liczone od katalogu aplikacji, brak ścieżek na stałe. |
+| 25 | Współrzędne | **Bez GeoDjango:** `lat`/`lng`, odległość liczona w Pythonie (haversine), widok mapy jako prostokąt. Bez GDAL w obrazie. `schema.sql` zachowuje `geography` na przyszłość, a różnica jest jawna i pilnowana testem. |
+| 26 | Źródło prawdy dla bazy | **Migracje Django wykonują schemat, `docs/db/schema.sql` jest wzorcem**, a test porównuje tabele i kolumny (dozwolone tylko trzy opisane rodzaje różnic). Rozjazd oblewa testy. |
+| 27 | Wdrażanie kontraktu | **Kontrakt najpierw:** każda operacja z `openapi.yaml` ma trasę, a niezaimplementowane odpowiadają `501 not_implemented` w kształcie błędu z kontraktu (nigdy 404). `manage.py contract_status` pokazuje postęp. |
+| 28 | Przejście frontendu z atrap na dane | **Przełącznik `api.mode` per obszar** w konfiguracji (mock \| http), bez zmian w komponentach. Szczegóły: [`frontend-adaptation.md`](frontend-adaptation.md). |
+
+## Co zostaje otwarte
+
+1. **Co dzieje się ze zgłoszeniem, które nie zbiera głosów?** `opis.md` mówi tylko, co po spełnieniu warunku (pokemon wraca z exp, propozycja zostaje na mapie). Przyjąłem, że do tego czasu pokemon jest zastawiony, a wyjściem są wycofanie, odrzucenie lub rozwiązanie. Automatyczne wygasanie po N dniach wymagałoby zadania w tle, więc na razie go nie ma.
+2. **Jaki dokładnie zasięg "dopuszczonej odległości"?** `opis.md` go nie podaje. Przyjęte 50 m jest do sprawdzenia w terenie (dokładność GPS w mieście bywa gorsza).
+3. **Nagroda za ankietę:** `opis.md` mówi "pokemony" w liczbie mnogiej. Przyjęty jeden nowy pokemon na ankietę. Jeśli ma być więcej lub losowy, zmienia się tylko logika aplikacji.
+4. **Strojenie liczb gry** (moc postaci i przeciwników, exp, próg głosów): wymaga kilku prób na działającym demo.
+5. **Kreator ankiet i wydarzeń po stronie frontendu** to osobna, spora funkcja (patrz punkty 15 i 16 powyżej).

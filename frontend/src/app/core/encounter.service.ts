@@ -1,10 +1,9 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { GameApi } from './api/game.api';
+import { AppConfigService } from './config/app-config.service';
 import { AttackResult, Encounter, Position } from './game.model';
 import { GeolocationService } from './geolocation.service';
 import { ProgressService } from './progress.service';
-
-const DEFAULT_CENTER: Position = { lat: 50.0617, lng: 19.9373 };
 
 /** Przeciwnicy na mapie i próby ataku. Wynik walki zawsze rozstrzyga backend. */
 @Injectable({ providedIn: 'root' })
@@ -12,6 +11,7 @@ export class EncounterService {
   private readonly api = inject(GameApi);
   private readonly geo = inject(GeolocationService);
   private readonly progress = inject(ProgressService);
+  private readonly defaultCenter: Position = inject(AppConfigService).config.map.center;
 
   readonly encounters = signal<Encounter[]>([]);
   readonly attacking = signal(false);
@@ -26,7 +26,7 @@ export class EncounterService {
   }
 
   async refresh(): Promise<void> {
-    this.encounters.set(await this.api.listEncounters(this.userPosition() ?? DEFAULT_CENTER));
+    this.encounters.set(await this.api.listEncounters(this.userPosition() ?? this.defaultCenter));
   }
 
   /** Zwraca null, gdy nie znamy pozycji użytkownika (nie ma czego wysłać). */

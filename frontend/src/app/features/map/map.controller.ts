@@ -1,13 +1,9 @@
-import { Injectable, OnDestroy, signal } from '@angular/core';
+import { Injectable, OnDestroy, inject, signal } from '@angular/core';
+import { AppConfigService } from '../../core/config/app-config.service';
 import * as maplibregl from 'maplibre-gl';
 import { Encounter } from '../../core/game.model';
 import { POKESTOP_TYPES, Pokestop } from '../../core/pokestop.model';
 import { CharactersLayer } from './three/characters-layer';
-
-// Worker serwujemy jako zasób statyczny (angular.json -> assets), bo bundler nie radzi sobie z workerem MapLibre.
-maplibregl.setWorkerUrl('/maplibre/maplibre-gl-worker.mjs');
-
-const KRAKOW: [number, number] = [19.9373, 50.0617];
 
 /**
  * Jedyne miejsce w aplikacji, które zna MapLibre: tworzy mapę, rysuje pinezki i postacie 3D.
@@ -15,6 +11,7 @@ const KRAKOW: [number, number] = [19.9373, 50.0617];
  */
 @Injectable()
 export class MapController implements OnDestroy {
+  private readonly config = inject(AppConfigService).config.map;
   readonly ready = signal(false);
 
   private map?: maplibregl.Map;
@@ -24,13 +21,15 @@ export class MapController implements OnDestroy {
   private userMarker?: maplibregl.Marker;
 
   init(container: HTMLElement): void {
+    // Worker serwujemy jako zasób statyczny (angular.json -> assets), bo bundler nie radzi sobie z workerem MapLibre.
+    maplibregl.setWorkerUrl(this.config.workerUrl);
     this.map = new maplibregl.Map({
       container,
-      style: 'https://tiles.openfreemap.org/styles/liberty',
-      center: KRAKOW,
-      zoom: 16.3,
-      pitch: 55,
-      bearing: -15,
+      style: this.config.styleUrl,
+      center: [this.config.center.lng, this.config.center.lat],
+      zoom: this.config.zoom,
+      pitch: this.config.pitch,
+      bearing: this.config.bearing,
       attributionControl: { compact: true },
     });
     this.map.on('load', () => {

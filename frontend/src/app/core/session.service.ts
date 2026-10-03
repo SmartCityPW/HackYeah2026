@@ -1,4 +1,5 @@
-import { Injectable, computed, effect, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
+import { AppConfigService } from './config/app-config.service';
 
 export type Role = 'resident' | 'org' | 'admin';
 
@@ -15,18 +16,17 @@ const PROFILES: Record<Role, Profile> = {
   admin: { displayName: 'Administrator', organization: null },
 };
 
-const STORAGE_KEY = 'scgo.role';
-
 /** Rola zalogowanego użytkownika (przełączana ręcznie do czasu logowania z backendu). */
 @Injectable({ providedIn: 'root' })
 export class SessionService {
+  private readonly storageKey = `${inject(AppConfigService).config.auth.storageKeyPrefix}.role`;
   readonly role = signal<Role>(this.load());
   readonly profile = computed(() => PROFILES[this.role()]);
 
   constructor() {
     effect(() => {
       try {
-        localStorage.setItem(STORAGE_KEY, this.role());
+        localStorage.setItem(this.storageKey, this.role());
       } catch {
         /* localStorage może być niedostępny (tryb prywatny) */
       }
@@ -39,7 +39,7 @@ export class SessionService {
 
   private load(): Role {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(this.storageKey);
       return saved === 'org' || saved === 'admin' ? saved : 'resident';
     } catch {
       return 'resident';

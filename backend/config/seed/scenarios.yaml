@@ -1,0 +1,456 @@
+# WYGENEROWANY PLIK: nie edytować ręcznie. Źródło: frontend/src/app/core/scenario.catalog.ts
+# Odtworzenie: (cd frontend && npm run db:seed-scenarios)
+scenarios:
+  - code: "res-pothole"
+    audience: "resident"
+    category: "problem"
+    pokestop_type: "report"
+    label: "Dziura lub uszkodzony chodnik"
+    description: "Dziura, wyrwa, zapadnięta kostka."
+    emoji: "🕳️"
+    character: "cyclist"
+    default_title: "Dziura w chodniku"
+    sort_order: 0
+    sections:
+      - title: "Zgłoszenie"
+        fields:
+          - {"key":"title","label":"Tytuł","type":"text","required":true,"placeholder":"Dziura w chodniku"}
+          - {"key":"description","label":"Opis (opcjonalnie)","type":"textarea","required":false}
+          - {"key":"photos","label":"Zdjęcie","type":"photos","required":false,"hint":"Do 3 zdjęć"}
+  - code: "res-bin"
+    audience: "resident"
+    category: "problem"
+    pokestop_type: "report"
+    label: "Brak kosza na śmieci"
+    description: "Brakuje kosza albo jest przepełniony."
+    emoji: "🗑️"
+    character: "bin"
+    default_title: "Brakuje kosza na śmieci"
+    sort_order: 1
+    sections:
+      - title: "Zgłoszenie"
+        fields:
+          - {"key":"title","label":"Tytuł","type":"text","required":true,"placeholder":"Brakuje kosza na śmieci"}
+          - {"key":"description","label":"Opis (opcjonalnie)","type":"textarea","required":false}
+          - {"key":"photos","label":"Zdjęcie","type":"photos","required":false,"hint":"Do 3 zdjęć"}
+  - code: "res-lamp"
+    audience: "resident"
+    category: "problem"
+    pokestop_type: "report"
+    label: "Zepsuta latarnia"
+    description: "Ciemno, latarnia nie świeci."
+    emoji: "💡"
+    character: "lamp"
+    default_title: "Zepsuta latarnia"
+    sort_order: 2
+    sections:
+      - title: "Zgłoszenie"
+        fields:
+          - {"key":"title","label":"Tytuł","type":"text","required":true,"placeholder":"Zepsuta latarnia"}
+          - {"key":"description","label":"Opis (opcjonalnie)","type":"textarea","required":false}
+          - {"key":"photos","label":"Zdjęcie","type":"photos","required":false,"hint":"Do 3 zdjęć"}
+  - code: "res-green"
+    audience: "resident"
+    category: "problem"
+    pokestop_type: "report"
+    label: "Zaniedbana zieleń"
+    description: "Zarośnięty skwer, chore drzewo, brak trawnika."
+    emoji: "🌳"
+    character: "tree"
+    default_title: "Zaniedbana zieleń"
+    sort_order: 3
+    sections:
+      - title: "Zgłoszenie"
+        fields:
+          - {"key":"title","label":"Tytuł","type":"text","required":true,"placeholder":"Zaniedbana zieleń"}
+          - {"key":"description","label":"Opis (opcjonalnie)","type":"textarea","required":false}
+          - {"key":"photos","label":"Zdjęcie","type":"photos","required":false,"hint":"Do 3 zdjęć"}
+  - code: "res-transport"
+    audience: "resident"
+    category: "problem"
+    pokestop_type: "report"
+    label: "Problem z komunikacją"
+    description: "Przystanek, rozkład, korek, niebezpieczne przejście."
+    emoji: "🚆"
+    character: "train"
+    default_title: "Problem z komunikacją"
+    sort_order: 4
+    sections:
+      - title: "Zgłoszenie"
+        fields:
+          - {"key":"title","label":"Tytuł","type":"text","required":true,"placeholder":"Problem z komunikacją"}
+          - {"key":"description","label":"Opis (opcjonalnie)","type":"textarea","required":false}
+          - {"key":"photos","label":"Zdjęcie","type":"photos","required":false,"hint":"Do 3 zdjęć"}
+  - code: "res-bike"
+    audience: "resident"
+    category: "problem"
+    pokestop_type: "report"
+    label: "Problem dla rowerzystów"
+    description: "Brak ścieżki, zepsuty stojak, niebezpieczny odcinek."
+    emoji: "🚴"
+    character: "cyclist"
+    default_title: "Problem dla rowerzystów"
+    sort_order: 5
+    sections:
+      - title: "Zgłoszenie"
+        fields:
+          - {"key":"title","label":"Tytuł","type":"text","required":true,"placeholder":"Problem dla rowerzystów"}
+          - {"key":"description","label":"Opis (opcjonalnie)","type":"textarea","required":false}
+          - {"key":"photos","label":"Zdjęcie","type":"photos","required":false,"hint":"Do 3 zdjęć"}
+  - code: "idea-bus-stop"
+    audience: "resident"
+    category: "initiative"
+    pokestop_type: "idea"
+    label: "Przystanek autobusowy"
+    description: "Tu przydałby się nowy przystanek."
+    emoji: "🚏"
+    character: "train"
+    default_title: "Nowy przystanek"
+    sort_order: 6
+    sections:
+      - title: "Zgłoszenie"
+        fields:
+          - {"key":"title","label":"Tytuł","type":"text","required":true,"placeholder":"Nowy przystanek"}
+          - {"key":"description","label":"Opis (opcjonalnie)","type":"textarea","required":false}
+          - {"key":"whoBenefits","label":"Kto by na tym skorzystał","type":"multiselect","required":false,"options":[{"value":"kids","label":"Dzieci"},{"value":"teens","label":"Młodzież"},{"value":"seniors","label":"Seniorzy"},{"value":"parents","label":"Rodzice z wózkami"},{"value":"bikers","label":"Rowerzyści"},{"value":"disabled","label":"Osoby z niepełnosprawnościami"},{"value":"all","label":"Wszyscy"}]}
+          - {"key":"photos","label":"Zdjęcie","type":"photos","required":false,"hint":"Do 3 zdjęć"}
+  - code: "idea-shop"
+    audience: "resident"
+    category: "initiative"
+    pokestop_type: "idea"
+    label: "Sklep lub usługa na osiedlu"
+    description: "Warzywniak, piekarnia, apteka, punkt usługowy."
+    emoji: "🥕"
+    character: "bin"
+    default_title: "Sklep warzywny na osiedlu"
+    sort_order: 7
+    sections:
+      - title: "Zgłoszenie"
+        fields:
+          - {"key":"title","label":"Tytuł","type":"text","required":true,"placeholder":"Sklep warzywny na osiedlu"}
+          - {"key":"description","label":"Opis (opcjonalnie)","type":"textarea","required":false}
+          - {"key":"shopKind","label":"Czego brakuje","type":"choice","required":false,"options":[{"value":"veg","label":"Warzywniak"},{"value":"bakery","label":"Piekarnia"},{"value":"pharmacy","label":"Apteka"},{"value":"grocery","label":"Sklep spożywczy"},{"value":"service","label":"Punkt usługowy"},{"value":"other","label":"Coś innego"}]}
+          - {"key":"whoBenefits","label":"Kto by na tym skorzystał","type":"multiselect","required":false,"options":[{"value":"kids","label":"Dzieci"},{"value":"teens","label":"Młodzież"},{"value":"seniors","label":"Seniorzy"},{"value":"parents","label":"Rodzice z wózkami"},{"value":"bikers","label":"Rowerzyści"},{"value":"disabled","label":"Osoby z niepełnosprawnościami"},{"value":"all","label":"Wszyscy"}]}
+          - {"key":"photos","label":"Zdjęcie","type":"photos","required":false,"hint":"Do 3 zdjęć"}
+  - code: "idea-playground"
+    audience: "resident"
+    category: "initiative"
+    pokestop_type: "idea"
+    label: "Plac zabaw lub boisko"
+    description: "Miejsce do zabawy i sportu."
+    emoji: "🛝"
+    character: "cyclist"
+    default_title: "Nowy plac zabaw"
+    sort_order: 8
+    sections:
+      - title: "Zgłoszenie"
+        fields:
+          - {"key":"title","label":"Tytuł","type":"text","required":true,"placeholder":"Nowy plac zabaw"}
+          - {"key":"description","label":"Opis (opcjonalnie)","type":"textarea","required":false}
+          - {"key":"whoBenefits","label":"Kto by na tym skorzystał","type":"multiselect","required":false,"options":[{"value":"kids","label":"Dzieci"},{"value":"teens","label":"Młodzież"},{"value":"seniors","label":"Seniorzy"},{"value":"parents","label":"Rodzice z wózkami"},{"value":"bikers","label":"Rowerzyści"},{"value":"disabled","label":"Osoby z niepełnosprawnościami"},{"value":"all","label":"Wszyscy"}]}
+          - {"key":"photos","label":"Zdjęcie","type":"photos","required":false,"hint":"Do 3 zdjęć"}
+  - code: "idea-greenery"
+    audience: "resident"
+    category: "initiative"
+    pokestop_type: "idea"
+    label: "Zieleń, drzewa, skwer"
+    description: "Tu mogłoby być zielono."
+    emoji: "🌿"
+    character: "tree"
+    default_title: "Więcej zieleni"
+    sort_order: 9
+    sections:
+      - title: "Zgłoszenie"
+        fields:
+          - {"key":"title","label":"Tytuł","type":"text","required":true,"placeholder":"Więcej zieleni"}
+          - {"key":"description","label":"Opis (opcjonalnie)","type":"textarea","required":false}
+          - {"key":"whoBenefits","label":"Kto by na tym skorzystał","type":"multiselect","required":false,"options":[{"value":"kids","label":"Dzieci"},{"value":"teens","label":"Młodzież"},{"value":"seniors","label":"Seniorzy"},{"value":"parents","label":"Rodzice z wózkami"},{"value":"bikers","label":"Rowerzyści"},{"value":"disabled","label":"Osoby z niepełnosprawnościami"},{"value":"all","label":"Wszyscy"}]}
+          - {"key":"photos","label":"Zdjęcie","type":"photos","required":false,"hint":"Do 3 zdjęć"}
+  - code: "idea-bike"
+    audience: "resident"
+    category: "initiative"
+    pokestop_type: "idea"
+    label: "Rowery: stojaki, ścieżka"
+    description: "Infrastruktura dla rowerzystów."
+    emoji: "🚲"
+    character: "cyclist"
+    default_title: "Stojaki lub ścieżka rowerowa"
+    sort_order: 10
+    sections:
+      - title: "Zgłoszenie"
+        fields:
+          - {"key":"title","label":"Tytuł","type":"text","required":true,"placeholder":"Stojaki lub ścieżka rowerowa"}
+          - {"key":"description","label":"Opis (opcjonalnie)","type":"textarea","required":false}
+          - {"key":"whoBenefits","label":"Kto by na tym skorzystał","type":"multiselect","required":false,"options":[{"value":"kids","label":"Dzieci"},{"value":"teens","label":"Młodzież"},{"value":"seniors","label":"Seniorzy"},{"value":"parents","label":"Rodzice z wózkami"},{"value":"bikers","label":"Rowerzyści"},{"value":"disabled","label":"Osoby z niepełnosprawnościami"},{"value":"all","label":"Wszyscy"}]}
+          - {"key":"photos","label":"Zdjęcie","type":"photos","required":false,"hint":"Do 3 zdjęć"}
+  - code: "idea-other"
+    audience: "resident"
+    category: "initiative"
+    pokestop_type: "idea"
+    label: "Inny pomysł"
+    description: "Coś, czego tu brakuje."
+    emoji: "💭"
+    character: "lamp"
+    default_title: "Mój pomysł dla miasta"
+    sort_order: 11
+    sections:
+      - title: "Zgłoszenie"
+        fields:
+          - {"key":"title","label":"Tytuł","type":"text","required":true,"placeholder":"Mój pomysł dla miasta"}
+          - {"key":"description","label":"Opis (opcjonalnie)","type":"textarea","required":false}
+          - {"key":"whoBenefits","label":"Kto by na tym skorzystał","type":"multiselect","required":false,"options":[{"value":"kids","label":"Dzieci"},{"value":"teens","label":"Młodzież"},{"value":"seniors","label":"Seniorzy"},{"value":"parents","label":"Rodzice z wózkami"},{"value":"bikers","label":"Rowerzyści"},{"value":"disabled","label":"Osoby z niepełnosprawnościami"},{"value":"all","label":"Wszyscy"}]}
+          - {"key":"photos","label":"Zdjęcie","type":"photos","required":false,"hint":"Do 3 zdjęć"}
+  - code: "place-food"
+    audience: "resident"
+    category: "place"
+    pokestop_type: "place"
+    label: "Jedzenie i kawa"
+    description: "Kawiarnia, street food, bar, cukiernia."
+    emoji: "☕"
+    character: "bin"
+    default_title: ""
+    sort_order: 12
+    sections:
+      - title: "O miejscu"
+        fields:
+          - {"key":"title","label":"Nazwa miejsca","type":"text","required":true,"placeholder":"np. Kawiarnia pod żyrandolem"}
+          - {"key":"description","label":"Co tu jest fajnego?","type":"textarea","required":false}
+          - {"key":"photos","label":"Zdjęcie","type":"photos","required":false,"hint":"Do 3 zdjęć"}
+      - title: "Twoja opinia"
+        fields:
+          - {"key":"rating","label":"Ocena","type":"rating","required":true}
+          - {"key":"cost","label":"Ile kosztuje skorzystanie","type":"choice","required":true,"options":[{"value":"free","label":"Za darmo"},{"value":"cheap","label":"Tanio (do 20 zł)"},{"value":"medium","label":"Średnio (20–60 zł)"},{"value":"expensive","label":"Drogo (60 zł i więcej)"}]}
+          - {"key":"vibes","label":"Jaki jest klimat","type":"multiselect","required":false,"options":[{"value":"calm","label":"Spokojnie"},{"value":"loud","label":"Głośno"},{"value":"friends","label":"Z ekipą"},{"value":"date","label":"Na randkę"},{"value":"solo","label":"Samemu"},{"value":"kids","label":"Z dzieckiem"},{"value":"photo","label":"Instagramowe"},{"value":"dogs","label":"Z psem"}]}
+          - {"key":"bestTime","label":"Kiedy najlepiej wpaść","type":"multiselect","required":false,"options":[{"value":"morning","label":"Rano"},{"value":"afternoon","label":"Popołudnie"},{"value":"evening","label":"Wieczór"},{"value":"night","label":"Noc"},{"value":"weekend","label":"Weekend"}]}
+          - {"key":"accessible","label":"Dostępne dla wózków i osób z niepełnosprawnościami","type":"boolean","required":false}
+          - {"key":"offer","label":"Co tu zjesz i wypijesz","type":"choice","required":false,"options":[{"value":"coffee","label":"Kawa i desery"},{"value":"streetfood","label":"Street food"},{"value":"fast","label":"Fast food"},{"value":"restaurant","label":"Restauracja"},{"value":"bar","label":"Bar"},{"value":"bakery","label":"Piekarnia"}]}
+          - {"key":"vegan","label":"Są opcje wegetariańskie lub wegańskie","type":"boolean","required":false}
+          - {"key":"wifi","label":"Jest Wi-Fi","type":"boolean","required":false}
+          - {"key":"tips","label":"Wskazówka dla innych","type":"textarea","required":false,"placeholder":"np. wejdź od podwórka, najlepsze miejsca przy oknie"}
+  - code: "place-chill"
+    audience: "resident"
+    category: "place"
+    pokestop_type: "place"
+    label: "Zieleń i chillout"
+    description: "Park, skwer, widok, miejsce nad wodą."
+    emoji: "🌇"
+    character: "tree"
+    default_title: ""
+    sort_order: 13
+    sections:
+      - title: "O miejscu"
+        fields:
+          - {"key":"title","label":"Nazwa miejsca","type":"text","required":true,"placeholder":"np. Skwer z hamakami"}
+          - {"key":"description","label":"Co tu jest fajnego?","type":"textarea","required":false}
+          - {"key":"photos","label":"Zdjęcie","type":"photos","required":false,"hint":"Do 3 zdjęć"}
+      - title: "Twoja opinia"
+        fields:
+          - {"key":"rating","label":"Ocena","type":"rating","required":true}
+          - {"key":"cost","label":"Ile kosztuje skorzystanie","type":"choice","required":true,"options":[{"value":"free","label":"Za darmo"},{"value":"cheap","label":"Tanio (do 20 zł)"},{"value":"medium","label":"Średnio (20–60 zł)"},{"value":"expensive","label":"Drogo (60 zł i więcej)"}]}
+          - {"key":"vibes","label":"Jaki jest klimat","type":"multiselect","required":false,"options":[{"value":"calm","label":"Spokojnie"},{"value":"loud","label":"Głośno"},{"value":"friends","label":"Z ekipą"},{"value":"date","label":"Na randkę"},{"value":"solo","label":"Samemu"},{"value":"kids","label":"Z dzieckiem"},{"value":"photo","label":"Instagramowe"},{"value":"dogs","label":"Z psem"}]}
+          - {"key":"bestTime","label":"Kiedy najlepiej wpaść","type":"multiselect","required":false,"options":[{"value":"morning","label":"Rano"},{"value":"afternoon","label":"Popołudnie"},{"value":"evening","label":"Wieczór"},{"value":"night","label":"Noc"},{"value":"weekend","label":"Weekend"}]}
+          - {"key":"accessible","label":"Dostępne dla wózków i osób z niepełnosprawnościami","type":"boolean","required":false}
+          - {"key":"spotType","label":"Rodzaj miejsca","type":"choice","required":false,"options":[{"value":"park","label":"Park"},{"value":"square","label":"Skwer"},{"value":"view","label":"Punkt widokowy"},{"value":"water","label":"Nad wodą"},{"value":"bench","label":"Ławka z klimatem"}]}
+          - {"key":"shade","label":"Jest cień","type":"boolean","required":false}
+          - {"key":"dogsOk","label":"Można z psem","type":"boolean","required":false}
+          - {"key":"tips","label":"Wskazówka dla innych","type":"textarea","required":false,"placeholder":"np. wejdź od podwórka, najlepsze miejsca przy oknie"}
+  - code: "place-fun"
+    audience: "resident"
+    category: "place"
+    pokestop_type: "place"
+    label: "Rozrywka i sport"
+    description: "Skatepark, boisko, arcade, tor rowerowy."
+    emoji: "🛹"
+    character: "cyclist"
+    default_title: ""
+    sort_order: 14
+    sections:
+      - title: "O miejscu"
+        fields:
+          - {"key":"title","label":"Nazwa miejsca","type":"text","required":true,"placeholder":"np. Skatepark pod mostem"}
+          - {"key":"description","label":"Co tu jest fajnego?","type":"textarea","required":false}
+          - {"key":"photos","label":"Zdjęcie","type":"photos","required":false,"hint":"Do 3 zdjęć"}
+      - title: "Twoja opinia"
+        fields:
+          - {"key":"rating","label":"Ocena","type":"rating","required":true}
+          - {"key":"cost","label":"Ile kosztuje skorzystanie","type":"choice","required":true,"options":[{"value":"free","label":"Za darmo"},{"value":"cheap","label":"Tanio (do 20 zł)"},{"value":"medium","label":"Średnio (20–60 zł)"},{"value":"expensive","label":"Drogo (60 zł i więcej)"}]}
+          - {"key":"vibes","label":"Jaki jest klimat","type":"multiselect","required":false,"options":[{"value":"calm","label":"Spokojnie"},{"value":"loud","label":"Głośno"},{"value":"friends","label":"Z ekipą"},{"value":"date","label":"Na randkę"},{"value":"solo","label":"Samemu"},{"value":"kids","label":"Z dzieckiem"},{"value":"photo","label":"Instagramowe"},{"value":"dogs","label":"Z psem"}]}
+          - {"key":"bestTime","label":"Kiedy najlepiej wpaść","type":"multiselect","required":false,"options":[{"value":"morning","label":"Rano"},{"value":"afternoon","label":"Popołudnie"},{"value":"evening","label":"Wieczór"},{"value":"night","label":"Noc"},{"value":"weekend","label":"Weekend"}]}
+          - {"key":"accessible","label":"Dostępne dla wózków i osób z niepełnosprawnościami","type":"boolean","required":false}
+          - {"key":"activity","label":"Co tu robisz","type":"choice","required":false,"options":[{"value":"skate","label":"Skatepark"},{"value":"court","label":"Boisko"},{"value":"gym","label":"Siłownia plenerowa"},{"value":"arcade","label":"Salon gier"},{"value":"trampoline","label":"Trampoliny"},{"value":"other","label":"Coś innego"}]}
+          - {"key":"ownGear","label":"Trzeba mieć własny sprzęt","type":"boolean","required":false}
+          - {"key":"tips","label":"Wskazówka dla innych","type":"textarea","required":false,"placeholder":"np. wejdź od podwórka, najlepsze miejsca przy oknie"}
+  - code: "place-culture"
+    audience: "resident"
+    category: "place"
+    pokestop_type: "place"
+    label: "Kultura i hobby"
+    description: "Mural, galeria, biblioteka, księgarnia, koncerty."
+    emoji: "🎨"
+    character: "lamp"
+    default_title: ""
+    sort_order: 15
+    sections:
+      - title: "O miejscu"
+        fields:
+          - {"key":"title","label":"Nazwa miejsca","type":"text","required":true,"placeholder":"np. Mural na starej kamienicy"}
+          - {"key":"description","label":"Co tu jest fajnego?","type":"textarea","required":false}
+          - {"key":"photos","label":"Zdjęcie","type":"photos","required":false,"hint":"Do 3 zdjęć"}
+      - title: "Twoja opinia"
+        fields:
+          - {"key":"rating","label":"Ocena","type":"rating","required":true}
+          - {"key":"cost","label":"Ile kosztuje skorzystanie","type":"choice","required":true,"options":[{"value":"free","label":"Za darmo"},{"value":"cheap","label":"Tanio (do 20 zł)"},{"value":"medium","label":"Średnio (20–60 zł)"},{"value":"expensive","label":"Drogo (60 zł i więcej)"}]}
+          - {"key":"vibes","label":"Jaki jest klimat","type":"multiselect","required":false,"options":[{"value":"calm","label":"Spokojnie"},{"value":"loud","label":"Głośno"},{"value":"friends","label":"Z ekipą"},{"value":"date","label":"Na randkę"},{"value":"solo","label":"Samemu"},{"value":"kids","label":"Z dzieckiem"},{"value":"photo","label":"Instagramowe"},{"value":"dogs","label":"Z psem"}]}
+          - {"key":"bestTime","label":"Kiedy najlepiej wpaść","type":"multiselect","required":false,"options":[{"value":"morning","label":"Rano"},{"value":"afternoon","label":"Popołudnie"},{"value":"evening","label":"Wieczór"},{"value":"night","label":"Noc"},{"value":"weekend","label":"Weekend"}]}
+          - {"key":"accessible","label":"Dostępne dla wózków i osób z niepełnosprawnościami","type":"boolean","required":false}
+          - {"key":"cultureKind","label":"Rodzaj miejsca","type":"choice","required":false,"options":[{"value":"mural","label":"Mural / street art"},{"value":"gallery","label":"Galeria"},{"value":"library","label":"Biblioteka"},{"value":"bookshop","label":"Księgarnia"},{"value":"museum","label":"Muzeum"},{"value":"concerts","label":"Koncerty"}]}
+          - {"key":"ticket","label":"Potrzebny bilet","type":"boolean","required":false}
+          - {"key":"tips","label":"Wskazówka dla innych","type":"textarea","required":false,"placeholder":"np. wejdź od podwórka, najlepsze miejsca przy oknie"}
+  - code: "org-bus-stop"
+    audience: "org"
+    category: null
+    pokestop_type: "ngo"
+    label: "Nowy przystanek autobusowy"
+    description: "Propozycja nowego przystanku wraz ze zmianami w liniach."
+    emoji: "🚏"
+    character: "train"
+    default_title: "Nowy przystanek autobusowy"
+    sort_order: 16
+    sections:
+      - title: "Podstawowe informacje"
+        fields:
+          - {"key":"character","label":"Postać na mapie","type":"character","required":false,"hint":"Jak ta inicjatywa wyświetli się mieszkańcom"}
+          - {"key":"title","label":"Tytuł inicjatywy","type":"text","required":true,"placeholder":"Nowy przystanek autobusowy"}
+          - {"key":"description","label":"Krótki opis dla mieszkańców","type":"textarea","required":true}
+          - {"key":"photos","label":"Zdjęcia, wizualizacje","type":"photos","required":false,"hint":"Do 3 zdjęć"}
+      - title: "Linie komunikacyjne"
+        fields:
+          - {"key":"linesNew","label":"Linie uruchomione od zera","type":"tags","required":false,"hint":"Numery oddzielone przecinkami, np. 192, 502"}
+          - {"key":"linesRerouted","label":"Linie przekierowane przez ten przystanek","type":"tags","required":false}
+          - {"key":"linesRemoved","label":"Linie wycofane z tego miejsca","type":"tags","required":false}
+          - {"key":"direction","label":"Kierunek / kierunki","type":"text","required":false,"placeholder":"np. w stronę Dworca Głównego"}
+          - {"key":"onDemand","label":"Przystanek na żądanie","type":"boolean","required":false}
+          - {"key":"frequency","label":"Planowana częstotliwość kursów","type":"select","required":false,"options":[{"value":"10","label":"Co 10 min lub częściej"},{"value":"20","label":"Co 20 min"},{"value":"30","label":"Co 30 min"},{"value":"60","label":"Co godzinę lub rzadziej"}]}
+      - title: "Wyposażenie przystanku"
+        fields:
+          - {"key":"shelter","label":"Wiata przystankowa","type":"boolean","required":false}
+          - {"key":"shelterSize","label":"Rozmiar wiaty","type":"select","required":true,"show_if":{"key":"shelter","equals":true},"options":[{"value":"small","label":"Mała (do 2 m)"},{"value":"medium","label":"Średnia (3–4 m)"},{"value":"large","label":"Duża (5 m i więcej)"}]}
+          - {"key":"shelterLength","label":"Długość wiaty","type":"number","required":false,"unit":"m","min":1,"max":20,"show_if":{"key":"shelter","equals":true}}
+          - {"key":"bench","label":"Ławka","type":"boolean","required":false}
+          - {"key":"infoBoard","label":"Tablica z rozkładem jazdy","type":"boolean","required":false}
+          - {"key":"realTimeDisplay","label":"Tablica czasu rzeczywistego","type":"boolean","required":false}
+          - {"key":"lighting","label":"Oświetlenie","type":"boolean","required":false}
+          - {"key":"raisedKerb","label":"Podwyższony krawężnik (dostępność)","type":"boolean","required":false}
+          - {"key":"tactilePaving","label":"Pas prowadzący dla osób niewidomych","type":"boolean","required":false}
+          - {"key":"bikeRack","label":"Stojak rowerowy w pobliżu","type":"boolean","required":false}
+      - title: "Plan realizacji"
+        fields:
+          - {"key":"plannedDate","label":"Planowany termin uruchomienia","type":"date","required":false}
+          - {"key":"estimatedCost","label":"Szacowany koszt","type":"number","required":false,"unit":"zł","min":0}
+      - title: "Kontakt i odpowiedzialność"
+        fields:
+          - {"key":"contactPerson","label":"Osoba kontaktowa","type":"text","required":true}
+          - {"key":"contactEmail","label":"E-mail kontaktowy","type":"text","required":true,"placeholder":"osoba@organizacja.pl"}
+          - {"key":"contactPhone","label":"Telefon","type":"text","required":false}
+          - {"key":"rationale","label":"Uzasadnienie i korzyści dla mieszkańców","type":"textarea","required":true}
+  - code: "org-tree"
+    audience: "org"
+    category: null
+    pokestop_type: "ngo"
+    label: "Nowe drzewo w danym miejscu"
+    description: "Propozycja nasadzenia drzewa lub grupy drzew."
+    emoji: "🌳"
+    character: "tree"
+    default_title: "Nowe nasadzenie drzew"
+    sort_order: 17
+    sections:
+      - title: "Podstawowe informacje"
+        fields:
+          - {"key":"character","label":"Postać na mapie","type":"character","required":false,"hint":"Jak ta inicjatywa wyświetli się mieszkańcom"}
+          - {"key":"title","label":"Tytuł inicjatywy","type":"text","required":true,"placeholder":"Nowe nasadzenie drzew"}
+          - {"key":"description","label":"Krótki opis dla mieszkańców","type":"textarea","required":true}
+          - {"key":"photos","label":"Zdjęcia, wizualizacje","type":"photos","required":false,"hint":"Do 3 zdjęć"}
+      - title: "Nasadzenie"
+        fields:
+          - {"key":"plantingType","label":"Rodzaj nasadzenia","type":"select","required":true,"options":[{"value":"new","label":"Nowe nasadzenie"},{"value":"replace","label":"Odtworzenie po wycince"},{"value":"grove","label":"Kępa / mini-las"}]}
+          - {"key":"species","label":"Gatunek","type":"select","required":true,"options":[{"value":"linden","label":"Lipa drobnolistna"},{"value":"maple","label":"Klon"},{"value":"oak","label":"Dąb szypułkowy"},{"value":"hornbeam","label":"Grab"},{"value":"rowan","label":"Jarząb"},{"value":"other","label":"Inny"}]}
+          - {"key":"speciesOther","label":"Jaki gatunek?","type":"text","required":true,"show_if":{"key":"species","equals":"other"}}
+          - {"key":"count","label":"Liczba sztuk","type":"number","required":true,"min":1,"max":500}
+          - {"key":"seedlingHeight","label":"Wysokość sadzonki","type":"select","required":false,"options":[{"value":"s","label":"Do 1,5 m"},{"value":"m","label":"1,5–2,5 m"},{"value":"l","label":"Powyżej 2,5 m"}]}
+      - title: "Zgody i utrzymanie"
+        fields:
+          - {"key":"landConsent","label":"Mamy zgodę zarządcy terenu","type":"boolean","required":false}
+          - {"key":"landOwner","label":"Zarządca terenu","type":"text","required":true,"show_if":{"key":"landConsent","equals":true}}
+          - {"key":"maintenanceBy","label":"Kto zajmie się pielęgnacją","type":"select","required":false,"options":[{"value":"org","label":"Nasza organizacja"},{"value":"city","label":"Zarząd Zieleni Miejskiej"},{"value":"residents","label":"Mieszkańcy / wolontariusze"}]}
+          - {"key":"wateringPlan","label":"Plan podlewania","type":"textarea","required":false}
+          - {"key":"plannedDate","label":"Planowany termin nasadzenia","type":"date","required":false}
+      - title: "Kontakt i odpowiedzialność"
+        fields:
+          - {"key":"contactPerson","label":"Osoba kontaktowa","type":"text","required":true}
+          - {"key":"contactEmail","label":"E-mail kontaktowy","type":"text","required":true,"placeholder":"osoba@organizacja.pl"}
+          - {"key":"contactPhone","label":"Telefon","type":"text","required":false}
+          - {"key":"rationale","label":"Uzasadnienie i korzyści dla mieszkańców","type":"textarea","required":true}
+  - code: "org-small-architecture"
+    audience: "org"
+    category: null
+    pokestop_type: "ngo"
+    label: "Uszkodzona mała architektura"
+    description: "Zgłoszenie uszkodzonej ławki, kosza, placu zabaw, wiaty itp."
+    emoji: "🪑"
+    character: "bin"
+    default_title: "Uszkodzona mała architektura"
+    sort_order: 18
+    sections:
+      - title: "Podstawowe informacje"
+        fields:
+          - {"key":"character","label":"Postać na mapie","type":"character","required":false,"hint":"Jak ta inicjatywa wyświetli się mieszkańcom"}
+          - {"key":"title","label":"Tytuł inicjatywy","type":"text","required":true,"placeholder":"Uszkodzona mała architektura"}
+          - {"key":"description","label":"Krótki opis dla mieszkańców","type":"textarea","required":true}
+          - {"key":"photos","label":"Zdjęcia, wizualizacje","type":"photos","required":false,"hint":"Do 3 zdjęć"}
+      - title: "Uszkodzony obiekt"
+        fields:
+          - {"key":"objectType","label":"Rodzaj obiektu","type":"select","required":true,"options":[{"value":"bench","label":"Ławka"},{"value":"bin","label":"Kosz na śmieci"},{"value":"playground","label":"Plac zabaw"},{"value":"gym","label":"Siłownia plenerowa"},{"value":"fountain","label":"Fontanna / poidełko"},{"value":"shelter","label":"Wiata"},{"value":"bollard","label":"Słupek / bariera"},{"value":"board","label":"Tablica informacyjna"},{"value":"other","label":"Inny"}]}
+          - {"key":"damageLevel","label":"Stopień uszkodzenia","type":"select","required":true,"options":[{"value":"minor","label":"Drobne"},{"value":"medium","label":"Średnie"},{"value":"serious","label":"Poważne"},{"value":"destroyed","label":"Całkowite zniszczenie"}]}
+          - {"key":"cause","label":"Prawdopodobna przyczyna","type":"select","required":false,"options":[{"value":"vandalism","label":"Wandalizm"},{"value":"wear","label":"Zużycie"},{"value":"weather","label":"Pogoda"},{"value":"accident","label":"Wypadek"},{"value":"unknown","label":"Nieznana"}]}
+          - {"key":"safetyRisk","label":"Obiekt stwarza zagrożenie dla bezpieczeństwa","type":"boolean","required":false}
+          - {"key":"safetyDescription","label":"Opisz zagrożenie","type":"textarea","required":true,"show_if":{"key":"safetyRisk","equals":true}}
+          - {"key":"urgency","label":"Pilność naprawy","type":"select","required":false,"options":[{"value":"low","label":"Niska"},{"value":"normal","label":"Zwykła"},{"value":"high","label":"Wysoka"},{"value":"immediate","label":"Natychmiastowa"}]}
+          - {"key":"manager","label":"Zarządca obiektu (jeśli znany)","type":"text","required":false}
+          - {"key":"estimatedCost","label":"Szacowany koszt naprawy","type":"number","required":false,"unit":"zł","min":0}
+      - title: "Kontakt i odpowiedzialność"
+        fields:
+          - {"key":"contactPerson","label":"Osoba kontaktowa","type":"text","required":true}
+          - {"key":"contactEmail","label":"E-mail kontaktowy","type":"text","required":true,"placeholder":"osoba@organizacja.pl"}
+          - {"key":"contactPhone","label":"Telefon","type":"text","required":false}
+          - {"key":"rationale","label":"Uzasadnienie i korzyści dla mieszkańców","type":"textarea","required":true}
+  - code: "org-surface-damage"
+    audience: "org"
+    category: null
+    pokestop_type: "ngo"
+    label: "Szkoda na powierzchni"
+    description: "Dziury, zapadnięcia i uszkodzenia nawierzchni."
+    emoji: "🚧"
+    character: "cyclist"
+    default_title: "Uszkodzenie nawierzchni"
+    sort_order: 19
+    sections:
+      - title: "Podstawowe informacje"
+        fields:
+          - {"key":"character","label":"Postać na mapie","type":"character","required":false,"hint":"Jak ta inicjatywa wyświetli się mieszkańcom"}
+          - {"key":"title","label":"Tytuł inicjatywy","type":"text","required":true,"placeholder":"Uszkodzenie nawierzchni"}
+          - {"key":"description","label":"Krótki opis dla mieszkańców","type":"textarea","required":true}
+          - {"key":"photos","label":"Zdjęcia, wizualizacje","type":"photos","required":false,"hint":"Do 3 zdjęć"}
+      - title: "Charakter szkody"
+        fields:
+          - {"key":"surfaceType","label":"Rodzaj nawierzchni","type":"select","required":true,"options":[{"value":"asphalt","label":"Asfalt"},{"value":"paving","label":"Kostka brukowa"},{"value":"slabs","label":"Płyty chodnikowe"},{"value":"concrete","label":"Beton"},{"value":"ground","label":"Grunt / trawnik"}]}
+          - {"key":"damageType","label":"Rodzaj szkody","type":"select","required":true,"options":[{"value":"pothole","label":"Dziura"},{"value":"subsidence","label":"Zapadnięcie"},{"value":"crack","label":"Pęknięcie"},{"value":"rut","label":"Koleiny"},{"value":"kerb","label":"Uszkodzony krawężnik"},{"value":"washout","label":"Podmycie"}]}
+          - {"key":"areaM2","label":"Powierzchnia uszkodzenia","type":"number","required":false,"unit":"m²","min":0}
+          - {"key":"depthCm","label":"Głębokość","type":"number","required":false,"unit":"cm","min":0}
+          - {"key":"blocksPassage","label":"Szkoda blokuje przejście lub przejazd","type":"boolean","required":false}
+          - {"key":"affected","label":"Kogo to dotyczy","type":"multiselect","required":false,"options":[{"value":"pedestrians","label":"Piesi"},{"value":"wheelchairs","label":"Wózki i osoby z niepełnosprawnościami"},{"value":"visually","label":"Osoby niewidome"},{"value":"bikes","label":"Rowerzyści"},{"value":"cars","label":"Kierowcy"}]}
+      - title: "Kontakt i odpowiedzialność"
+        fields:
+          - {"key":"contactPerson","label":"Osoba kontaktowa","type":"text","required":true}
+          - {"key":"contactEmail","label":"E-mail kontaktowy","type":"text","required":true,"placeholder":"osoba@organizacja.pl"}
+          - {"key":"contactPhone","label":"Telefon","type":"text","required":false}
+          - {"key":"rationale","label":"Uzasadnienie i korzyści dla mieszkańców","type":"textarea","required":true}

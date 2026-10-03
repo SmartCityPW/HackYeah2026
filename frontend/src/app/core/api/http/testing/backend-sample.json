@@ -1,0 +1,49 @@
+{
+  "_comment": "Prawdziwe odpowiedzi backendu (manage.py runserver, dane testowe) z perspektywy użytkownika, który zagłosował. Odtwórz: patrz docs/frontend-adaptation.md",
+  "pokestopsPage": {
+    "count": 1,
+    "results": [
+      {
+        "id": 1,
+        "type": "report",
+        "status": "open",
+        "scenarioCode": "res-pothole",
+        "character": "cyclist",
+        "icon": "🕳️",
+        "title": "Dziura przy Rynku",
+        "description": "Głęboka dziura",
+        "author": "Gość-f9dd",
+        "mine": false,
+        "organization": null,
+        "organizationId": null,
+        "photos": [],
+        "details": {},
+        "lat": 50.0617,
+        "lng": 19.9373,
+        "votesFor": 1,
+        "votesAgainst": 0,
+        "myVote": "for",
+        "commentCount": 1,
+        "rejectionReason": null,
+        "votesRequired": 10,
+        "stakedPokemonId": 1,
+        "stakeReleasedAt": null,
+        "createdAt": "2026-10-03T18:12:42.432463+02:00"
+      }
+    ]
+  },
+  "collection": {
+    "cyclist": 1,
+    "bin": 0,
+    "tree": 0,
+    "train": 0,
+    "lamp": 0,
+    "festival": 0
+  },
+  "progress": {
+    "level": 1,
+    "xp": 0,
+    "xpIntoLevel": 0,
+    "xpForNextLevel": 100
+  }
+}

@@ -17,6 +17,10 @@ INSERT INTO collection_character (code, label, emoji, category_label, model_path
     ('train',   'Pociąg',       '🚆', 'Komunikacja',       'models/kenney-train-kit/train-electric-city-a.glb',  (SELECT id FROM collection_type WHERE code = 'transport'), 25, 5, false),
     ('lamp',    'Latarnia',     '💡', 'Oświetlenie',       'models/kenney-city-kit-roads/light-curved.glb',      (SELECT id FROM collection_type WHERE code = 'energy'),    12, 3, false);
 
+-- Unikalny pokemon za udział w wydarzeniu (nie wypada z walk ani ankiet).
+INSERT INTO collection_character (code, label, emoji, category_label, model_path, type_id, base_power, power_growth, is_event_exclusive) VALUES
+    ('festival', 'Maskotka Festiwalu', '🎪', 'Wydarzenia', NULL, (SELECT id FROM collection_type WHERE code = 'infra'), 22, 5, true);
+
 -- base_power/power_growth: moc przeciwnika na poziomie 1 i przyrost na poziom (placeholder do wytuningowania).
 INSERT INTO game_enemy_type (code, name, emoji, description, type_id, action_kind, action_label, min_level, max_level, base_power, power_growth, base_xp, spawn_weight) VALUES
     ('traffic_jam',   'Korek Komunikacyjny', '🚗',  'Zablokował skrzyżowanie i nie chce odjechać.',       (SELECT id FROM collection_type WHERE code = 'transport'), 'checkin', 'Stań przy skrzyżowaniu i rozładuj korek',               2, 4, 30, 10, 40, 3),

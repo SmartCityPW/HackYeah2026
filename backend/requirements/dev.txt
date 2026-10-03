@@ -1,0 +1,5 @@
+-r base.txt
+pytest>=9.0,<10
+pytest-django>=4.11,<5
+pytest-env>=1.1,<2
+pglast>=7.0    # porównanie modeli ze schema.sql (tests/test_contract_and_schema.py)

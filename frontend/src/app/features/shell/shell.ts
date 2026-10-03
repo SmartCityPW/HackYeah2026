@@ -1,6 +1,7 @@
 import { Component, computed, inject } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { NAV_ITEMS, ROLE_HOME } from '../../core/navigation';
+import { AppConfigService } from '../../core/config/app-config.service';
 import { GeolocationService } from '../../core/geolocation.service';
 import { Role, SessionService } from '../../core/session.service';
 import { ToastService } from '../../core/toast.service';
@@ -23,7 +24,9 @@ export class Shell {
   private readonly session = inject(SessionService);
   private readonly router = inject(Router);
   private readonly geo = inject(GeolocationService);
+  private readonly config = inject(AppConfigService).config;
   protected readonly toast = inject(ToastService);
+  protected readonly devTools = this.config.dev.tools;
   protected readonly gpsSimulated = this.geo.isSimulated;
 
   protected readonly role = this.session.role;
@@ -32,7 +35,8 @@ export class Shell {
 
   /** Tryb deweloperski: symuluje pozycję na Rynku, żeby testować walkę bez wychodzenia z domu. */
   protected toggleSimulatedGps(): void {
-    this.geo.simulate(this.geo.isSimulated() ? null : [19.9373, 50.0617]);
+    const { lat, lng } = this.config.game.simulatedGps;
+    this.geo.simulate(this.geo.isSimulated() ? null : [lng, lat]);
   }
 
   /** Tryb deweloperski: przełączanie widoku do czasu logowania z backendu. */

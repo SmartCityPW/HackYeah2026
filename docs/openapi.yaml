@@ -16,10 +16,12 @@ servers:
     description: Lokalny backend deweloperski
 tags:
   - { name: auth, description: Konta i tokeny }
-  - { name: scenarios, description: Katalog formularzy zgłoszeń }
+  - { name: scenarios, description: 'Katalog formularzy zgłoszeń i słowniki gry' }
   - { name: pokestops, description: 'Pinezki, głosy, komentarze, zdjęcia' }
   - { name: me, description: Dane zalogowanego użytkownika }
   - { name: game, description: 'Przeciwnicy, walki, postęp' }
+  - { name: events, description: 'Wydarzenia organizacji i samorządu (udział nagradzany unikalnym pokemonem)' }
+  - { name: organizations, description: 'Dane organizacji' }
   - { name: admin, description: 'Moderacja i zarządzanie (rola administratora)' }
 security:
   - bearerAuth: []
@@ -41,6 +43,24 @@ paths:
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/Credentials' } } } }
       responses:
         '201': { description: Utworzono konto, content: { application/json: { schema: { $ref: '#/components/schemas/AuthTokens' } } } }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /auth/register-organization:
+    post:
+      tags: [auth]
+      summary: Zarejestruj konto organizacji (NGO, samorząd)
+      description: |
+        Tworzy użytkownika z rolą `org`, organizację o statusie `pending` i członkostwo właściciela.
+        Do czasu weryfikacji przez administratora (`PATCH /admin/organizations/{id}`) organizacja widzi swój panel,
+        ale nie może publikować inicjatyw, ankiet ani wydarzeń (`403`).
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/OrganizationRegistration' }
+      responses:
+        '201': { description: Utworzono konto organizacji, content: { application/json: { schema: { $ref: '#/components/schemas/AuthTokens' } } } }
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/ValidationError' }
   /auth/login:
@@ -125,6 +145,16 @@ paths:
         '200': { description: Organizacja, content: { application/json: { schema: { $ref: '#/components/schemas/Organization' } } } }
         '404': { $ref: '#/components/responses/NotFound' }
 
+  /catalog:
+    get:
+      tags: [scenarios]
+      summary: Słownik postaci i typów
+      description: |
+        Dane statyczne (zmieniają się rzadko), więc klient może je buforować. Pozwalają wyświetlić nazwy, ikony
+        i typy pokemonów bez zaszywania ich we frontendzie. Modele 3D nadal leżą we frontendzie (`modelPath`).
+      security: []
+      responses:
+        '200': { description: Słowniki, content: { application/json: { schema: { $ref: '#/components/schemas/Catalog' } } } }
   /scenarios:
     get:
       tags: [scenarios]
@@ -158,13 +188,24 @@ paths:
         Scenariusze `org` wymagają roli `org` i zweryfikowanej organizacji.
 
         Dla typu `report`/`idea` wymagane jest `stakedPokemonId` — jeden z własnych, niezastawionych pokemonów
-        użytkownika. Serwer blokuje go do walki, ustala `character` na jego gatunek i zwraca go autorowi z +50 exp,
-        gdy `votesFor` osiągnie `votesRequired` scenariusza.
+        użytkownika. Serwer blokuje go do walki i ustala `character` na jego gatunek. Zastaw wraca do autora, gdy
+        zgłoszenie osiągnie `votesRequired` głosów "za" albo zostanie rozwiązane (z premią exp), a także po odrzuceniu
+        lub wycofaniu (bez premii) — patrz `docs/api-contract.md`.
+
+        **Moderacja (tylko zgłoszenia mieszkańców):** przed zapisem agent AI ze zahardkodowanym promptem dostaje treść
+        zgłoszenia i zwraca wyłącznie tak/nie. Nie (`422`, kod `moderation_rejected`): zgłoszenie nie powstaje i pokemon
+        nie jest zastawiany. Agent nie podaje powodu, więc komunikat jest ogólny. Brak odpowiedzi w 5 s: `503` z kodem
+        `moderation_unavailable`, zgłoszenie nie powstaje i można ponowić (treść niezweryfikowana nie trafia na mapę).
+        Zgłoszenia zweryfikowanych organizacji nie przechodzą przez agenta. Każdy werdykt trafia do logu moderacji.
+
+        Pinezki `ngo`/`consultation` mogą mieć ankietę (`questions`).
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/NewPokestop' } } } }
       responses:
         '201': { description: Utworzono, content: { application/json: { schema: { $ref: '#/components/schemas/PokestopDetail' } } } }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '409': { description: 'Wskazany pokemon jest już zastawiony (`pokemon_unavailable`)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '422': { $ref: '#/components/responses/ValidationError' }
+        '503': { description: 'Agent moderujący nie odpowiedział (`moderation_unavailable`), można ponowić', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
   /pokestops/{id}:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     get:
@@ -176,7 +217,10 @@ paths:
     patch:
       tags: [admin]
       summary: Zmień status pinezki (moderacja)
-      description: Tylko administrator. Zapisuje wpis w historii zmian statusu.
+      description: |
+        Tylko administrator. Zapisuje wpis w historii zmian statusu.
+        `resolved` zwraca zastawionego pokemona autorowi z premią exp (jak osiągnięcie progu głosów),
+        `rejected` zwraca go bez premii. `note` jest wymagane przy `rejected`.
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/StatusChange' } } } }
       responses:
         '200': { description: Zaktualizowana pinezka, content: { application/json: { schema: { $ref: '#/components/schemas/PokestopDetail' } } } }
@@ -190,27 +234,96 @@ paths:
       description: |
         Jeden głos na użytkownika, bez zmiany. `pokemonId` to jeden z własnych pokemonów głosującego — przy
         pierwszym głosie dostaje +10 exp (nie trzeba, by był dostępny/niezastawiony). Kolejna próba głosu na tę
-        samą pinezkę zwraca `409` i exp się nie powtarza. Administrator nie głosuje (`403`).
+        samą pinezkę zwraca `409` i exp się nie powtarza. Głosować można tylko z bliska: serwer porównuje `lat`/`lng` z położeniem pinezki (dziś do 50 m, inaczej `403` z kodem `too_far`).
+        Administrator nie głosuje (`403`), autor nie głosuje na własną
+        pinezkę (`403`, kod `own_pokestop`). Gdy głos podniesie `votesFor` do progu `votesRequired`, serwer w tej samej
+        transakcji zwraca autorowi zastawionego pokemona (`stakeReleasedAt` w odpowiedzi).
       requestBody:
         required: true
-        content: { application/json: { schema: { type: object, required: [vote, pokemonId], properties: { vote: { $ref: '#/components/schemas/VoteValue' }, pokemonId: { type: integer, description: Pokemon głosującego, który dostanie exp } } } } }
+        content: { application/json: { schema: { type: object, required: [vote, pokemonId, lat, lng], properties: { vote: { $ref: '#/components/schemas/VoteValue' }, pokemonId: { type: integer, description: 'Pokemon głosującego, który dostanie exp' }, lat: { type: number, format: double }, lng: { type: number, format: double }, accuracyM: { type: number, description: 'Deklarowana dokładność GPS w metrach' } } } } }
       responses:
         '200': { description: Zapisano głos, content: { application/json: { schema: { $ref: '#/components/schemas/VoteResult' } } } }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
-  /pokestops/{id}/comments:
+  /pokestops/{id}/withdraw:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     post:
       tags: [pokestops]
+      summary: Wycofaj własne zgłoszenie
+      description: |
+        Tylko autor i tylko typy `report`/`idea` w statusie `open` lub `in_progress`. Zgłoszenie dostaje status
+        `rejected` (powód: wycofane przez autora), znika z mapy, a zastawiony pokemon wraca do autora **bez premii exp**.
+        Bez tego zastawiony pokemon mógłby być zablokowany bezterminowo, gdy zgłoszenie nie zbierze głosów.
+      responses:
+        '200': { description: Wycofana pinezka, content: { application/json: { schema: { $ref: '#/components/schemas/PokestopDetail' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /pokestops/{id}/comments:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [pokestops]
+      summary: Dyskusja pod pinezką (komentarze nadrzędne z odpowiedziami, stronicowane)
+      description: |
+        Strona dotyczy komentarzy nadrzędnych (najnowsze pierwsze); każdy ma wszystkie swoje odpowiedzi w `replies`
+        (wątki mają jeden poziom). Ukryte przez moderatora komentarze są pomijane.
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PageSize' }
+      responses:
+        '200': { description: Strona komentarzy, content: { application/json: { schema: { $ref: '#/components/schemas/CommentPage' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+    post:
+      tags: [pokestops]
       summary: Dodaj komentarz (lub odpowiedź na inny)
+      description: 'Odpowiadać można tylko na komentarz nadrzędny tej samej pinezki (`parentCommentId`). Komentowanie nie wymaga bliskości.'
       requestBody:
         required: true
-        content: { application/json: { schema: { type: object, required: [text], properties: { text: { type: string, minLength: 1, maxLength: 300 }, parentCommentId: { type: integer, description: 'Odpowiedź na komentarz o tym id (musi należeć do tej samej pinezki)' } } } } }
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string, minLength: 1, maxLength: 300 }
+                parentCommentId: { type: integer, description: 'Id komentarza nadrzędnego tej samej pinezki' }
       responses:
-        '201': { description: Pinezka z nowym komentarzem, content: { application/json: { schema: { $ref: '#/components/schemas/PokestopDetail' } } } }
+        '201': { description: Dodany komentarz, content: { application/json: { schema: { $ref: '#/components/schemas/Comment' } } } }
         '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
         '422': { $ref: '#/components/responses/ValidationError' }
+  /pokestops/{id}/survey-responses:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      tags: [pokestops]
+      summary: Wypełnij ankietę przy pinezce
+      description: |
+        Dotyczy pinezek `ngo`/`consultation` z pytaniami (`questions`). Jedna odpowiedź na użytkownika (`409`, kod
+        `already_answered`). Wypełniać można tylko z bliska (jak przy głosowaniu, `403` z kodem `too_far`).
+        Odpowiedzi walidowane względem pytań (wymagane, typ, zakres, dozwolone opcje): błędy w `fields` pod kluczem
+        pytania. Za wypełnioną ankietę serwer przyznaje **nowego pokemona** gatunku pinezki (`pokemon` w odpowiedzi).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SurveyResponseRequest' }
+      responses:
+        '201': { description: Ankieta zapisana, content: { application/json: { schema: { $ref: '#/components/schemas/SurveyResponseResult' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /pokestops/{id}/survey-results:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [pokestops]
+      summary: Zbiorcze wyniki ankiety (autor-organizacja i administrator)
+      description: 'To, co miasto lub organizacja zbierałaby w konsultacjach: liczba odpowiedzi i agregaty per pytanie. Teksty bez danych identyfikujących autorów.'
+      responses:
+        '200': { description: Wyniki, content: { application/json: { schema: { $ref: '#/components/schemas/SurveyResults' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
   /photos:
     post:
       tags: [pokestops]
@@ -226,6 +339,76 @@ paths:
         '413': { description: Plik za duży, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '422': { $ref: '#/components/responses/ValidationError' }
 
+  /events:
+    get:
+      tags: [events]
+      summary: Wydarzenia w widocznym fragmencie mapy
+      parameters:
+        - { name: bbox, in: query, required: false, description: 'minLng,minLat,maxLng,maxLat', schema: { type: string } }
+        - { name: from, in: query, required: false, description: 'Początek okna czasu (domyślnie: teraz)', schema: { type: string, format: date-time } }
+        - { name: to, in: query, required: false, description: 'Koniec okna czasu (domyślnie: +14 dni)', schema: { type: string, format: date-time } }
+        - { name: organizationId, in: query, required: false, schema: { type: integer } }
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PageSize' }
+      responses:
+        '200': { description: Strona wydarzeń, content: { application/json: { schema: { $ref: '#/components/schemas/EventPage' } } } }
+    post:
+      tags: [events]
+      summary: Dodaj wydarzenie (zweryfikowana organizacja)
+      description: 'Rola `org` i organizacja `verified`. Nagrodą jest unikalny gatunek (`rewardCharacter` musi być oznaczony jako wyłączny dla wydarzeń). Treść organizacji nie przechodzi przez agenta moderującego.'
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/NewEvent' } } } }
+      responses:
+        '201': { description: Utworzono, content: { application/json: { schema: { $ref: '#/components/schemas/Event' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
+  /events/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [events]
+      summary: Szczegóły wydarzenia
+      responses:
+        '200': { description: Wydarzenie, content: { application/json: { schema: { $ref: '#/components/schemas/Event' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
+    patch:
+      tags: [events]
+      summary: Odwołaj wydarzenie (organizacja-organizator lub administrator)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [cancelled] }
+      responses:
+        '200': { description: Zaktualizowane wydarzenie, content: { application/json: { schema: { $ref: '#/components/schemas/Event' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /events/{id}/check-in:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    post:
+      tags: [events]
+      summary: Zamelduj się na wydarzeniu i odbierz unikalnego pokemona
+      description: |
+        Udział to obecność na miejscu w czasie trwania wydarzenia. Serwer sprawdza odległość (dziś do 50 m, `403`
+        z kodem `too_far`), okno czasu (`409`, kod `outside_time_window`), limit miejsc (`409`, kod `capacity_reached`)
+        i jednorazowość (`409`, kod `already_checked_in`). Nagroda: nowy pokemon gatunku `rewardCharacter`.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PositionRequest' } } } }
+      responses:
+        '200': { description: Zameldowano, content: { application/json: { schema: { $ref: '#/components/schemas/CheckInResult' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /organizations/{id}:
+    parameters: [{ $ref: '#/components/parameters/Id' }]
+    get:
+      tags: [organizations]
+      summary: Publiczny profil organizacji (dla mieszkańców oglądających jej inicjatywy)
+      description: 'Bez danych kontaktowych (`krs`, osoba, telefon, e-mail), te widzi tylko sama organizacja (`/me/organization`) i administrator.'
+      responses:
+        '200': { description: Profil, content: { application/json: { schema: { $ref: '#/components/schemas/OrganizationPublic' } } } }
+        '404': { $ref: '#/components/responses/NotFound' }
   /encounters:
     get:
       tags: [game]
@@ -306,14 +489,14 @@ components:
     Forbidden: { description: Rola nie ma uprawnień do tej operacji, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     NotFound: { description: Zasób nie istnieje, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     Conflict: { description: 'Konflikt stanu (np. głos już oddany, e-mail zajęty)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-    ValidationError: { description: Błędne dane, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    ValidationError: { description: 'Błędne dane (`validation_error`) albo zgłoszenie odrzucone przez moderację (`moderation_rejected`)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
 
   schemas:
     Error:
       type: object
       required: [code, message]
       properties:
-        code: { type: string, example: validation_error }
+        code: { type: string, example: validation_error, description: 'Stabilny kod błędu, np. validation_error, moderation_rejected, moderation_unavailable, own_pokestop, pokemon_unavailable, already_voted, already_answered, already_checked_in, too_far, outside_time_window, capacity_reached, too_many_requests' }
         message: { type: string }
         fields:
           type: object
@@ -329,8 +512,32 @@ components:
     ScenarioCategory: { type: string, enum: [problem, initiative, place] }
     FieldType: { type: string, enum: [text, textarea, number, select, multiselect, boolean, tags, date, photos, character, choice, rating] }
     VerificationStatus: { type: string, enum: [pending, verified, suspended] }
-    CharacterCode: { type: string, enum: [cyclist, bin, tree, train, lamp], description: 'Kody postaci ze słownika `collection_character` (lista rośnie wraz z grą)' }
+    CharacterCode: { type: string, enum: [cyclist, bin, tree, train, lamp, festival], description: 'Kody postaci ze słownika `collection_character` (lista rośnie wraz z grą)' }
     TypeCode: { type: string, enum: [transport, clean, green, energy, air, infra], description: 'Typ postaci/przeciwnika do mnożnika w walce (słownik `collection_type`)' }
+    Catalog:
+      type: object
+      required: [characters, types]
+      properties:
+        characters: { type: array, items: { $ref: '#/components/schemas/CatalogCharacter' } }
+        types: { type: array, items: { $ref: '#/components/schemas/CatalogType' } }
+    CatalogCharacter:
+      type: object
+      required: [code, label, emoji, categoryLabel, typeCode, isStarter]
+      properties:
+        code: { $ref: '#/components/schemas/CharacterCode' }
+        label: { type: string }
+        emoji: { type: string }
+        categoryLabel: { type: string }
+        typeCode: { $ref: '#/components/schemas/TypeCode' }
+        modelPath: { type: string, nullable: true, description: 'Ścieżka modelu 3D we frontendzie; null = model budowany w kodzie' }
+        isStarter: { type: boolean, description: Gatunek przyznawany na start konta }
+    CatalogType:
+      type: object
+      required: [code, name, emoji]
+      properties:
+        code: { $ref: '#/components/schemas/TypeCode' }
+        name: { type: string }
+        emoji: { type: string }
 
     # ---- konta
     Credentials:
@@ -427,11 +634,21 @@ components:
       required: [id, author, text, mine]
       properties:
         id: { type: integer }
-        parentCommentId: { type: integer, nullable: true, description: Odpowiedź na inny komentarz (wątek) }
+        parentCommentId: { type: integer, nullable: true, description: 'Id komentarza nadrzędnego (null dla nadrzędnych)' }
         author: { type: string }
         text: { type: string }
         mine: { type: boolean }
         createdAt: { type: string, format: date-time }
+        replies:
+          type: array
+          description: 'Odpowiedzi (tylko w `GET .../comments`, jeden poziom)'
+          items: { $ref: '#/components/schemas/Comment' }
+    CommentPage:
+      type: object
+      required: [count, results]
+      properties:
+        count: { type: integer, description: 'Liczba komentarzy nadrzędnych' }
+        results: { type: array, items: { $ref: '#/components/schemas/Comment' } }
     Pokestop:
       type: object
       required: [id, type, status, scenarioCode, character, icon, title, author, mine, lat, lng, votesFor, votesAgainst, myVote, commentCount, createdAt]
@@ -457,7 +674,7 @@ components:
         votesRequired: { type: integer, description: 'Próg `votesFor`, przy którym zwraca się zastawiony pokemon (tylko `report`/`idea`)' }
         myVote: { allOf: [{ $ref: '#/components/schemas/VoteValue' }], nullable: true }
         stakedPokemonId: { type: integer, nullable: true, description: 'Pokemon zostawiony przez autora (tylko `report`/`idea`)' }
-        stakeReleasedAt: { type: string, format: date-time, nullable: true, description: Kiedy pokemon wrócił do autora z exp }
+        stakeReleasedAt: { type: string, format: date-time, nullable: true, description: 'Kiedy pokemon wrócił do autora (próg głosów, rozwiązanie, odrzucenie lub wycofanie)' }
         commentCount: { type: integer }
         rejectionReason: { type: string, nullable: true }
         createdAt: { type: string, format: date-time }
@@ -465,9 +682,12 @@ components:
       allOf:
         - $ref: '#/components/schemas/Pokestop'
         - type: object
-          required: [comments]
           properties:
-            comments: { type: array, items: { $ref: '#/components/schemas/Comment' } }
+            questions:
+              type: array
+              description: 'Pytania ankiety (tylko `ngo`/`consultation` z ankietą)'
+              items: { $ref: '#/components/schemas/Question' }
+            surveyAnswered: { type: boolean, description: 'Czy zalogowany użytkownik już wypełnił ankietę' }
     PokestopPage:
       type: object
       required: [count, results]
@@ -488,6 +708,11 @@ components:
         photoIds: { type: array, maxItems: 3, items: { type: integer } }
         details: { type: object, additionalProperties: true }
         organizationId: { type: integer, description: 'Wymagane tylko, gdy użytkownik należy do kilku organizacji' }
+        questions:
+          type: array
+          description: 'Ankieta (tylko `ngo`/`consultation`, tylko zweryfikowana organizacja)'
+          maxItems: 20
+          items: { $ref: '#/components/schemas/NewQuestion' }
     StatusChange:
       type: object
       required: [status]
@@ -512,7 +737,7 @@ components:
         nickname: { type: string, nullable: true }
         level: { type: integer, description: Wyliczone przez serwer z `exp` (wzór może się zmieniać) }
         exp: { type: integer }
-        power: { type: integer, description: Aktualna moc do walki, wyliczona z `level` }
+        power: { type: integer, description: 'Aktualna moc do walki, wyliczona z `level`' }
         isStaked: { type: boolean, description: Zostawiony na własnym zgłoszeniu/pomyśle — niedostępny do walki }
         caughtAt: { type: string, format: date-time }
 
@@ -526,9 +751,9 @@ components:
         emoji: { type: string }
         level: { type: integer }
         typeCode: { $ref: '#/components/schemas/TypeCode' }
-        power: { type: integer, description: Moc, którą muszą przewyższyć wybrane pokemony (po mnożniku typu) }
+        power: { type: integer, description: 'Moc, którą muszą przewyższyć wybrane pokemony (po mnożniku typu)' }
         description: { type: string }
-        actionLabel: { type: string, description: Co trzeba zrobić na miejscu, zanim można zaatakować }
+        actionLabel: { type: string, description: 'Co trzeba zrobić na miejscu, zanim można zaatakować' }
         xpReward: { type: integer, description: Exp dla każdego użytego pokemona po wygranej }
         lat: { type: number, format: double }
         lng: { type: number, format: double }
@@ -541,7 +766,7 @@ components:
         lng: { type: number, format: double }
         accuracyM: { type: number, description: Deklarowana dokładność GPS w metrach }
         clientTime: { type: string, format: date-time }
-        pokemonIds: { type: array, minItems: 1, maxItems: 3, items: { type: integer }, description: Własne, niezastawione pokemony użyte w walce }
+        pokemonIds: { type: array, minItems: 1, maxItems: 3, items: { type: integer }, description: 'Własne, niezastawione pokemony użyte w walce' }
     AttackResult:
       oneOf:
         - $ref: '#/components/schemas/AttackWon'
@@ -591,3 +816,159 @@ components:
         xp: { type: integer }
         xpIntoLevel: { type: integer }
         xpForNextLevel: { type: integer }
+
+    # ---- ankiety
+    Question:
+      type: object
+      required: [id, key, label, type, required]
+      properties:
+        id: { type: integer }
+        key: { type: string, description: 'Klucz odpowiedzi w `answers`' }
+        label: { type: string }
+        type: { type: string, enum: [text, textarea, number, select, multiselect, boolean, choice, rating] }
+        required: { type: boolean }
+        options:
+          type: array
+          items: { type: object, required: [value, label], properties: { value: { type: string }, label: { type: string } } }
+        min: { type: number, nullable: true }
+        max: { type: number, nullable: true }
+    NewQuestion:
+      type: object
+      required: [key, label, type]
+      properties:
+        key: { type: string, maxLength: 40 }
+        label: { type: string, maxLength: 300 }
+        type: { type: string, enum: [text, textarea, number, select, multiselect, boolean, choice, rating] }
+        required: { type: boolean, default: true }
+        options:
+          type: array
+          description: 'Wymagane dla `select`/`multiselect`/`choice`'
+          items: { type: object, required: [value, label], properties: { value: { type: string }, label: { type: string } } }
+        min: { type: number, nullable: true }
+        max: { type: number, nullable: true }
+    PositionRequest:
+      type: object
+      required: [lat, lng]
+      properties:
+        lat: { type: number, format: double }
+        lng: { type: number, format: double }
+        accuracyM: { type: number, description: 'Deklarowana dokładność GPS w metrach' }
+    SurveyResponseRequest:
+      allOf:
+        - $ref: '#/components/schemas/PositionRequest'
+        - type: object
+          required: [answers]
+          properties:
+            answers:
+              type: object
+              description: 'Klucz pytania -> odpowiedź (tekst, liczba, wartość opcji, tablica opcji lub boolean)'
+              additionalProperties: true
+    SurveyResponseResult:
+      type: object
+      required: [stop, pokemon]
+      properties:
+        stop: { $ref: '#/components/schemas/PokestopDetail' }
+        pokemon: { $ref: '#/components/schemas/Pokemon' }
+    SurveyResults:
+      type: object
+      required: [responseCount, questions]
+      properties:
+        responseCount: { type: integer }
+        questions:
+          type: array
+          items: { $ref: '#/components/schemas/QuestionResult' }
+    QuestionResult:
+      type: object
+      required: [questionId, key, label, type, answered]
+      properties:
+        questionId: { type: integer }
+        key: { type: string }
+        label: { type: string }
+        type: { type: string }
+        answered: { type: integer, description: 'Ile osób odpowiedziało na to pytanie' }
+        counts:
+          type: object
+          description: 'Liczność odpowiedzi per opcja / `true` / `false` (dla pytań z opcjami i boolean)'
+          additionalProperties: { type: integer }
+        average: { type: number, nullable: true, description: 'Średnia (dla `rating` i `number`)' }
+        texts:
+          type: array
+          description: 'Do 50 najnowszych odpowiedzi tekstowych (dla `text`/`textarea`)'
+          items: { type: string }
+
+    # ---- wydarzenia
+    Event:
+      type: object
+      required: [id, organization, title, lat, lng, startsAt, endsAt, rewardCharacter, status, participantCount, checkedIn]
+      properties:
+        id: { type: integer }
+        organization: { type: string }
+        organizationId: { type: integer }
+        title: { type: string }
+        description: { type: string }
+        address: { type: string, nullable: true }
+        lat: { type: number, format: double }
+        lng: { type: number, format: double }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        rewardCharacter: { $ref: '#/components/schemas/CharacterCode' }
+        capacity: { type: integer, nullable: true }
+        ageMin: { type: integer, nullable: true }
+        ageMax: { type: integer, nullable: true }
+        status: { type: string, enum: [scheduled, cancelled] }
+        participantCount: { type: integer }
+        checkedIn: { type: boolean, description: 'Czy zalogowany użytkownik już się zameldował' }
+    NewEvent:
+      type: object
+      required: [title, lat, lng, startsAt, endsAt, rewardCharacter]
+      properties:
+        title: { type: string, minLength: 3, maxLength: 100 }
+        description: { type: string }
+        address: { type: string, maxLength: 200 }
+        lat: { type: number, format: double }
+        lng: { type: number, format: double }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        rewardCharacter: { $ref: '#/components/schemas/CharacterCode' }
+        capacity: { type: integer, minimum: 1 }
+        ageMin: { type: integer }
+        ageMax: { type: integer }
+    EventPage:
+      type: object
+      required: [count, results]
+      properties:
+        count: { type: integer }
+        results: { type: array, items: { $ref: '#/components/schemas/Event' } }
+    CheckInResult:
+      type: object
+      required: [event, pokemon]
+      properties:
+        event: { $ref: '#/components/schemas/Event' }
+        pokemon: { $ref: '#/components/schemas/Pokemon' }
+
+    # ---- organizacje
+    OrganizationRegistration:
+      type: object
+      required: [email, password, organization]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password, minLength: 8 }
+        displayName: { type: string, maxLength: 60 }
+        organization:
+          type: object
+          required: [name, kind]
+          properties:
+            name: { type: string, maxLength: 150 }
+            kind: { type: string, enum: [ngo, foundation, association, city_office, district_council, municipality, other] }
+            krs: { type: string, nullable: true }
+            contactPerson: { type: string, nullable: true }
+            contactEmail: { type: string, format: email, nullable: true }
+            contactPhone: { type: string, nullable: true }
+    OrganizationPublic:
+      type: object
+      required: [id, name, kind, verified]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        kind: { type: string, enum: [ngo, foundation, association, city_office, district_council, municipality, other] }
+        verified: { type: boolean }

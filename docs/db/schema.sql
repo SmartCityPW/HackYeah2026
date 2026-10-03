@@ -10,6 +10,13 @@
 --   * to jest docelowy kształt bazy: modele Django mają go odwzorować,
 --     a migracje (`makemigrations`) wygenerują właściwy DDL. Plik służy jako wzorzec i do szybkiej inicjalizacji.
 --
+-- v4: zgodność z docs/opis.md: wydarzenia (events_*), ankiety (pokestops_question/_survey_*), głosowanie i ankiety
+--     tylko w zasięgu punktu (pozycja zapisywana przy głosie), agent AI zwraca tylko tak/nie.
+--
+-- v3: usunięty cykl collection <-> game (nagroda za walkę wskazuje pokemona z game_attack), stałe nagród przeniesione
+--     z triggerów do aplikacji (baza zapisuje tylko wynik), log moderacji AI, zwalnianie zastawu po odrzuceniu/rozwiązaniu.
+--     Patrz docs/db/README.md.
+--
 -- v2: przywrócona pełna mechanika walki (moc, typ, mnożnik, wybór 3 pokemonów) zamiast samego
 -- check-inu lokalizacyjnego — patrz docs/db/README.md, sekcja "Walka pokemonami".
 -- =============================================================================
@@ -35,7 +42,9 @@ CREATE TYPE pokestop_type       AS ENUM ('report', 'idea', 'place', 'ngo', 'cons
 CREATE TYPE pokestop_status     AS ENUM ('open', 'in_progress', 'resolved', 'rejected');
 CREATE TYPE vote_value          AS ENUM ('for', 'against');
 
-CREATE TYPE award_source        AS ENUM ('encounter', 'starter');            -- jedyne zdarzenia, które dają NOWEGO pokemona (patrz README)
+CREATE TYPE pokemon_origin      AS ENUM ('starter', 'encounter', 'survey', 'event');   -- jedyne zdarzenia, które dają NOWEGO pokemona (patrz README)
+CREATE TYPE moderation_verdict  AS ENUM ('approved', 'rejected', 'error');    -- 'error': agent AI nie odpowiedział (zgłoszenie nie powstaje, użytkownik ponawia)
+CREATE TYPE event_status        AS ENUM ('scheduled', 'cancelled');
 CREATE TYPE enemy_action_kind   AS ENUM ('checkin', 'photo', 'qr', 'dwell');
 CREATE TYPE encounter_status    AS ENUM ('active', 'defeated', 'expired');
 CREATE TYPE attack_outcome      AS ENUM ('won', 'lost', 'too_far', 'rejected', 'expired');  -- 'lost': w zasięgu, ale moc nie wystarczyła
@@ -95,7 +104,7 @@ CREATE TABLE accounts_organization_member (
 CREATE INDEX accounts_organization_member_user_idx ON accounts_organization_member (user_id);
 
 -- ============================================================================
--- collection: typy, postacie ("Spryciaki") i zdobywanie ich przez graczy
+-- collection: typy, postacie ("Spryciaki") i posiadane pokemony (zależy tylko od accounts)
 -- (słownik postaci jest tu, bo korzystają z niego scenariusze, pinezki i nagrody)
 -- ============================================================================
 CREATE TABLE collection_type (                          -- "typ" postaci i przeciwnika (do mnożnika w walce)
@@ -116,12 +125,37 @@ CREATE TABLE collection_character (
     base_power     smallint     NOT NULL,              -- moc na poziomie 1
     power_growth   smallint     NOT NULL DEFAULT 5,    -- przyrost mocy na poziom (wzór wyliczany aplikacyjnie z exp, jak XP gracza)
     is_starter     boolean      NOT NULL DEFAULT false, -- postać przyznawana jako pierwszy pokemon przy rejestracji/koncie gościa
+    is_event_exclusive boolean  NOT NULL DEFAULT false, -- "unikalny pokemon" za udział w wydarzeniu: nie wypada z walk ani ankiet
     is_active      boolean      NOT NULL DEFAULT true,
     CONSTRAINT character_base_power_positive   CHECK (base_power > 0),
-    CONSTRAINT character_power_growth_positive CHECK (power_growth > 0)
+    CONSTRAINT character_power_growth_positive CHECK (power_growth > 0),
+    CONSTRAINT character_starter_not_exclusive CHECK (NOT (is_starter AND is_event_exclusive))
 );
 -- Tylko jedna postać startowa w słowniku.
 CREATE UNIQUE INDEX collection_character_one_starter_species ON collection_character (is_starter) WHERE is_starter;
+
+CREATE TABLE collection_pokemon (                       -- konkretny, posiadany egzemplarz (stan mutowalny: exp, czy jest "na zgłoszeniu")
+    id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id      bigint       NOT NULL REFERENCES accounts_user (id) ON DELETE CASCADE,
+    character_id smallint     NOT NULL REFERENCES collection_character (id),
+    origin       pokemon_origin NOT NULL,                -- skąd pochodzi: start konta albo nagroda za wygraną walkę (patrz game_attack.reward_pokemon_id)
+    nickname     varchar(60),
+    exp          bigint       NOT NULL DEFAULT 0,       -- poziom i moc wylicza aplikacja z (character.base_power/power_growth, exp), wzór może się zmieniać
+    is_staked    boolean      NOT NULL DEFAULT false,   -- zostawiony na własnym zgłoszeniu/pomyśle, niedostępny do walki (patrz pokestops_pokestop.staked_pokemon_id)
+    created_at   timestamptz  NOT NULL DEFAULT now(),
+    updated_at   timestamptz  NOT NULL DEFAULT now(),
+    CONSTRAINT pokemon_exp_non_negative CHECK (exp >= 0)
+);
+CREATE INDEX collection_pokemon_user_idx ON collection_pokemon (user_id);
+CREATE INDEX collection_pokemon_available_idx ON collection_pokemon (user_id) WHERE NOT is_staked;
+-- Jeden pokemon startowy na użytkownika (przyznawany przy /auth/guest i /auth/register).
+CREATE UNIQUE INDEX collection_pokemon_one_starter_per_user ON collection_pokemon (user_id) WHERE origin = 'starter';
+
+-- Kolekcja gracza ("Moje Spryciaki"): liczba posiadanych sztuk każdej postaci.
+CREATE VIEW collection_user_character AS
+SELECT user_id, character_id, count(*)::int AS quantity, min(created_at) AS first_caught_at
+  FROM collection_pokemon
+ GROUP BY user_id, character_id;
 
 -- ============================================================================
 -- scenarios: katalog formularzy (scenariuszy zgłoszeń) edytowalny przez administratora
@@ -214,8 +248,9 @@ CREATE TABLE pokestops_pokestop (
     votes_for       integer         NOT NULL DEFAULT 0,            -- liczniki utrzymywane triggerem
     votes_against   integer         NOT NULL DEFAULT 0,
     votes_required  smallint        NOT NULL,                      -- migawka scenarios_scenario.votes_required z chwili zgłoszenia
-    staked_pokemon_id bigint,                                      -- FK do collection_pokemon dodawany niżej (zależność cykliczna, patrz komentarz przy ALTER)
-    stake_released_at timestamptz,                                 -- kiedy zwrócono pokemona autorowi (votes_for >= votes_required)
+    staked_pokemon_id bigint        REFERENCES collection_pokemon (id) ON DELETE RESTRICT,   -- pokemon zostawiony przez autora (tylko report/idea)
+    stake_released_at timestamptz,                                 -- kiedy zwrócono pokemona autorowi (próg głosów, rozwiązanie, odrzucenie lub wycofanie)
+    stake_bonus_exp   integer,                                     -- exp dopisany przy zwrocie (0 przy odrzuceniu/wycofaniu); wartość z aplikacji, baza tylko zapisuje wynik
     rejection_reason text,
     created_at      timestamptz     NOT NULL DEFAULT now(),
     updated_at      timestamptz     NOT NULL DEFAULT now(),
@@ -227,6 +262,7 @@ CREATE TABLE pokestops_pokestop (
     CONSTRAINT pokestop_org_for_org_types CHECK ((type IN ('ngo', 'consultation')) = (organization_id IS NOT NULL)),
     CONSTRAINT pokestop_stake_matches_type CHECK ((type IN ('report', 'idea')) = (staked_pokemon_id IS NOT NULL)),  -- stawianie pokemona: tylko zgłoszenia/pomysły mieszkańców
     CONSTRAINT pokestop_stake_release_after_stake CHECK (stake_released_at IS NULL OR staked_pokemon_id IS NOT NULL),
+    CONSTRAINT pokestop_stake_release_consistent  CHECK ((stake_released_at IS NULL) = (stake_bonus_exp IS NULL) AND (stake_bonus_exp IS NULL OR stake_bonus_exp >= 0)),
     CONSTRAINT pokestop_rejection_reason  CHECK (rejection_reason IS NULL OR status = 'rejected')
 );
 CREATE INDEX pokestops_pokestop_location_idx ON pokestops_pokestop USING gist (location);
@@ -256,7 +292,10 @@ CREATE TABLE pokestops_vote (
     pokestop_id bigint     NOT NULL REFERENCES pokestops_pokestop (id) ON DELETE CASCADE,
     user_id     bigint     NOT NULL REFERENCES accounts_user (id) ON DELETE CASCADE,
     vote        vote_value NOT NULL,
-    rewarded_pokemon_id bigint NOT NULL,                -- pokemon głosującego, któremu przyznano exp za głos; FK dodawany niżej (zależność cykliczna)
+    rewarded_pokemon_id bigint NOT NULL REFERENCES collection_pokemon (id) ON DELETE RESTRICT,   -- pokemon głosującego, któremu przyznano exp za głos
+    exp_granted integer    NOT NULL DEFAULT 0 CHECK (exp_granted >= 0),                          -- ile exp przyznano (wartość z aplikacji)
+    location    geography(Point, 4326) NOT NULL,        -- pozycja głosującego (głos tylko w zasięgu punktu, sprawdza serwer)
+    distance_m  numeric(9, 1)  NOT NULL CHECK (distance_m >= 0),   -- odległość od pinezki policzona przez serwer
     created_at  timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (pokestop_id, user_id)                 -- jeden głos na użytkownika
 );
@@ -289,6 +328,69 @@ CREATE TABLE pokestops_status_change (                 -- ślad audytowy zmian s
 );
 CREATE INDEX pokestops_status_change_pokestop_idx ON pokestops_status_change (pokestop_id, created_at);
 
+CREATE TABLE pokestops_moderation_log (                -- werdykty agenta AI przy tworzeniu zgłoszeń mieszkańców (także odrzuconych, które nie trafiają do pokestops_pokestop)
+    id          bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    author_id   bigint             NOT NULL REFERENCES accounts_user (id) ON DELETE CASCADE,
+    scenario_id bigint             NOT NULL REFERENCES scenarios_scenario (id),
+    pokestop_id bigint             REFERENCES pokestops_pokestop (id) ON DELETE SET NULL,  -- NULL dla odrzuconych (nic nie zapisano)
+    submitted   jsonb              NOT NULL,                -- treść zgłoszenia oceniona przez agenta (tytuł, opis, pola)
+    verdict     moderation_verdict NOT NULL,
+    reason      text,                                       -- agent zwraca tylko tak/nie, więc tu trafia co najwyżej komunikat błędu (verdict = 'error')
+    model       varchar(60),                                -- identyfikator modelu/wersji promptu, do porównań przy strojeniu
+    latency_ms  integer,
+    created_at  timestamptz        NOT NULL DEFAULT now(),
+    CONSTRAINT moderation_only_approved_saved CHECK (verdict = 'approved' OR pokestop_id IS NULL)   -- odrzucone lub nieocenione zgłoszenie nie powstaje
+);
+CREATE INDEX pokestops_moderation_log_author_idx ON pokestops_moderation_log (author_id, created_at DESC);
+CREATE INDEX pokestops_moderation_log_verdict_idx ON pokestops_moderation_log (verdict, created_at DESC);
+
+-- ----------------------------------------------------------------------------
+-- Ankiety: pytania zadane przez miasto lub organizację przy pinezce typu ngo/consultation (reguła typu w aplikacji).
+-- Odpowiedź na wszystkie wymagane pytania daje NOWEGO pokemona gatunku pinezki (patrz README).
+-- ----------------------------------------------------------------------------
+CREATE TABLE pokestops_question (
+    id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    pokestop_id  bigint       NOT NULL REFERENCES pokestops_pokestop (id) ON DELETE CASCADE,
+    question_key varchar(40)  NOT NULL,                    -- klucz odpowiedzi w API
+    label        varchar(300) NOT NULL,
+    field_type   field_type   NOT NULL,
+    required     boolean      NOT NULL DEFAULT true,
+    options      jsonb,                                    -- [{"value": "...", "label": "..."}] dla select/choice/multiselect
+    min_value    numeric,
+    max_value    numeric,
+    sort_order   smallint     NOT NULL DEFAULT 0,
+    UNIQUE (pokestop_id, question_key),
+    UNIQUE (pokestop_id, sort_order),
+    UNIQUE (id, pokestop_id),                              -- cel klucza złożonego z odpowiedzi
+    CONSTRAINT question_type_allowed  CHECK (field_type IN ('text', 'textarea', 'number', 'select', 'multiselect', 'boolean', 'choice', 'rating')),
+    CONSTRAINT question_options_match CHECK ((field_type IN ('select', 'multiselect', 'choice')) = (options IS NOT NULL AND jsonb_typeof(options) = 'array')),
+    CONSTRAINT question_range_valid   CHECK (min_value IS NULL OR max_value IS NULL OR min_value <= max_value)
+);
+
+CREATE TABLE pokestops_survey_response (                -- jedno wypełnienie ankiety przez użytkownika
+    id                bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    pokestop_id       bigint       NOT NULL REFERENCES pokestops_pokestop (id) ON DELETE CASCADE,
+    user_id           bigint       NOT NULL REFERENCES accounts_user (id) ON DELETE CASCADE,
+    location          geography(Point, 4326) NOT NULL,     -- pozycja przy wypełnianiu (tylko w zasięgu punktu, sprawdza serwer)
+    distance_m        numeric(9, 1) NOT NULL CHECK (distance_m >= 0),
+    reward_pokemon_id bigint       NOT NULL UNIQUE REFERENCES collection_pokemon (id) ON DELETE RESTRICT,  -- pokemon za ankietę (origin='survey')
+    submitted_at      timestamptz  NOT NULL DEFAULT now(),
+    UNIQUE (pokestop_id, user_id),                         -- jedna ankieta na użytkownika
+    UNIQUE (id, pokestop_id)
+);
+CREATE INDEX pokestops_survey_response_user_idx ON pokestops_survey_response (user_id);
+
+CREATE TABLE pokestops_survey_answer (                  -- jedna odpowiedź na jedno pytanie (znormalizowane: łatwa agregacja wyników dla organizacji)
+    response_id bigint NOT NULL,
+    question_id bigint NOT NULL,
+    pokestop_id bigint NOT NULL,
+    value       jsonb  NOT NULL,                           -- tekst, liczba, wartość opcji, tablica opcji albo boolean
+    PRIMARY KEY (response_id, question_id),
+    FOREIGN KEY (response_id, pokestop_id) REFERENCES pokestops_survey_response (id, pokestop_id) ON DELETE CASCADE,
+    FOREIGN KEY (question_id, pokestop_id) REFERENCES pokestops_question (id, pokestop_id) ON DELETE CASCADE   -- pytanie z tej samej pinezki co odpowiedź
+);
+CREATE INDEX pokestops_survey_answer_question_idx ON pokestops_survey_answer (question_id);
+
 -- Liczniki głosów utrzymywane przez bazę (spójne nawet przy równoległych głosach).
 CREATE FUNCTION pokestops_vote_apply_counters() RETURNS trigger
 LANGUAGE plpgsql AS $$
@@ -313,22 +415,48 @@ CREATE TRIGGER pokestops_vote_counters
     AFTER INSERT OR UPDATE OF vote OR DELETE ON pokestops_vote
     FOR EACH ROW EXECUTE FUNCTION pokestops_vote_apply_counters();
 
--- Nagroda za głos: EXP dla pokemona wybranego przez głosującego (stała na dziś: 10 — patrz README).
--- Tylko przy pierwszym oddaniu głosu (nie przy zmianie for/against).
-CREATE FUNCTION pokestops_vote_grant_pokemon_exp() RETURNS trigger
-LANGUAGE plpgsql AS $$
-BEGIN
-    UPDATE collection_pokemon SET exp = exp + 10 WHERE id = NEW.rewarded_pokemon_id;
-    RETURN NULL;
-END;
-$$;
+-- ============================================================================
+-- events: wydarzenia organizacji i samorządu dla młodzieży; udział nagradzany unikalnym pokemonem
+-- ============================================================================
+CREATE TABLE events_event (
+    id                  bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    organization_id     bigint       NOT NULL REFERENCES accounts_organization (id) ON DELETE RESTRICT,
+    created_by_id       bigint       NOT NULL REFERENCES accounts_user (id) ON DELETE RESTRICT,
+    title               varchar(100) NOT NULL,
+    description         text         NOT NULL DEFAULT '',
+    address             varchar(200),
+    location            geography(Point, 4326) NOT NULL,
+    starts_at           timestamptz  NOT NULL,
+    ends_at             timestamptz  NOT NULL,
+    reward_character_id smallint     NOT NULL REFERENCES collection_character (id),   -- unikalny pokemon za udział (is_event_exclusive)
+    capacity            integer,                                                       -- NULL = bez limitu miejsc
+    age_min             smallint,
+    age_max             smallint,
+    status              event_status NOT NULL DEFAULT 'scheduled',
+    created_at          timestamptz  NOT NULL DEFAULT now(),
+    updated_at          timestamptz  NOT NULL DEFAULT now(),
+    CONSTRAINT event_title_not_blank CHECK (char_length(btrim(title)) >= 3),
+    CONSTRAINT event_ends_after_start CHECK (ends_at > starts_at),
+    CONSTRAINT event_capacity_positive CHECK (capacity IS NULL OR capacity > 0),
+    CONSTRAINT event_age_range CHECK (age_min IS NULL OR age_max IS NULL OR age_min <= age_max)
+);
+CREATE INDEX events_event_location_idx ON events_event USING gist (location);
+CREATE INDEX events_event_starts_idx ON events_event (starts_at) WHERE status = 'scheduled';
+CREATE INDEX events_event_org_idx ON events_event (organization_id);
 
-CREATE TRIGGER pokestops_vote_grant_exp
-    AFTER INSERT ON pokestops_vote
-    FOR EACH ROW EXECUTE FUNCTION pokestops_vote_grant_pokemon_exp();
+CREATE TABLE events_participation (                     -- zameldowanie na wydarzeniu (na miejscu, w czasie trwania) = udział
+    event_id          bigint       NOT NULL REFERENCES events_event (id) ON DELETE CASCADE,
+    user_id           bigint       NOT NULL REFERENCES accounts_user (id) ON DELETE CASCADE,
+    location          geography(Point, 4326) NOT NULL,     -- pozycja przy zameldowaniu (sprawdza serwer)
+    distance_m        numeric(9, 1) NOT NULL CHECK (distance_m >= 0),
+    reward_pokemon_id bigint       NOT NULL UNIQUE REFERENCES collection_pokemon (id) ON DELETE RESTRICT,   -- pokemon za udział (origin='event')
+    checked_in_at     timestamptz  NOT NULL DEFAULT now(),
+    PRIMARY KEY (event_id, user_id)                        -- jeden udział (i jedna nagroda) na użytkownika
+);
+CREATE INDEX events_participation_user_idx ON events_participation (user_id);
 
 -- ============================================================================
--- game: przeciwnicy (szablony i typy do mnożnika w walce)
+-- game: przeciwnicy (szablony i typy do mnożnika w walce); zależy od accounts i collection, nie odwrotnie
 -- ============================================================================
 CREATE TABLE game_enemy_type (                          -- szablony, z których serwer losuje przeciwników
     id            smallint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -375,58 +503,6 @@ CREATE TABLE game_encounter (                           -- konkretny przeciwnik 
 );
 CREATE INDEX game_encounter_active_location_idx ON game_encounter USING gist (location) WHERE status = 'active';
 CREATE INDEX game_encounter_active_expiry_idx ON game_encounter (expires_at) WHERE status = 'active';
-
--- ============================================================================
--- collection: pokemony w posiadaniu gracza (nagrody + stan do walki)
--- Umieszczone po `game_encounter`, bo nowy pokemon z wygranej walki wskazuje na konkretne starcie.
--- ============================================================================
-CREATE TABLE collection_award (                         -- dziennik zdarzeń, które dają NOWEGO pokemona (nie: głos/potwierdzenie — te dają tylko exp, patrz niżej)
-    id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    user_id      bigint       NOT NULL REFERENCES accounts_user (id) ON DELETE CASCADE,
-    character_id smallint     NOT NULL REFERENCES collection_character (id),
-    source       award_source NOT NULL,
-    encounter_id bigint       REFERENCES game_encounter (id) ON DELETE SET NULL,  -- wymagane dla source='encounter'
-    awarded_at   timestamptz  NOT NULL DEFAULT now(),
-    UNIQUE (user_id, encounter_id),                     -- jedna nagroda za wygraną walkę (spójne z "jedno zwycięstwo na przeciwnika")
-    CONSTRAINT award_source_matches_reference CHECK (
-        (source = 'encounter' AND encounter_id IS NOT NULL)
-     OR (source = 'starter'   AND encounter_id IS NULL)
-    )
-);
-CREATE INDEX collection_award_user_idx ON collection_award (user_id, character_id);
--- Jeden pokemon startowy na użytkownika (przyznawany przy /auth/guest i /auth/register).
-CREATE UNIQUE INDEX collection_award_one_starter_per_user ON collection_award (user_id) WHERE source = 'starter';
-
-CREATE TABLE collection_pokemon (                       -- konkretny, posiadany egzemplarz (stan mutowalny: exp, czy jest "na zgłoszeniu")
-    id           bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    user_id      bigint       NOT NULL REFERENCES accounts_user (id) ON DELETE CASCADE,
-    character_id smallint     NOT NULL REFERENCES collection_character (id),
-    award_id     bigint       NOT NULL UNIQUE REFERENCES collection_award (id) ON DELETE RESTRICT,  -- zdarzenie, które go dało
-    nickname     varchar(60),
-    exp          bigint       NOT NULL DEFAULT 0,       -- poziom i moc wylicza aplikacja z (character.base_power/power_growth, exp) — wzór może się zmieniać, jak XP gracza
-    is_staked    boolean      NOT NULL DEFAULT false,   -- zostawiony na własnym zgłoszeniu/pomyśle, niedostępny do walki (patrz pokestops_pokestop.staked_pokemon_id)
-    created_at   timestamptz  NOT NULL DEFAULT now(),
-    updated_at   timestamptz  NOT NULL DEFAULT now(),
-    CONSTRAINT pokemon_exp_non_negative CHECK (exp >= 0)
-);
-CREATE INDEX collection_pokemon_user_idx ON collection_pokemon (user_id);
-CREATE INDEX collection_pokemon_available_idx ON collection_pokemon (user_id) WHERE NOT is_staked;
-
--- Kolekcja gracza ("Moje Spryciaki"): liczba posiadanych sztuk każdej postaci.
-CREATE VIEW collection_user_character AS
-SELECT user_id, character_id, count(*)::int AS quantity, min(created_at) AS first_caught_at
-  FROM collection_pokemon
- GROUP BY user_id, character_id;
-
--- Dopinamy FK, które nie mogły istnieć wcześniej: pokestops_pokestop/pokestops_vote
--- (zdefiniowane przed collection_pokemon) wskazują na collection_pokemon (zdefiniowane po
--- collection_award, które wskazuje na game_encounter/pokestops_pokestop). To jedyny cykl w schemacie.
-ALTER TABLE pokestops_pokestop
-    ADD CONSTRAINT pokestops_pokestop_staked_pokemon_fk
-        FOREIGN KEY (staked_pokemon_id) REFERENCES collection_pokemon (id) ON DELETE RESTRICT;
-ALTER TABLE pokestops_vote
-    ADD CONSTRAINT pokestops_vote_rewarded_pokemon_fk
-        FOREIGN KEY (rewarded_pokemon_id) REFERENCES collection_pokemon (id) ON DELETE RESTRICT;
 
 -- Stawiany pokemon musi należeć do autora, być dostępny (nie już zastawiony) i mieć gatunek
 -- zgodny z `character_id` pinezki (to, co widać na mapie, to faktycznie zostawiony pokemon).
@@ -485,22 +561,22 @@ CREATE TRIGGER pokestops_vote_pokemon_ownership
     BEFORE INSERT OR UPDATE OF rewarded_pokemon_id ON pokestops_vote
     FOR EACH ROW EXECUTE FUNCTION pokestops_vote_pokemon_belongs_to_voter();
 
--- Próg głosów osiągnięty: zwróć zastawionego pokemona autorowi i przyznaj mu exp (stała: 50 — patrz README).
--- Wyzwalane przez UPDATE OF votes_for na pokestops_pokestop (sam skutek triggera `pokestops_vote_counters`).
-CREATE FUNCTION pokestops_pokestop_release_stake() RETURNS trigger
+-- Zwrot zastawionego pokemona. Decyzję (próg głosów, rozwiązanie, odrzucenie, wycofanie) i wysokość premii exp
+-- podejmuje aplikacja w jednej transakcji i zapisuje w stake_released_at/stake_bonus_exp. Baza pilnuje tylko
+-- niezmiennika: gdy zwrot zostaje zapisany, pokemon przestaje być "zastawiony".
+CREATE FUNCTION pokestops_pokestop_sync_stake_flag() RETURNS trigger
 LANGUAGE plpgsql AS $$
 BEGIN
-    UPDATE collection_pokemon SET is_staked = false, exp = exp + 50 WHERE id = NEW.staked_pokemon_id;
-    UPDATE pokestops_pokestop SET stake_released_at = now() WHERE id = NEW.id;
+    UPDATE collection_pokemon SET is_staked = false WHERE id = NEW.staked_pokemon_id;
     RETURN NULL;
 END;
 $$;
 
 CREATE TRIGGER pokestops_pokestop_stake_release
-    AFTER UPDATE OF votes_for ON pokestops_pokestop
+    AFTER UPDATE OF stake_released_at ON pokestops_pokestop
     FOR EACH ROW
-    WHEN (NEW.staked_pokemon_id IS NOT NULL AND NEW.stake_released_at IS NULL AND NEW.votes_for >= NEW.votes_required)
-    EXECUTE FUNCTION pokestops_pokestop_release_stake();
+    WHEN (OLD.stake_released_at IS NULL AND NEW.stake_released_at IS NOT NULL AND NEW.staked_pokemon_id IS NOT NULL)
+    EXECUTE FUNCTION pokestops_pokestop_sync_stake_flag();
 
 -- ============================================================================
 -- game: walki i postęp gracza (logika gry i antyoszustwo po stronie serwera)
@@ -514,11 +590,13 @@ CREATE TABLE game_attack (                              -- jedna próba walki z 
     accuracy_m   numeric(8, 1),                                -- deklarowana dokładność GPS
     client_time  timestamptz,
     pokemon_power_total integer,                                -- suma (moc * mnożnik typu) wybranych pokemonów; NULL gdy outcome='too_far' (do walki nie doszło)
+    reward_pokemon_id bigint UNIQUE REFERENCES collection_pokemon (id) ON DELETE RESTRICT,  -- nowy pokemon za wygraną (origin='encounter'); NULL przy innym wyniku
     outcome      attack_outcome NOT NULL,
     reason       text,
     created_at   timestamptz    NOT NULL DEFAULT now(),
     CONSTRAINT attack_distance_non_negative CHECK (distance_m >= 0),
-    CONSTRAINT attack_power_total_required CHECK ((outcome IN ('won', 'lost')) = (pokemon_power_total IS NOT NULL))
+    CONSTRAINT attack_power_total_required CHECK ((outcome IN ('won', 'lost')) = (pokemon_power_total IS NOT NULL)),
+    CONSTRAINT attack_reward_iff_won       CHECK ((outcome = 'won') = (reward_pokemon_id IS NOT NULL))
 );
 -- Tylko jedno zwycięstwo na przeciwnika, nawet przy równoległych żądaniach.
 CREATE UNIQUE INDEX game_attack_one_win_per_encounter ON game_attack (encounter_id) WHERE outcome = 'won';
@@ -529,9 +607,11 @@ CREATE TABLE game_attack_pokemon (                      -- do 3 pokemonów użyt
     pokemon_id              bigint       NOT NULL REFERENCES collection_pokemon (id) ON DELETE RESTRICT,
     power_used              integer      NOT NULL,              -- moc pokemona w chwili walki (migawka, wzór mocy może się zmieniać)
     type_multiplier_applied numeric(3,2) NOT NULL DEFAULT 1.00,  -- 1.20, gdy typ pokemona = typ przeciwnika (patrz README)
+    exp_gained              integer      NOT NULL DEFAULT 0,     -- exp dopisany po wygranej (wartość z aplikacji); 0 przy porażce
     PRIMARY KEY (attack_id, pokemon_id),
     CONSTRAINT attack_pokemon_power_positive    CHECK (power_used > 0),
-    CONSTRAINT attack_pokemon_multiplier_valid  CHECK (type_multiplier_applied >= 1.00)
+    CONSTRAINT attack_pokemon_multiplier_valid  CHECK (type_multiplier_applied >= 1.00),
+    CONSTRAINT attack_pokemon_exp_non_negative  CHECK (exp_gained >= 0)
 );
 
 -- Pokemon musi należeć do atakującego, być dostępny (nie zastawiony) i co najwyżej 3 na walkę.
@@ -573,6 +653,7 @@ CREATE TRIGGER accounts_user_updated         BEFORE UPDATE ON accounts_user     
 CREATE TRIGGER accounts_organization_updated BEFORE UPDATE ON accounts_organization FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER scenarios_scenario_updated    BEFORE UPDATE ON scenarios_scenario    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER pokestops_pokestop_updated    BEFORE UPDATE ON pokestops_pokestop    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+CREATE TRIGGER events_event_updated          BEFORE UPDATE ON events_event          FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER collection_pokemon_updated    BEFORE UPDATE ON collection_pokemon    FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TRIGGER game_player_progress_updated  BEFORE UPDATE ON game_player_progress  FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 

@@ -1,0 +1,4 @@
+# Dane demo w Dockerze: skopiuj do config/demo.yaml i ustaw w .env  APP_CONFIG_OVERRIDE=config/demo.yaml
+# (tryb debug jest wymagany przez `manage.py seed_demo`; na produkcji tego nie używaj).
+app:
+  debug: true

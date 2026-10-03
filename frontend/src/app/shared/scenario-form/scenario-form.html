@@ -57,7 +57,7 @@
                     <button type="button" (click)="removePhoto(f.key, $index)" aria-label="Usuń zdjęcie">×</button>
                   </div>
                 }
-                @if (list(f.key).length < 3) {
+                @if (list(f.key).length < maxPhotos) {
                   <label class="photo add">
                     📷
                     <input type="file" accept="image/*" multiple hidden (change)="onPhotos(f.key, $event)" />

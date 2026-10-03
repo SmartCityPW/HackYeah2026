@@ -1,0 +1,10 @@
+# Nadpisania na potrzeby testów (APP_CONFIG_OVERRIDE=config/test.yaml).
+app:
+  debug: true
+database:
+  engine: sqlite
+  name: ":memory:"
+seed:
+  on_start: false
+auth:
+  guest_rate: 1000/hour

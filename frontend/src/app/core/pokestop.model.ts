@@ -26,6 +26,8 @@ export interface Pokestop {
   photos?: string[];
   details?: Record<string, unknown>;
   comments: PokestopComment[];
+  /** Liczba komentarzy (lista z backendu nie zawiera ich treści, tylko licznik). */
+  commentCount?: number;
   lat: number;
   lng: number;
   votesFor: number;

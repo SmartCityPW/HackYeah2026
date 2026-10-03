@@ -1,0 +1,37 @@
+# Konfiguracja aplikacji ładowana przy starcie (zob. src/app/core/config/).
+# Tu leżą wszystkie wartości zmienne frontendu. Zmiana wymaga tylko edycji tego pliku (bez przebudowy kodu),
+# a w środowisku produkcyjnym wystarczy podmienić plik przy wdrożeniu. SEKRETÓW tu nie ma.
+
+api:
+  baseUrl: http://localhost:8000/api/v1   # adres backendu (patrz backend/config/default.yaml: server, app.api_prefix)
+  # Źródło danych per obszar. Sposób przechodzenia z atrap na backend: docs/frontend-adaptation.md
+  #   mock = dane w pamięci (src/app/core/api/*.mock.ts), http = prawdziwy backend
+  mode:
+    pokestops: mock
+    game: mock
+
+auth:
+  storageKeyPrefix: scgo                  # klucze w localStorage: <prefix>.role, <prefix>.access, <prefix>.refresh
+  autoGuest: true                         # tryb http: bez tokenu zakładamy konto gościa (POST /auth/guest)
+
+map:
+  styleUrl: https://tiles.openfreemap.org/styles/liberty
+  workerUrl: /maplibre/maplibre-gl-worker.mjs   # plik kopiowany przez angular.json (assets)
+  center: { lat: 50.0617, lng: 19.9373 }        # domyślny widok i środek wyszukiwania przeciwników (Rynek, Kraków)
+  zoom: 16.3
+  pitch: 55
+  bearing: -15
+
+game:
+  interactionRangeM: 50                   # tylko do wyświetlania i wyłączania przycisków, decyduje backend
+  simulatedGps: { lat: 50.0617, lng: 19.9373 }  # pozycja z przycisku "GPS" (narzędzia deweloperskie)
+
+upload:
+  maxPhotos: 3
+  maxPhotoBytes: 5242880                  # 5 MB (zgodnie z backendem: pokestops.photos.max_bytes)
+
+ui:
+  toastMs: 3000
+
+dev:
+  tools: true                             # przełącznik ról i symulator GPS; w produkcji ustaw false

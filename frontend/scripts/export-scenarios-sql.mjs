@@ -1,4 +1,6 @@
-// Generuje docs/db/seed_scenarios.sql z katalogu scenariuszy we frontendzie (src/app/core/scenario.catalog.ts).
+// Generuje z katalogu scenariuszy we frontendzie (src/app/core/scenario.catalog.ts):
+//   docs/db/seed_scenarios.sql            (referencyjny DDL)
+//   backend/config/seed/scenarios.yaml    (seed backendu Django)
 // Uruchomienie: npm run db:seed-scenarios
 // Po przejęciu katalogu przez backend ten skrypt przestaje być potrzebny.
 import { build } from 'esbuild';
@@ -54,4 +56,19 @@ const lines = [
 
 lines.push('COMMIT;', '');
 writeFileSync('../docs/db/seed_scenarios.sql', lines.join('\n'));
+
+// --- seed YAML dla backendu (skalary w cudzysłowach JSON, pola jako jednowierszowe mapy w stylu flow)
+const j = JSON.stringify;
+const y = ['# WYGENEROWANY PLIK: nie edytować ręcznie. Źródło: frontend/src/app/core/scenario.catalog.ts', '# Odtworzenie: (cd frontend && npm run db:seed-scenarios)', 'scenarios:'];
+[...RESIDENT_SCENARIOS, ...ORG_SCENARIOS].forEach((s, index) => {
+  y.push(`  - code: ${j(s.id)}`, `    audience: ${j(s.audience)}`, `    category: ${j(s.category ?? null)}`, `    pokestop_type: ${j(s.pokestopType)}`, `    label: ${j(s.label)}`, `    description: ${j(s.description)}`, `    emoji: ${j(s.emoji)}`, `    character: ${j(s.character)}`, `    default_title: ${j(s.defaultTitle ?? null)}`, `    sort_order: ${index}`, '    sections:');
+  for (const section of s.sections) {
+    y.push(`      - title: ${j(section.title)}`, '        fields:');
+    for (const f of section.fields) {
+      const field = { key: f.key, label: f.label, type: f.type, required: !!f.required, hint: f.hint, placeholder: f.placeholder, unit: f.unit, min: f.min, max: f.max, show_if: f.showIf ? { key: f.showIf.key, equals: f.showIf.equals } : undefined, options: f.options };
+      y.push(`          - ${j(field)}`);
+    }
+  }
+});
+writeFileSync('../backend/config/seed/scenarios.yaml', y.join('\n') + '\n');
 console.log(`Zapisano docs/db/seed_scenarios.sql (${RESIDENT_SCENARIOS.length + ORG_SCENARIOS.length} scenariuszy)`);

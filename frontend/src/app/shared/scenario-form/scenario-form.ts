@@ -1,10 +1,8 @@
-import { Component, computed, input, linkedSignal, output, signal } from '@angular/core';
+import { Component, computed, inject, input, linkedSignal, output, signal } from '@angular/core';
+import { AppConfigService } from '../../core/config/app-config.service';
 import { CHARACTERS, CHARACTER_IDS } from '../../core/pokestop.model';
 import { FieldDef, FieldValues, Scenario } from '../../core/scenario.model';
 import { initialValues, isVisible, parseTags, validate } from '../../core/scenario.utils';
-
-const MAX_PHOTOS = 3;
-const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 
 /** Uniwersalny formularz renderowany z definicji scenariusza (pola, sekcje, warunki widoczności). */
 @Component({
@@ -13,6 +11,8 @@ const MAX_PHOTO_BYTES = 5 * 1024 * 1024;
   styleUrl: './scenario-form.css',
 })
 export class ScenarioForm {
+  private readonly upload = inject(AppConfigService).config.upload;
+  protected readonly maxPhotos = this.upload.maxPhotos;
   readonly scenario = input.required<Scenario>();
   readonly submitLabel = input('Dodaj zgłoszenie');
   readonly submitted = output<FieldValues>();
@@ -66,17 +66,17 @@ export class ScenarioForm {
     const files = Array.from(input.files ?? []);
     input.value = '';
     this.photoError.set(null);
-    const room = MAX_PHOTOS - this.list(key).length;
+    const room = this.upload.maxPhotos - this.list(key).length;
     const added: string[] = [];
     for (const file of files.slice(0, Math.max(0, room))) {
       if (!file.type.startsWith('image/')) continue;
-      if (file.size > MAX_PHOTO_BYTES) {
-        this.photoError.set('Zdjęcie jest za duże (maks. 5 MB)');
+      if (file.size > this.upload.maxPhotoBytes) {
+        this.photoError.set(`Zdjęcie jest za duże (maks. ${Math.round(this.upload.maxPhotoBytes / 1024 / 1024)} MB)`);
         continue;
       }
       added.push(await readAsDataUrl(file));
     }
-    if (files.length > room) this.photoError.set(`Maksymalnie ${MAX_PHOTOS} zdjęcia`);
+    if (files.length > room) this.photoError.set(`Maksymalnie ${this.upload.maxPhotos} zdjęcia`);
     this.set(key, [...this.list(key), ...added]);
   }
 

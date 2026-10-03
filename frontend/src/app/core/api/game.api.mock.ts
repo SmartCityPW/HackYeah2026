@@ -1,5 +1,6 @@
-import { Injectable } from '@angular/core';
-import { ATTACK_RANGE_M, AttackResult, Encounter, PlayerProgress, Position } from '../game.model';
+import { Injectable, inject } from '@angular/core';
+import { AppConfigService } from '../config/app-config.service';
+import { AttackResult, Encounter, PlayerProgress, Position } from '../game.model';
 import { distanceMeters } from '../geo.utils';
 import { GameApi } from './game.api';
 
@@ -28,6 +29,7 @@ const TEMPLATES: Omit<Encounter, 'id' | 'lat' | 'lng' | 'expiresAt'>[] = [
 /** Atrapa backendu gry: sama generuje przeciwników i rozstrzyga walki, jak zrobiłby to serwer. */
 @Injectable()
 export class MockGameApi extends GameApi {
+  private readonly rangeM = inject(AppConfigService).config.game.interactionRangeM;
   private xp = 120;
   private encounters: Encounter[] = [];
   private nextId = 1;
@@ -41,7 +43,7 @@ export class MockGameApi extends GameApi {
     const target = this.encounters.find((e) => e.id === id);
     if (!target) throw new Error(`Przeciwnik ${id} już nie istnieje`);
     const distanceM = Math.round(distanceMeters(position, target));
-    if (distanceM > ATTACK_RANGE_M) return { outcome: 'too_far', distanceM };
+    if (distanceM > this.rangeM) return { outcome: 'too_far', distanceM };
     this.encounters = this.encounters.filter((e) => e.id !== id);
     this.xp += target.xpReward;
     return { outcome: 'won', xpGained: target.xpReward, progress: toProgress(this.xp) };

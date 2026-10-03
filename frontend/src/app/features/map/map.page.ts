@@ -1,6 +1,6 @@
 import { Component, ElementRef, computed, effect, inject, input, signal, untracked, viewChild, afterNextRender, DestroyRef } from '@angular/core';
 import { EncounterService } from '../../core/encounter.service';
-import { ATTACK_RANGE_M } from '../../core/game.model';
+import { AppConfigService } from '../../core/config/app-config.service';
 import { distanceMeters } from '../../core/geo.utils';
 import { CHARACTERS, POKESTOP_TYPES } from '../../core/pokestop.model';
 import { GeolocationService } from '../../core/geolocation.service';
@@ -31,7 +31,7 @@ export class MapPage {
   private readonly container = viewChild.required<ElementRef<HTMLDivElement>>('mapContainer');
   protected readonly session = inject(SessionService);
   protected readonly progress = inject(ProgressService).progress;
-  protected readonly attackRange = ATTACK_RANGE_M;
+  protected readonly attackRange = inject(AppConfigService).config.game.interactionRangeM;
 
   /** Z parametru adresu `?stop=ID`, np. przy przejściu z listy inicjatyw. */
   readonly stop = input<string>();
@@ -49,7 +49,7 @@ export class MapPage {
   });
   protected readonly canAttack = computed(() => {
     const d = this.encounterDistance();
-    return this.canParticipate() && d !== null && d <= ATTACK_RANGE_M && !this.encounterService.attacking();
+    return this.canParticipate() && d !== null && d <= this.attackRange && !this.encounterService.attacking();
   });
   protected readonly attacking = this.encounterService.attacking;
   protected readonly panelOpen = signal(false);

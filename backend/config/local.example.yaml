@@ -1,0 +1,10 @@
+# Praca lokalna bez Dockera: skopiuj do config/local.yaml (plik jest w .gitignore) i uruchom z
+#   APP_CONFIG_OVERRIDE=config/local.yaml
+# SQLite zamiast PostgreSQL, tryb debug, scenariusze i słowniki ładowane przy starcie (manage.py bootstrap).
+app:
+  debug: true
+database:
+  engine: sqlite
+  name: data/dev.sqlite3      # liczone od katalogu backend/
+seed:
+  on_start: true

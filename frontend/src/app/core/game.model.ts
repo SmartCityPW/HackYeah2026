@@ -33,6 +33,3 @@ export interface Position {
 export type AttackResult =
   | { outcome: 'won'; xpGained: number; progress: PlayerProgress }
   | { outcome: 'too_far'; distanceM: number };
-
-/** Maksymalna odległość, z której można zaatakować (w metrach). Wartość tylko dla UI: egzekwuje ją backend. */
-export const ATTACK_RANGE_M = 50;

@@ -1,0 +1,37 @@
+# Uruchomienie: skopiuj .env.example do .env, uzupełnij sekrety, a potem `docker compose up --build`.
+# Wartości niesekretne (host i nazwa bazy, port aplikacji) pochodzą z backend/config/default.yaml.
+# Domyślne wartości poniżej muszą się z nim zgadzać (pilnuje tego test tests/test_deployment_files.py).
+services:
+  db:
+    image: ${POSTGRES_IMAGE:-postgres:16}
+    environment:
+      POSTGRES_DB: ${DB_NAME:-smartcity}
+      POSTGRES_USER: ${DB_USER:-smartcity}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Ustaw DB_PASSWORD w pliku .env}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-smartcity} -d ${DB_NAME:-smartcity}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      args:
+        PYTHON_VERSION: ${PYTHON_VERSION:-3.13}
+    env_file: .env                      # sekrety: DJANGO_SECRET_KEY, DB_PASSWORD, AI_API_KEY
+    environment:
+      APP_CONFIG_OVERRIDE: ${APP_CONFIG_OVERRIDE:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"    # po prawej port z backend/config/default.yaml (server.port)
+    volumes:
+      - media:/app/data/media           # backend/config/default.yaml (storage.media_root)
+
+volumes:
+  db-data:
+  media:

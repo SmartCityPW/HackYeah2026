@@ -1,0 +1,91 @@
+# Konfiguracja domyślna backendu Smart City Go.
+#
+# ZASADY
+#   * Tu leżą wszystkie wartości zmienne (zasięgi, limity, nagrody, adresy, ścieżki), nigdy w kodzie.
+#   * Sekrety NIE są tutaj. Czytane są ze zmiennych środowiskowych (patrz `.env.example`):
+#       DJANGO_SECRET_KEY, DB_PASSWORD, AI_API_KEY
+#   * Nadpisywanie: APP_CONFIG_OVERRIDE=<ścieżka do pliku YAML> scala się z tym plikiem (klucz po kluczu).
+#     Inny plik bazowy: APP_CONFIG=<ścieżka>. Ścieżki względne liczone są od katalogu `backend/`.
+
+app:
+  name: smartcity
+  debug: false
+  language: pl
+  timezone: Europe/Warsaw
+  allowed_hosts: [localhost, 127.0.0.1]
+  cors_allowed_origins: ["http://localhost:4200"]
+  api_prefix: api/v1
+
+server:                 # używane przez config/gunicorn.py
+  host: 0.0.0.0
+  port: 8000
+  workers: 3
+  timeout_seconds: 30
+
+database:
+  engine: postgresql    # postgresql | sqlite
+  name: smartcity       # dla sqlite: ścieżka pliku albo ":memory:"
+  user: smartcity
+  host: db
+  port: 5432
+
+storage:
+  media_root: data/media
+  media_url: /media/
+
+seed:
+  dir: config/seed
+  on_start: true        # `manage.py bootstrap` ładuje słowniki i scenariusze (idempotentnie)
+
+auth:
+  access_token_minutes: 30
+  refresh_token_days: 14
+  password_min_length: 8
+  guest_rate: 5/hour    # limit zakładania kont gościa na adres IP
+
+game:
+  interaction_range_m: 50        # zasięg: głos, ankieta, zameldowanie, atak
+  max_party_size: 3
+  same_type_multiplier: 1.2
+  exp:
+    per_vote: 10                 # exp dla wybranego pokemona za głos
+    stake_release_bonus: 50      # premia przy zwrocie zastawu (próg głosów, rozwiązanie)
+  levels:
+    exp_per_pokemon_level: 100
+    xp_per_player_level: 100
+  encounters:
+    cell_size_m: 500
+    max_per_cell: 3
+    lifetime_minutes: 30
+    default_radius_m: 1000
+    max_radius_m: 5000
+  anti_cheat:
+    max_accuracy_m: 100
+    max_speed_mps: 40
+    min_seconds_between_attacks: 5
+    max_attacks_per_hour: 20
+
+pokestops:
+  votes_required_default: 10
+  default_page_size: 50
+  max_page_size: 200
+  comment_max_length: 300
+  withdraw_reason: Wycofane przez autora
+  photos:
+    max_per_pokestop: 3
+    max_bytes: 5242880
+    allowed_content_types: [image/jpeg, image/png, image/webp]
+
+moderation:
+  provider: stub                 # stub | http
+  timeout_seconds: 5
+  prompt_file: config/moderation_prompt.txt
+  stub:
+    reject_marker: "[odrzuć]"    # tryb stub: tytuł lub opis z tym znacznikiem jest odrzucany (do demo i testów)
+  http:
+    url: ""                      # adres usługi agenta (klucz w env: AI_API_KEY)
+    model: ""
+
+contract:               # dokumentacja, z którą kod jest porównywany w testach i w `manage.py contract_status`
+  openapi_file: ../docs/openapi.yaml
+  schema_sql_file: ../docs/db/schema.sql

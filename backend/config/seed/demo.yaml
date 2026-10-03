@@ -1,0 +1,39 @@
+# Dane demonstracyjne (tylko tryb debug): konta i kilka pinezek wokół Rynku w Krakowie.
+# Hasło wszystkich kont demo pochodzi ze zmiennej środowiskowej DEMO_PASSWORD (nie ma go w repozytorium).
+users:
+  - {email: admin@demo.smartcity.example,     name: Administrator,           role: admin}
+  - {email: fundacja@demo.smartcity.example,  name: Fundacja Zielone Miasto, role: org, organization: {name: Fundacja Zielone Miasto, kind: foundation, contact_person: Anna Kowalska, contact_email: kontakt@zielonemiasto.example}}
+  - {email: kasia@demo.smartcity.example,     name: Kasia,                   role: resident}
+  - {email: michal@demo.smartcity.example,    name: Michał,                  role: resident}
+  - {email: ola@demo.smartcity.example,       name: Ola,                     role: resident}
+  - {email: kuba@demo.smartcity.example,      name: Kuba,                    role: resident}
+  - {email: marta@demo.smartcity.example,     name: Marta,                   role: resident}
+  - {email: tester@demo.smartcity.example,    name: Tester,                  role: resident}   # konto do logowania w testach ręcznych (bez pinezek)
+
+# Każdy mieszkaniec ma jednego pokemona (startowego), więc zgłoszenia problemów mają różnych autorów.
+pokestops:
+  - {author: kasia@demo.smartcity.example,  scenario: res-pothole, title: Dziura w chodniku,        description: Głęboka dziura przy przejściu, łatwo się potknąć., lat: 50.0617, lng: 19.9373}
+  - {author: michal@demo.smartcity.example, scenario: res-bin,     title: Brakuje kosza na śmieci,  description: Przy ławkach nie ma żadnego kosza., lat: 50.0647, lng: 19.9450}
+  - {author: ola@demo.smartcity.example,    scenario: res-lamp,    title: Zepsuta latarnia,         description: Latarnia nie świeci od tygodnia., lat: 50.0555, lng: 19.9440}
+  - author: kuba@demo.smartcity.example
+    scenario: place-fun
+    title: Skatepark pod mostem
+    description: Betonowy skatepark z widokiem na rzekę.
+    lat: 50.0590
+    lng: 19.9330
+    details: {rating: "5", cost: free, vibes: [friends, photo], bestTime: [afternoon, evening], activity: skate}
+  - author: marta@demo.smartcity.example
+    scenario: place-food
+    title: Kawiarnia pod żyrandolem
+    description: Mała kawiarnia z najlepszymi ciastami w okolicy.
+    lat: 50.0630
+    lng: 19.9395
+    details: {rating: "4", cost: medium, vibes: [calm, date], offer: coffee, vegan: true}
+  - author: fundacja@demo.smartcity.example
+    scenario: org-tree
+    title: Ogród deszczowy na skwerze
+    description: Zamiast betonu proponujemy ogród deszczowy. Co o tym myślisz?
+    lat: 50.0578
+    lng: 19.9265
+    character: tree
+    details: {plantingType: new, species: linden, count: 12, rationale: Cień i retencja wody w upalne dni, contactPerson: Anna Kowalska, contactEmail: kontakt@zielonemiasto.example}

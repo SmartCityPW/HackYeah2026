@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { GameApi } from './api/game.api';
+import { provideTestConfig } from './config/testing';
 import { MockGameApi } from './api/game.api.mock';
 import { EncounterService } from './encounter.service';
 import { GeolocationService } from './geolocation.service';
@@ -13,7 +14,7 @@ describe('EncounterService', () => {
   let progress: ProgressService;
 
   beforeEach(async () => {
-    TestBed.configureTestingModule({ providers: [{ provide: GameApi, useClass: MockGameApi }] });
+    TestBed.configureTestingModule({ providers: [provideTestConfig(), { provide: GameApi, useClass: MockGameApi }] });
     geo = TestBed.inject(GeolocationService);
     progress = TestBed.inject(ProgressService);
     service = TestBed.inject(EncounterService);

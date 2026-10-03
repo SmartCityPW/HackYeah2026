@@ -1,0 +1,24 @@
+# Słowniki gry: typy, postacie i szablony przeciwników.
+# Wartości liczbowe (moc, przyrost, nagrody) są placeholderami do strojenia po pierwszych testach.
+types:
+  - {code: transport, name: Transport,      emoji: "🚦"}
+  - {code: clean,     name: Czystość,       emoji: "🧹"}
+  - {code: green,     name: Zieleń,         emoji: "🌿"}
+  - {code: energy,    name: Energia,        emoji: "💡"}
+  - {code: air,       name: Powietrze,      emoji: "🌫️"}
+  - {code: infra,     name: Infrastruktura, emoji: "🧱"}
+
+characters:
+  - {code: cyclist, label: Rowerzysta,   emoji: "🚴", category_label: Rowery i ścieżki, model_path: null, type: transport, base_power: 20, power_growth: 4, is_starter: true}
+  - {code: bin,     label: Stworek Kosz, emoji: "🗑️", category_label: Czystość i śmieci, model_path: null, type: clean, base_power: 15, power_growth: 4}
+  - {code: tree,    label: Drzewo,       emoji: "🌳", category_label: Zieleń, model_path: models/kenney-mini-forest/tree.glb, type: green, base_power: 18, power_growth: 4}
+  - {code: train,   label: Pociąg,       emoji: "🚆", category_label: Komunikacja, model_path: models/kenney-train-kit/train-electric-city-a.glb, type: transport, base_power: 25, power_growth: 5}
+  - {code: lamp,    label: Latarnia,     emoji: "💡", category_label: Oświetlenie, model_path: models/kenney-city-kit-roads/light-curved.glb, type: energy, base_power: 12, power_growth: 3}
+  # Unikalny pokemon za udział w wydarzeniu (nie wypada z walk ani ankiet).
+  - {code: festival, label: Maskotka Festiwalu, emoji: "🎪", category_label: Wydarzenia, model_path: null, type: infra, base_power: 22, power_growth: 5, is_event_exclusive: true}
+
+enemy_types:
+  - {code: traffic_jam,    name: Korek Komunikacyjny, emoji: "🚗",  description: Zablokował skrzyżowanie i nie chce odjechać., type: transport, action_kind: checkin, action_label: Stań przy skrzyżowaniu i rozładuj korek, min_level: 2, max_level: 4, base_power: 30, power_growth: 10, base_xp: 40, spawn_weight: 3}
+  - {code: trash_beast,    name: Śmieciowy Potwór,    emoji: "🗑️", description: Rośnie przy każdym wyrzuconym papierku., type: clean, action_kind: checkin, action_label: Wyrzuć jedną śmieć do kosza w pobliżu, min_level: 1, max_level: 3, base_power: 20, power_growth: 8, base_xp: 25, spawn_weight: 4}
+  - {code: smog_ghost,     name: Smogowy Duch,        emoji: "🌫️", description: Unosi się nad miastem w zimne dni., type: air, action_kind: dwell, action_label: "Weź kilka głębokich wdechów, ale daleko od ulicy", min_level: 3, max_level: 5, base_power: 45, power_growth: 12, base_xp: 55, spawn_weight: 2}
+  - {code: concrete_golem, name: Betonowy Golem,      emoji: "🧱",  description: Zabetonował skwer, na którym miała rosnąć trawa., type: infra, action_kind: checkin, action_label: Dotknij najbliższego drzewa, min_level: 4, max_level: 6, base_power: 60, power_growth: 15, base_xp: 70, spawn_weight: 1}

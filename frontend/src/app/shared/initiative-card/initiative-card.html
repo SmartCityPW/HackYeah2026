@@ -10,7 +10,7 @@
 
   <div class="support" [attr.aria-label]="'Poparcie: ' + support() + '%'">
     <div class="bar"><div class="fill" [style.width.%]="support()"></div></div>
-    <small>👍 {{ stop().votesFor }} · 👎 {{ stop().votesAgainst }} · 💬 {{ stop().comments.length }}</small>
+    <small>👍 {{ stop().votesFor }} · 👎 {{ stop().votesAgainst }} · 💬 {{ stop().commentCount ?? stop().comments.length }}</small>
   </div>
 
   @if (showInteraction()) {
