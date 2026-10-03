@@ -7,7 +7,10 @@ export const TEST_CONFIG: AppConfig = {
   api: { baseUrl: 'http://api.test/api/v1', mode: { pokestops: 'mock', game: 'mock', account: 'mock', scenarios: 'mock' } },
   auth: { storageKeyPrefix: 'test', autoGuest: true, passwordMinLength: 8 },
   map: { styleUrl: 'http://tiles.test/style', workerUrl: '/worker.mjs', center: { lat: 50.0617, lng: 19.9373 }, zoom: 16, pitch: 50, bearing: 0 },
-  game: { interactionRangeM: 50, simulatedGps: { lat: 50.0617, lng: 19.9373 } },
+  game: {
+    interactionRangeM: 50, simulatedGps: { lat: 50.0617, lng: 19.9373 }, maxTeamSize: 3, typeMultiplier: 1.2,
+    actionDwellSeconds: 3, leaveGraceSeconds: 2, encounterRefreshMeters: 10, encounterRefreshSeconds: 30, battleClashMs: 0,
+  },
   upload: { enabled: true, maxPhotos: 3, maxPhotoBytes: 5 * 1024 * 1024 },
   ui: { toastMs: 3000, commentsPageSize: 2, mapReloadDebounceMs: 0 },
   dev: { tools: true },

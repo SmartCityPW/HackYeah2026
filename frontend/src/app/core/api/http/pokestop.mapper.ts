@@ -1,7 +1,8 @@
 import { Me } from '../account.api';
+import { AttackResult, Encounter, Position, TypeCode } from '../../game.model';
 import { Pokemon } from '../../pokemon.model';
 import { CharacterId, NewReport, Pokestop, PokestopComment, VoteResult } from '../../pokestop.model';
-import { CommentDto, MeDto, NewPokestopDto, PokemonDto, PokestopDto, VoteResultDto } from './contract.types';
+import { AttackResultDto, CommentDto, EncounterDto, MeDto, NewPokestopDto, PokemonDto, PokestopDto, VoteResultDto } from './contract.types';
 
 /**
  * Odpowiedź backendu -> model frontendu. Jedyne miejsce, które zna oba kształty:
@@ -39,9 +40,12 @@ export function toPokemon(dto: PokemonDto): Pokemon {
   return {
     id: dto.id,
     character: dto.character as CharacterId,
+    typeCode: dto.typeCode as TypeCode,
     nickname: dto.nickname,
     level: dto.level,
     exp: dto.exp,
+    expIntoLevel: dto.expIntoLevel,
+    expForNextLevel: dto.expForNextLevel,
     power: dto.power,
     isStaked: dto.isStaked,
   };
@@ -67,7 +71,7 @@ export function toComment(dto: CommentDto): PokestopComment {
  * a dla `report`/`idea` także postać (z gatunku zastawionego pokemona), więc jej wtedy nie wysyłamy.
  * Zdjęcia nie są jeszcze wysyłane (POST /photos po stronie backendu zwraca 501).
  */
-export function toNewPokestop(report: NewReport): NewPokestopDto {
+export function toNewPokestop(report: NewReport, position: Position): NewPokestopDto {
   const staked = report.type === 'report' || report.type === 'idea';
   return {
     scenarioCode: report.scenarioId,
@@ -76,10 +80,19 @@ export function toNewPokestop(report: NewReport): NewPokestopDto {
     ...(staked ? { stakedPokemonId: report.stakedPokemonId } : { character: report.character }),
     lat: report.lat,
     lng: report.lng,
+    position: { lat: position.lat, lng: position.lng },
     details: report.details,
   };
 }
 
 export function toMe(dto: MeDto): Me {
   return { id: dto.id, displayName: dto.displayName, role: dto.role, isGuest: dto.isGuest, organization: dto.organization };
+}
+
+export function toEncounter(dto: EncounterDto): Encounter {
+  return { ...dto, typeCode: dto.typeCode as TypeCode, description: dto.description ?? '' };
+}
+
+export function toAttackResult(dto: AttackResultDto): AttackResult {
+  return dto.outcome === 'won' ? { ...dto, awardedCharacter: (dto.awardedCharacter ?? null) as CharacterId | null } : dto;
 }

@@ -2,12 +2,14 @@ import { TestBed } from '@angular/core/testing';
 import { API_PROVIDERS } from './api/api-providers';
 import { PokestopApi } from './api/pokestop.api';
 import { provideTestConfig } from './config/testing';
-import { ApiHttpError } from './http/api-error';
+import { ApiHttpError, TooFarError } from './http/api-error';
 import { PokemonService } from './pokemon.service';
 import { Pokestop } from './pokestop.model';
 import { PokestopService } from './pokestop.service';
 
 const at = (stop: Pokestop) => ({ lat: stop.lat, lng: stop.lng });
+/** Pozycja gracza stojącego dokładnie w miejscu testowego zgłoszenia (lat 50, lng 19). */
+const HERE = { lat: 50, lng: 19 };
 
 describe('PokestopService (on the in-memory mock, which enforces the same rules as the backend)', () => {
   let service: PokestopService;
@@ -44,9 +46,11 @@ describe('PokestopService (on the in-memory mock, which enforces the same rules 
       const stop = votable();
       const pokemon = pokemons.pokemons()[0];
 
-      const error = (await service.vote(stop.id, 'for', { pokemonId: pokemon.id, position: { lat: stop.lat + 0.01, lng: stop.lng } }).catch((e) => e)) as ApiHttpError;
+      const error = (await service.vote(stop.id, 'for', { pokemonId: pokemon.id, position: { lat: stop.lat + 0.01, lng: stop.lng } }).catch((e) => e)) as TooFarError;
 
-      expect([error.status, error.code]).toEqual([403, 'too_far']);
+      expect(error).toBeInstanceOf(TooFarError);
+      expect([error.status, error.code, error.radiusM]).toEqual([422, 'too_far', 50]);
+      expect(error.distanceM).toBeGreaterThan(1000);
       expect(service.stops().find((s) => s.id === stop.id)!.myVote).toBeNull();
       expect(pokemons.pokemons()[0].exp).toBe(pokemon.exp);
     });
@@ -66,7 +70,7 @@ describe('PokestopService (on the in-memory mock, which enforces the same rules 
 
     it('stakes the chosen pokemon, takes the character from it and makes it unavailable', async () => {
       const pokemon = pokemons.available()[0];
-      const stop = await service.addReport(report(pokemon.id));
+      const stop = await service.addReport(report(pokemon.id), HERE);
 
       expect(stop).toMatchObject({ mine: true, status: 'open', character: pokemon.character });
       expect(service.stops().filter((s) => s.id === stop.id).length).toBe(1);
@@ -75,17 +79,27 @@ describe('PokestopService (on the in-memory mock, which enforces the same rules 
       expect(pokemons.available().some((p) => p.id === pokemon.id)).toBe(false);
       expect(pokemons.pokemons().find((p) => p.id === pokemon.id)!.isStaked).toBe(true);
 
-      const second = (await service.addReport(report(pokemon.id)).catch((e) => e)) as ApiHttpError;
+      const second = (await service.addReport(report(pokemon.id), HERE).catch((e) => e)) as ApiHttpError;
       expect(second.code).toBe('pokemon_unavailable');
     });
 
     it('needs a pokemon to stake', async () => {
-      const error = (await service.addReport(report()).catch((e) => e)) as ApiHttpError;
+      const error = (await service.addReport(report(), HERE).catch((e) => e)) as ApiHttpError;
       expect([error.status, error.code]).toEqual([422, 'validation_error']);
     });
 
+    it('a report can only be placed inside the player\'s circle, otherwise nothing is saved and the pokemon stays free', async () => {
+      const pokemon = pokemons.available()[0];
+      const before = service.stops().length;
+      const error = (await service.addReport(report(pokemon.id), { lat: 50.01, lng: 19 }).catch((e) => e)) as TooFarError;
+      expect(error).toBeInstanceOf(TooFarError);
+      expect(service.stops().length).toBe(before);
+      await pokemons.refresh();
+      expect(pokemons.available().some((p) => p.id === pokemon.id)).toBe(true);
+    });
+
     it('a place needs no stake', async () => {
-      const stop = await service.addReport({ ...report(), type: 'place', scenarioId: 'place-food', character: 'bin' });
+      const stop = await service.addReport({ ...report(), type: 'place', scenarioId: 'place-food', character: 'bin' }, HERE);
       expect(stop.character).toBe('bin');
     });
   });

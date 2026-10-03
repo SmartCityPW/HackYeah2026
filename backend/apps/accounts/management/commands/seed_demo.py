@@ -28,6 +28,7 @@ class Command(BaseCommand):
             payload = {
                 'scenario_code': row['scenario'], 'title': row['title'], 'description': row.get('description', ''),
                 'lat': row['lat'], 'lng': row['lng'], 'details': row.get('details', {}), 'character': row.get('character'),
+                'position': {'lat': row['lat'], 'lng': row['lng']},  # dane demo powstają "na miejscu", w kółku autora
             }
             if author.pokemons.exists() and row['scenario'].startswith(('res-', 'idea-')):
                 payload['staked_pokemon_id'] = author.pokemons.filter(is_staked=False).first().id

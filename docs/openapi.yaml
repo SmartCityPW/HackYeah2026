@@ -11,6 +11,10 @@ info:
     * Autoryzacja: `Authorization: Bearer <access token>` (JWT). Konto gościa powstaje jednym wywołaniem bez danych.
     * Błędy mają jednolity kształt `Error`. Błędy walidacji formularzy (422) wskazują pola w `fields`.
     * Identyfikatory to liczby całkowite. Postacie i scenariusze identyfikują stabilne kody tekstowe (`code`).
+    * **Kółko interakcji (jak w Pokémon GO):** głosować, dodawać pinezki i walczyć można tylko w promieniu **50 m** od
+      pozycji gracza (komentować można z dowolnego miejsca). Akcje wysyłają `position` (`PositionRequest`), serwer liczy
+      odległość sam i poza kółkiem odpowiada `422` z kodem `too_far` (`TooFarError`: `distanceM`, `radiusM`). Promień
+      to wartość konfiguracji backendu; klient rysuje go na mapie tylko informacyjnie.
 servers:
   - url: http://localhost:8000/api/v1
     description: Lokalny backend deweloperski
@@ -199,12 +203,15 @@ paths:
         Zgłoszenia zweryfikowanych organizacji nie przechodzą przez agenta. Każdy werdykt trafia do logu moderacji.
 
         Pinezki `ngo`/`consultation` mogą mieć ankietę (`questions`).
+
+        Pinezkę (`lat`/`lng`) można postawić tylko w kółku interakcji gracza: dalej niż 50 m od `position`
+        → `422` z kodem `too_far`, nic się nie zapisuje, a pokemon nie jest zastawiany.
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/NewPokestop' } } } }
       responses:
         '201': { description: Utworzono, content: { application/json: { schema: { $ref: '#/components/schemas/PokestopDetail' } } } }
         '403': { $ref: '#/components/responses/Forbidden' }
         '409': { description: 'Wskazany pokemon jest już zastawiony (`pokemon_unavailable`)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '422': { $ref: '#/components/responses/ValidationError' }
+        '422': { $ref: '#/components/responses/ValidationErrorOrTooFar' }
         '503': { description: 'Agent moderujący nie odpowiedział (`moderation_unavailable`), można ponowić', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
   /pokestops/{id}:
     parameters: [{ $ref: '#/components/parameters/Id' }]
@@ -234,18 +241,19 @@ paths:
       description: |
         Jeden głos na użytkownika, bez zmiany. `pokemonId` to jeden z własnych pokemonów głosującego — przy
         pierwszym głosie dostaje +10 exp (nie trzeba, by był dostępny/niezastawiony). Kolejna próba głosu na tę
-        samą pinezkę zwraca `409` i exp się nie powtarza. Głosować można tylko z bliska: serwer porównuje `lat`/`lng` z położeniem pinezki (dziś do 50 m, inaczej `403` z kodem `too_far`).
+        samą pinezkę zwraca `409` i exp się nie powtarza. Głosować można tylko w kółku interakcji: serwer porównuje `position` z położeniem pinezki (dziś do 50 m); dalej → `422` z kodem `too_far` (głos się nie zapisuje, exp nie jest przyznawany).
         Administrator nie głosuje (`403`), autor nie głosuje na własną
         pinezkę (`403`, kod `own_pokestop`). Gdy głos podniesie `votesFor` do progu `votesRequired`, serwer w tej samej
         transakcji zwraca autorowi zastawionego pokemona (`stakeReleasedAt` w odpowiedzi).
       requestBody:
         required: true
-        content: { application/json: { schema: { type: object, required: [vote, pokemonId, lat, lng], properties: { vote: { $ref: '#/components/schemas/VoteValue' }, pokemonId: { type: integer, description: 'Pokemon głosującego, który dostanie exp' }, lat: { type: number, format: double }, lng: { type: number, format: double }, accuracyM: { type: number, description: 'Deklarowana dokładność GPS w metrach' } } } } }
+        content: { application/json: { schema: { type: object, required: [vote, pokemonId, position], properties: { vote: { $ref: '#/components/schemas/VoteValue' }, pokemonId: { type: integer, description: 'Pokemon głosującego, który dostanie exp' }, position: { $ref: '#/components/schemas/PositionRequest' } } } } }
       responses:
         '200': { description: Zapisano głos, content: { application/json: { schema: { $ref: '#/components/schemas/VoteResult' } } } }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/TooFar' }
   /pokestops/{id}/withdraw:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     post:
@@ -300,7 +308,7 @@ paths:
       summary: Wypełnij ankietę przy pinezce
       description: |
         Dotyczy pinezek `ngo`/`consultation` z pytaniami (`questions`). Jedna odpowiedź na użytkownika (`409`, kod
-        `already_answered`). Wypełniać można tylko z bliska (jak przy głosowaniu, `403` z kodem `too_far`).
+        `already_answered`). Wypełniać można tylko w kółku interakcji (jak przy głosowaniu: `422` z kodem `too_far`).
         Odpowiedzi walidowane względem pytań (wymagane, typ, zakres, dozwolone opcje): błędy w `fields` pod kluczem
         pytania. Za wypełnioną ankietę serwer przyznaje **nowego pokemona** gatunku pinezki (`pokemon` w odpowiedzi).
       requestBody:
@@ -391,7 +399,7 @@ paths:
       tags: [events]
       summary: Zamelduj się na wydarzeniu i odbierz unikalnego pokemona
       description: |
-        Udział to obecność na miejscu w czasie trwania wydarzenia. Serwer sprawdza odległość (dziś do 50 m, `403`
+        Udział to obecność na miejscu w czasie trwania wydarzenia. Serwer sprawdza odległość (dziś do 50 m, `422`
         z kodem `too_far`), okno czasu (`409`, kod `outside_time_window`), limit miejsc (`409`, kod `capacity_reached`)
         i jednorazowość (`409`, kod `already_checked_in`). Nagroda: nowy pokemon gatunku `rewardCharacter`.
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PositionRequest' } } } }
@@ -412,14 +420,21 @@ paths:
   /encounters:
     get:
       tags: [game]
-      summary: Przeciwnicy w okolicy użytkownika
+      summary: Przeciwnicy w kółku interakcji gracza
       description: |
-        Przeciwników generuje serwer (losowo, z czasem życia). Klient tylko ich wyświetla — `power` i `typeCode`
-        są widoczne z góry, żeby gracz mógł dobrać pokemony przed podejściem.
+        Przeciwników generuje serwer, a klient tylko ich wyświetla — `power` i `typeCode` są widoczne z góry, żeby gracz
+        mógł dobrać pokemony przed podejściem. Klient pyta z promieniem kółka interakcji (`radius=50`) po każdych ~10 m
+        ruchu i co ~30 s na postoju.
+
+        Przeciwnicy są **przypisani do miejsc**, nie do gracza: teren dzieli się na kwadraty 100 × 100 m, a każdy kwadrat
+        przy pierwszym odwiedzeniu losuje 0–6 przeciwników, którzy stoją tam, dopóki nie zostaną pokonani albo nie wygasną
+        (wspólni dla wszystkich graczy w okolicy). Wyczyszczony kwadrat zasiedla się na nowo po ~60 s. Odpowiedź zawiera
+        najbliższych przeciwników w promieniu, **najwyżej 5** (może być pusta). Wartości (kwadrat, liczba, odnowienie)
+        to konfiguracja backendu (`game.encounters`).
       parameters:
         - { name: lat, in: query, required: true, schema: { type: number, format: double } }
         - { name: lng, in: query, required: true, schema: { type: number, format: double } }
-        - { name: radius, in: query, required: false, description: Promień w metrach, schema: { type: integer, default: 1000, maximum: 5000 } }
+        - { name: radius, in: query, required: false, description: Promień w metrach (kółko interakcji), schema: { type: integer, default: 50, maximum: 500 } }
       responses:
         '200': { description: Aktywni przeciwnicy, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Encounter' } } } } }
   /encounters/{id}/attack:
@@ -489,6 +504,10 @@ components:
     Forbidden: { description: Rola nie ma uprawnień do tej operacji, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     NotFound: { description: Zasób nie istnieje, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     Conflict: { description: 'Konflikt stanu (np. głos już oddany, e-mail zajęty)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    TooFar: { description: 'Gracz stoi poza kółkiem interakcji (kod `too_far`)', content: { application/json: { schema: { $ref: '#/components/schemas/TooFarError' } } } }
+    ValidationErrorOrTooFar:
+      description: 'Błędne dane (`validation_error`), zgłoszenie odrzucone przez moderację (`moderation_rejected`) albo gracz poza kółkiem interakcji (`too_far`)'
+      content: { application/json: { schema: { oneOf: [{ $ref: '#/components/schemas/Error' }, { $ref: '#/components/schemas/TooFarError' }] } } }
     ValidationError: { description: 'Błędne dane (`validation_error`) albo zgłoszenie odrzucone przez moderację (`moderation_rejected`)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
 
   schemas:
@@ -694,17 +713,26 @@ components:
       properties:
         count: { type: integer }
         results: { type: array, items: { $ref: '#/components/schemas/Pokestop' } }
+    TooFarError:
+      type: object
+      required: [code, message, distanceM, radiusM]
+      properties:
+        code: { type: string, enum: [too_far] }
+        message: { type: string, example: 'Jesteś za daleko (112 m), podejdź na mniej niż 50 m' }
+        distanceM: { type: integer, description: Odległość gracza od celu policzona przez serwer }
+        radiusM: { type: integer, description: 'Promień kółka interakcji (dziś 50)', example: 50 }
     NewPokestop:
       type: object
-      required: [scenarioCode, title, lat, lng]
+      required: [scenarioCode, title, lat, lng, position]
       properties:
         scenarioCode: { type: string }
         title: { type: string, minLength: 3, maxLength: 80 }
         description: { type: string }
         character: { allOf: [{ $ref: '#/components/schemas/CharacterCode' }], nullable: true, description: 'Tylko dla `place`/`ngo`/`consultation`. Dla `report`/`idea` serwer go ustala z `stakedPokemonId`.' }
         stakedPokemonId: { type: integer, description: 'Wymagane dla `report`/`idea`: własny, niezastawiony pokemon zostawiany na zgłoszeniu (patrz `GET /me/pokemons`).' }
-        lat: { type: number, format: double }
+        lat: { type: number, format: double, description: 'Miejsce pinezki (musi leżeć w kółku interakcji gracza)' }
         lng: { type: number, format: double }
+        position: { $ref: '#/components/schemas/PositionRequest' }
         photoIds: { type: array, maxItems: 3, items: { type: integer } }
         details: { type: object, additionalProperties: true }
         organizationId: { type: integer, description: 'Wymagane tylko, gdy użytkownik należy do kilku organizacji' }
@@ -729,7 +757,7 @@ components:
     # ---- kolekcja (posiadane pokemony)
     Pokemon:
       type: object
-      required: [id, character, typeCode, level, exp, power, isStaked]
+      required: [id, character, typeCode, level, exp, expIntoLevel, expForNextLevel, power, isStaked]
       properties:
         id: { type: integer }
         character: { $ref: '#/components/schemas/CharacterCode' }
@@ -737,6 +765,8 @@ components:
         nickname: { type: string, nullable: true }
         level: { type: integer, description: Wyliczone przez serwer z `exp` (wzór może się zmieniać) }
         exp: { type: integer }
+        expIntoLevel: { type: integer, description: 'Exp zdobyte w obecnym poziomie (do paska postępu, jak `PlayerProgress.xpIntoLevel`)' }
+        expForNextLevel: { type: integer, description: Exp potrzebne do kolejnego poziomu }
         power: { type: integer, description: 'Aktualna moc do walki, wyliczona z `level`' }
         isStaked: { type: boolean, description: Zostawiony na własnym zgłoszeniu/pomyśle — niedostępny do walki }
         caughtAt: { type: string, format: date-time }

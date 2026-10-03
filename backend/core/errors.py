@@ -6,12 +6,22 @@ from rest_framework.views import exception_handler as drf_exception_handler
 class ApiError(exceptions.APIException):
     """Błąd domenowy z kodem maszynowym (np. `too_far`, `own_pokestop`)."""
 
-    def __init__(self, status_code: int, code: str, message: str, fields: dict | None = None):
+    def __init__(self, status_code: int, code: str, message: str, fields: dict | None = None, extra: dict | None = None):
         super().__init__(detail=message, code=code)
         self.status_code = status_code
         self.code = code
         self.message = message
         self.fields = fields
+        self.extra = extra  # dodatkowe pola odpowiedzi (np. distanceM i radiusM przy `too_far`)
+
+
+def too_far(distance_m: float, radius_m: float) -> ApiError:
+    """Gracz stoi poza kółkiem interakcji: 422 `too_far` z odległością i promieniem (kontrakt: `TooFarError`)."""
+    distance, radius = round(distance_m), round(radius_m)
+    return ApiError(
+        status.HTTP_422_UNPROCESSABLE_ENTITY, 'too_far', f'Jesteś za daleko ({distance} m), podejdź na mniej niż {radius} m',
+        extra={'distanceM': distance, 'radiusM': radius},
+    )
 
 
 def not_implemented(feature: str) -> ApiError:
@@ -49,6 +59,8 @@ def exception_handler(exc, context):
         body = {'code': exc.code, 'message': exc.message}
         if exc.fields:
             body['fields'] = exc.fields
+        if exc.extra:
+            body.update(exc.extra)
     elif isinstance(exc, exceptions.ValidationError):
         body = {'code': 'validation_error', 'message': 'Błędne dane', 'fields': _flatten(exc.detail)}
         response.status_code = status.HTTP_422_UNPROCESSABLE_ENTITY  # kontrakt: błędy walidacji to 422

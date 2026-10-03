@@ -10,7 +10,25 @@ export interface AppConfig {
   api: { baseUrl: string; mode: { pokestops: ApiMode; game: ApiMode; account: ApiMode; scenarios: ApiMode } };
   auth: { storageKeyPrefix: string; autoGuest: boolean; passwordMinLength: number };
   map: { styleUrl: string; workerUrl: string; center: LatLng; zoom: number; pitch: number; bearing: number };
-  game: { interactionRangeM: number; simulatedGps: LatLng };
+  game: {
+    /** Promień kółka interakcji wokół gracza (głos, nowa pinezka, walka). Do wyświetlania: egzekwuje backend. */
+    interactionRangeM: number;
+    simulatedGps: LatLng;
+    /** Ilu pokemonów można najwyżej wystawić do jednej walki. */
+    maxTeamSize: number;
+    /** Mnożnik mocy pokemona, którego typ = typ przeciwnika (do podglądu: wynik liczy backend). */
+    typeMultiplier: number;
+    /** "Akcja na miejscu": tyle sekund trzeba wytrwać w kółku przy przeciwniku, zanim można wybrać drużynę. */
+    actionDwellSeconds: number;
+    /** Tyle sekund gracz ma na powrót do kółka podczas walki, zanim ta się przerwie (GPS potrafi na chwilę "skoczyć"). */
+    leaveGraceSeconds: number;
+    /** Po tylu metrach ruchu pytamy backend o przeciwników na nowo. */
+    encounterRefreshMeters: number;
+    /** Odświeżanie przeciwników także na postoju (wygasają, serwer może wygenerować nowych). */
+    encounterRefreshSeconds: number;
+    /** Najkrótszy czas animacji starcia (wynik i tak przychodzi z backendu). */
+    battleClashMs: number;
+  };
   upload: { enabled: boolean; maxPhotos: number; maxPhotoBytes: number };
   ui: { toastMs: number; commentsPageSize: number; mapReloadDebounceMs: number };
   dev: { tools: boolean };
@@ -87,7 +105,17 @@ export function parseAppConfig(raw: unknown): AppConfig {
       pitch: num(map, 'pitch', 'map.pitch'),
       bearing: num(map, 'bearing', 'map.bearing'),
     },
-    game: { interactionRangeM: num(game, 'interactionRangeM', 'game.interactionRangeM'), simulatedGps: latLng(game, 'simulatedGps', 'game.simulatedGps') },
+    game: {
+      interactionRangeM: num(game, 'interactionRangeM', 'game.interactionRangeM'),
+      simulatedGps: latLng(game, 'simulatedGps', 'game.simulatedGps'),
+      maxTeamSize: num(game, 'maxTeamSize', 'game.maxTeamSize'),
+      typeMultiplier: num(game, 'typeMultiplier', 'game.typeMultiplier'),
+      actionDwellSeconds: num(game, 'actionDwellSeconds', 'game.actionDwellSeconds'),
+      leaveGraceSeconds: num(game, 'leaveGraceSeconds', 'game.leaveGraceSeconds'),
+      encounterRefreshMeters: num(game, 'encounterRefreshMeters', 'game.encounterRefreshMeters'),
+      encounterRefreshSeconds: num(game, 'encounterRefreshSeconds', 'game.encounterRefreshSeconds'),
+      battleClashMs: num(game, 'battleClashMs', 'game.battleClashMs'),
+    },
     upload: {
       enabled: flag(upload, 'enabled', 'upload.enabled'),
       maxPhotos: num(upload, 'maxPhotos', 'upload.maxPhotos'),

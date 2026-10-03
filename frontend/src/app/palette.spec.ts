@@ -61,6 +61,7 @@ describe('palette', () => {
     const accentInk = mix(pink, plum, 40);
     const accentTint = mix(pink, WHITE, 22);
     const tint = mix(lavender, WHITE, 40);
+    const enemyBar = mix(pink, WHITE, 45);
     const pairs: [string, string, string][] = [
       ['text on bg', plum, mist],
       ['text on surface', plum, WHITE],
@@ -73,6 +74,9 @@ describe('palette', () => {
       ['accent-ink text on accent-tint (danger button, pending badge)', accentInk, accentTint],
       ['text on lavender (in-progress status)', plum, lavender],
       ['mist on plum (resolved status, toast)', mist, plum],
+      ['text on the power bar of the team (lavender)', plum, lavender],
+      ['text on the power bar of the enemy (light pink)', plum, enemyBar],
+      ['accent-ink on bg (battle kicker, warnings)', accentInk, mist],
     ];
     for (const [name, fg, bg] of pairs) expect(contrast(fg, bg), name).toBeGreaterThanOrEqual(4.5);
   });

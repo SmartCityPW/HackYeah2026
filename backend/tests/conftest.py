@@ -88,7 +88,7 @@ def report_payload(user: User, **extra) -> dict:
     """Poprawne zgłoszenie problemu (scenariusz res-pothole) z zastawionym pokemonem startowym."""
     payload = {
         'scenarioCode': 'res-pothole', 'title': 'Dziura w chodniku', 'description': 'Głęboka dziura',
-        'lat': RYNEK[0], 'lng': RYNEK[1], 'stakedPokemonId': user.pokemons.first().id,
+        'lat': RYNEK[0], 'lng': RYNEK[1], 'position': {'lat': RYNEK[0], 'lng': RYNEK[1]}, 'stakedPokemonId': user.pokemons.first().id,
     }
     payload.update(extra)
     return payload

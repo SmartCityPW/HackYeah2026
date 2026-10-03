@@ -1,4 +1,4 @@
-import { Component, computed, inject, linkedSignal, output, signal } from '@angular/core';
+import { Component, computed, inject, input, linkedSignal, output, signal } from '@angular/core';
 import { RESIDENT_CATEGORIES, scenariosFor, scenariosInCategory } from '../../../core/scenario.catalog';
 import { FieldValues, Scenario, ScenarioCategory } from '../../../core/scenario.model';
 import { toReport } from '../../../core/scenario.utils';
@@ -23,6 +23,8 @@ export class ReportPanel {
   private readonly pokemons = inject(PokemonService);
 
   readonly drafted = output<ReportDraft>();
+  /** Czy celownik stoi w kółku interakcji gracza (tylko tam można dodać pinezkę). */
+  readonly pinInRange = input(true);
 
   protected readonly isOrg = computed(() => this.session.role() === 'org');
   protected readonly organization = computed(() => this.session.profile().organization);
@@ -58,6 +60,7 @@ export class ReportPanel {
   }
 
   protected submit(scenario: Scenario, values: FieldValues): void {
+    if (!this.pinInRange()) return;
     const report = toReport(scenario, values, this.organization());
     const staked = this.needsStake();
     if (staked && this.stakedId() === null) {

@@ -16,6 +16,8 @@ export class ScenarioForm {
   protected readonly uploadEnabled = this.upload.enabled;
   readonly scenario = input.required<Scenario>();
   readonly submitLabel = input('Dodaj zgłoszenie');
+  /** Blokuje wysłanie (np. pinezka poza kółkiem interakcji). */
+  readonly submitDisabled = input(false);
   readonly submitted = output<FieldValues>();
   readonly cancelled = output<void>();
 

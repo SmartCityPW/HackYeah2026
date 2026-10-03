@@ -33,7 +33,7 @@ from apps.pokestops.models import (
 )
 from apps.scenarios.models import Audience, Scenario
 from apps.scenarios.validation import validate_details
-from core.errors import ApiError
+from core.errors import ApiError, too_far
 from core.geo import distance_m
 
 
@@ -105,6 +105,11 @@ def create_pokestop(user: User, data: dict) -> Pokestop:
     errors = validate_details(scenario, data.get('details', {}))
     if errors:
         raise _invalid(errors)
+    # Pinezkę można postawić tylko w kółku interakcji gracza (sprawdzamy przed moderacją, żeby nie płacić za wywołanie agenta).
+    player = data['position']
+    distance = distance_m(player['lat'], player['lng'], data['lat'], data['lng'])
+    if distance > settings.APP.game.interaction_range_m:
+        raise too_far(distance, settings.APP.game.interaction_range_m)
     if data.get('questions') and scenario.pokestop_type not in ORG_TYPES:
         raise _invalid({'questions': 'Ankietę można dodać tylko do inicjatywy organizacji'})
 
@@ -181,7 +186,7 @@ def vote(*, user: User, pokestop_id: int, value: str, pokemon_id: int, lat: floa
             raise ApiError(http.HTTP_409_CONFLICT, 'already_voted', 'Już oddano głos na tę pinezkę')
         distance = distance_m(lat, lng, stop.lat, stop.lng)
         if distance > cfg.interaction_range_m:
-            raise _forbidden('too_far', f'Jesteś za daleko ({round(distance)} m), podejdź na mniej niż {round(cfg.interaction_range_m)} m')
+            raise too_far(distance, cfg.interaction_range_m)
         pokemon = Pokemon.objects.select_for_update().filter(pk=pokemon_id, user=user).first()
         if pokemon is None:
             raise _invalid({'pokemonId': 'To nie jest Twój pokemon'})

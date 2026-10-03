@@ -1,6 +1,6 @@
 # Plan spinania całości
 
-**Kolejność wykonania:** Etap 0 ✔, Etap 1 ✔, Etap 6 ✔ (paleta; poza 6.6 i 6.7), Etap 2 (adapter gotowy, czeka na test z kluczem), 3, 7, 4, 5. Numery zostały bez zmian, żeby odwołania w README i dokumentacji się zgadzały. Paleta idzie przed Etapami 2 i 3, żeby nowe ekrany (odrzucenie zgłoszenia, logowanie, rejestracja) powstawały od razu w palecie.
+**Kolejność wykonania:** Etap 0 ✔, Etap 1 ✔, Etap 6 ✔ (paleta; poza 6.6 i 6.7), Etap 2 (adapter gotowy, czeka na test z kluczem), Etap 3 ✔ (poza 3.5), Etap 8 (walka), 7, 4, 5. Numery zostały bez zmian, żeby odwołania w README i dokumentacji się zgadzały. Paleta idzie przed Etapami 2 i 3, żeby nowe ekrany (odrzucenie zgłoszenia, logowanie, rejestracja) powstawały od razu w palecie.
 
 Żywy dokument: po każdym kroku odhaczamy `[x]` i dopisujemy, co faktycznie sprawdzono (a czego nie).
 Zasady: wartości zmienne w YAML, sekrety w env, kontrakt = `docs/openapi.yaml`, `docs/opis.md` ma pierwszeństwo przy rozbieżnościach.
@@ -99,16 +99,18 @@ Decyzja 2026-10-03: agentem jest Gemini (klucz z Google AI Studio). Zakres: **wy
 - Warunki Gemini API ([ai.google.dev/gemini-api/terms](https://ai.google.dev/gemini-api/terms)): darmowy plan używa treści do ulepszania produktów (z ręcznym przeglądem) i zabrania wysyłania danych osobowych; ponadto zabrania używania API w usługach „skierowanych do osób poniżej 18 lat lub prawdopodobnie przez nie używanych”. Przy demo bez dzieci akceptowalne. **Przed pilotażem z uczniami** trzeba to rozstrzygnąć. Deklaracja użytkownika: dostępny jest plan Gemini for NGOs (bez trenowania modeli na danych). Nie sprawdzałem, czy obejmuje on użycie API ani czy znosi ograniczenie wieku
 - Prompt injection: tekst zgłoszenia jest oddzielony od instrukcji, ale tego nie wyklucza. Zabezpieczeniem ostatniej instancji jest to, że ocena dotyczy tylko zgłoszeń mieszkańców, a administrator może zmienić status każdej pinezki
 
-## Etap 3: konta, organizacje, administrator (w trakcie)
+## Etap 3: konta, organizacje, administrator
 
-Stan wyjściowy: rola z `/me` już działa (Etap 1), ale nie ma logowania, rejestracji ani wylogowania w interfejsie, a strony organizacji (administrator: lista, organizacja: profil) to statyczne atrapy.
+Stan wyjściowy: rola z `/me` działała (Etap 1), ale nie było logowania, rejestracji ani wylogowania w interfejsie, a strony organizacji (administrator: lista, organizacja: profil) były statycznymi atrapami. **Zrobione i zacommitowane w `908dbbd`** (poza 3.5).
 
-- [ ] 3.1 Warstwa kont: `AccountApi` (mock/http) z `login`, `register`, `registerOrganization`, `upgrade`, `logout`, `myOrganization`, `listOrganizations`, `setOrganizationVerification`. Poprawka interceptora: `/auth/upgrade` musi dostać token (dziś wszystkie `/auth/*` są pomijane)
-- [ ] 3.2 Ekrany: logowanie, rejestracja mieszkańca (dla gościa: „Zapisz postęp” przez `/auth/upgrade`), rejestracja organizacji, konto (profil, wyloguj). Walidacja po stronie klienta + błędy pól z serwera (422 `fields`, 409 `email_taken`, 401). Minimalna długość hasła z konfiguracji. Po zmianie konta pełne przeładowanie, żeby nie zostawić stanu poprzedniego użytkownika
-- [ ] 3.3 Organizacja: profil z `/me/organization` (typ, KRS, kontakt, status weryfikacji), baner „czeka na weryfikację”, przycisk publikacji nieaktywny do weryfikacji (backend: 403 `organization_not_verified`)
-- [ ] 3.4 Administrator: lista organizacji z `/admin/organizations` z filtrem statusu i akcjami Zweryfikuj / Zawieś / Przywróć (`PATCH`)
-- [ ] 3.5 Katalog scenariuszy z `GET /scenarios` zamiast zaszytego w kodzie (tryb `api.mode.scenarios: http`). Ograniczenie: mieszkaniec nie dostaje definicji scenariuszy organizacji, więc do wyświetlania szczegółów cudzych inicjatyw zostaje zaszyty katalog jako zapas (do usunięcia po dodaniu `GET /scenarios/{code}` w backendzie)
-- [ ] 3.6 Testy jednostkowe + przejście na żywym backendzie: rejestracja → zapis postępu → wylogowanie → logowanie; organizacja: rejestracja → oczekuje → administrator weryfikuje → organizacja publikuje
+- [x] 3.1 Warstwa kont: `AccountApi` (mock/http) z `login`, `register`, `registerOrganization`, `upgrade`, `logout`, `myOrganization`, `listOrganizations`, `setOrganizationVerification`. Poprawka interceptora: `/auth/upgrade` dostaje token (wcześniej wszystkie `/auth/*` były pomijane, więc zapis postępu gościa nie mógł się udać)
+- [x] 3.2 Ekrany: logowanie, rejestracja mieszkańca (dla gościa „Zapisz postęp” przez `/auth/upgrade`), rejestracja organizacji, konto (profil, wyloguj). Walidacja klienta (minimalna długość hasła z `auth.passwordMinLength`) i błędy pól z serwera. Po zmianie konta przeładowanie aplikacji, żeby nie zostawić stanu poprzedniego użytkownika. W nawigacji mieszkańca i administratora zakładka „Konto”, w widoku organizacji konto jest pod profilem
+- [x] 3.3 Organizacja: profil z `/me/organization`, baner statusu (⏳ czeka / ✔ zweryfikowana / ⛔ zawieszona), przycisk publikacji zastąpiony „⏳ Czeka na weryfikację” do czasu weryfikacji
+- [x] 3.4 Administrator: lista organizacji z `/admin/organizations` (oczekujące na górze, liczba „do decyzji”, filtr statusu, akcje Zweryfikuj / Zawieś / Przywróć)
+- [ ] 3.5 Katalog scenariuszy z `GET /scenarios` zamiast zaszytego w kodzie (`api.mode.scenarios`; klucz konfiguracji już jest, ale nic go jeszcze nie czyta). Ograniczenie: mieszkaniec nie dostaje definicji scenariuszy organizacji, więc do wyświetlania szczegółów cudzych inicjatyw zostaje zaszyty katalog jako zapas (do usunięcia po dodaniu `GET /scenarios/{code}` w backendzie)
+- [x] 3.6 Testy: 118 jednostkowych ✔ (było 73). Próbki odpowiedzi odświeżone z prawdziwego backendu. Przejście na żywym backendzie (wykonałem sam, zanim poprosiłeś o rezygnację z moich testów klikalnych): gość → zapis postępu → wylogowanie → błędne hasło (komunikat serwera) → logowanie; organizacja: rejestracja → „czeka na weryfikację” (przycisk zablokowany) → administrator weryfikuje → organizacja widzi aktywny przycisk i publikuje inicjatywę (201). **Dalsze testy klikalne robisz Ty**
+
+**Uwaga do commita `908dbbd`:** zawiera moje tymczasowe wartości testowe w `frontend/public/config/app-config.yaml` (`baseUrl` na porcie 8001, `pokestops: http`, `account: http`, `upload.enabled: false`). Domyślne mają być atrapy (`mock`, port 8000, zdjęcia włączone). Przywróciłem je w katalogu roboczym: wymaga osobnego commita.
 
 ## Etap 7: administrator widzi odrzucenia moderacji AI (dopisane 2026-10-03)
 
@@ -121,6 +123,29 @@ Problem: odrzucone przez agenta zgłoszenie nie powstaje jako pinezka, więc adm
 - [ ] 7.5 Retencja: log zawiera odrzuconą treść, która może zawierać dane osobowe, więc potrzebny jest limit czasu przechowywania (wartość w YAML) i polecenie czyszczące
 
 **Do decyzji:** (a) czy administrator ma móc *przywrócić* odrzucone zgłoszenie (wymaga utworzenia pinezki i zastawu pokemona autora), czy tylko wiedzieć o odrzuceniu; (b) czy poza ekranem potrzebne jest powiadomienie zewnętrzne (e-mail, webhook), czy wystarcza odznaka w aplikacji.
+
+## Etap 8: walka z przeciwnikami: integracja brancha `enemy_and_point_of_interest_range_detection` (dopisane 2026-10-03)
+
+Branch (4 commity, odgałęziony od `53f1653`, czyli sprzed Etapów 1, 3 i 6) dodaje: tryb walki (akcja na miejscu, drużyna do 3 pokemonów, podgląd mocy z mnożnikiem ×1,2, wynik `won`/`lost` z serwera, ponowna próba), „kółko interakcji” 50 m wokół gracza (fale od gracza do krawędzi, przygaszone pinezki i przeciwnicy poza zasięgiem, kamera najeżdża na przeciwnika), przeciwników przypisanych do miejsc (kwadraty 100 × 100 m, wspólni dla graczy, najwyżej 5 w kółku, odpytywanie co ~10 m i ~30 s), rozbudowaną stronę Spryciaki (poziomy, exp do następnego poziomu) oraz zmiany kontraktu i atrapy `MockGameApi` (232 linie).
+
+**Ocena: ma sens.** Tryb walki odpowiada wymaganiom z `opis.md` (trzy pokemony, moc kontra moc przeciwnika, mnożnik typu) i kontraktowi `POST /encounters/{id}/attack` z `pokemonIds`. Kółko interakcji poprawia grę. Nie ma jednak sensu zwykłe scalenie: `git merge-tree` pokazuje **25 plików w konflikcie** (m.in. mapa, atrapy API, `pokemon.service`, `game.model`, kontrakt), bo branch rozwijał stary model. Dlatego plan to przeniesienie funkcji na obecny kod, a nie `merge`.
+
+**Czego nie brać z brancha (sprzeczne z kontraktem):** głosowanie jako „zdobycie postaci” (w kontrakcie głos daje exp wybranemu pokemonowi) oraz drugi, równoległy `PokemonService` i `Pokemon` w `game.model.ts` (jest już `pokemon.model.ts` i `PokemonService` z wyborem pokemona do głosu i zastawu; dochodzą pola `typeCode`, `expIntoLevel`, `expForNextLevel`).
+
+- [x] 8.1 Decyzje (2026-10-03): kółko 50 m dla głosu, walki i nowych pinezek (komentarze zewsząd); `position` + `422 too_far` z `distanceM`/`radiusM`; przeciwnicy w kwadratach 100 m (0–6, 5 w kółku, odnowienie 60 s)
+- [x] 8.2 Model i API (frontend): `Pokemon` z typem i expem do następnego poziomu, `Encounter`, `AttackResult`, `GameApi`, HTTP gry, `TooFarError`, wspólny stan gracza w atrapach, wartości z brancha przeniesione do `app-config.yaml`
+- [x] 8.3 Frontend: komponent walki, `EncounterService`, atrapa przeciwników (kwadraty), `geo.utils`
+- [x] 8.4 Frontend: kółko interakcji i tryb walki na mapie, bramki dla głosu i nowych pinezek
+- [x] 8.5 Paleta: wszystko na tokenach (test `palette.spec.ts` przechodzi)
+- [x] 8.6 Strona Spryciaki (poziomy, pasek exp, typ, atlas)
+- [x] 8.7 Testy frontendu: 153 ✔ (nowe: walka, serwis przeciwników, HTTP gry, `too_far`). Niesprawdzone w przeglądarce (tego nie robiłem)
+- [ ] 8.8 **Backend (w trakcie, nic nie jest jeszcze uruchomione ani przetestowane):** zrobione w kodzie: `too_far` jako 422 z odległością, `position` w głosie i nowej pinezce, pola exp w pokemonie, konfiguracja `game.encounters`, kontrakt (`openapi.yaml`, `api-contract.md`). **Zostało:** poprawić istniejące testy backendu (`tests/test_pokestops.py` używa starego `lat`/`lng` i 403), modele i migracja komórek przeciwników, `GET /encounters`, `POST /encounters/{id}/attack` z antyoszustwem, `docs/db/schema.sql`, `scripts/api_walkthrough.py`, ponowne pobranie próbek odpowiedzi dla frontendu
+- [x] 8.9 „Pomiń odliczanie” tylko pod `dev.tools`
+
+**Do decyzji:**
+1. **Zakres kółka 50 m.** Branch ogranicza do kółka głosowanie, **komentowanie i dodawanie pinezek** (kontrakt: `position` w każdym z nich). Obecny kontrakt i backend wymagają bliskości tylko przy głosie, ankiecie, zameldowaniu i ataku, a komentować i zgłaszać można z dowolnego miejsca. Zgłoszenie „z kanapy” jest wygodne, ale odbiera sens „chodzenia po mieście”.
+2. **Kształt błędu i pozycji.** Branch: `position: {lat, lng, accuracyM}` w ciele i `422 too_far` z `distanceM` i `radiusM`. Backend: `lat`/`lng` obok siebie i `403 too_far` z komunikatem. Zmiana wymaga dotknięcia backendu i testów.
+3. **Zasady przeciwników.** Kwadraty 100 m wspólne dla graczy, 0–6 na kwadrat, najwyżej 5 w kółku, odnowienie po ~60 s (branch) czy komórki 500 m i do 3 na komórkę (backend).
 
 ## Etap 4: brakujące operacje backendu (`501`) i ich ekrany
 - [ ] `POST /photos`

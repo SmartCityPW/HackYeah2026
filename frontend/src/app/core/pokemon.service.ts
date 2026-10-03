@@ -11,6 +11,8 @@ export class PokemonService {
   readonly loaded = signal(false);
   /** Niezastawione na zgłoszeniach: tylko te można zostawić na nowym zgłoszeniu. */
   readonly available = computed(() => this.pokemons().filter((p) => !p.isStaked));
+  /** Gotowe do walki: niezastawione, najsilniejsze najpierw. */
+  readonly ready = computed(() => [...this.available()].sort((a, b) => b.power - a.power || b.exp - a.exp));
 
   private readonly chosenId = signal<number | null>(null);
   /** Pokemon, który dostanie exp za głos (ostatnio wybrany, a gdy go nie ma, pierwszy z listy). */

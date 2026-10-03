@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { AppConfigService } from '../../config/app-config.service';
 import { toApiError } from '../../http/api-error';
+import { Position } from '../../game.model';
 import { Pokemon } from '../../pokemon.model';
 import { Bbox, CharacterId, CommentPage, NewReport, Pokestop, PokestopComment, PokestopStatus, VoteContext, VoteResult } from '../../pokestop.model';
 import { PokestopApi } from '../pokestop.api';
@@ -50,7 +51,7 @@ export class HttpPokestopApi extends PokestopApi {
   }
 
   async vote(id: number, vote: 'for' | 'against', { pokemonId, position }: VoteContext): Promise<VoteResult> {
-    const dto = await this.send<VoteResultDto>('POST', `/pokestops/${id}/vote`, { vote, pokemonId, lat: position.lat, lng: position.lng });
+    const dto = await this.send<VoteResultDto>('POST', `/pokestops/${id}/vote`, { vote, pokemonId, position: { lat: position.lat, lng: position.lng } });
     return toVoteResult(dto);
   }
 
@@ -64,8 +65,8 @@ export class HttpPokestopApi extends PokestopApi {
     return toComment(dto);
   }
 
-  async create(report: NewReport): Promise<Pokestop> {
-    const dto = await this.send<PokestopDto>('POST', '/pokestops', toNewPokestop(report));
+  async create(report: NewReport, position: Position): Promise<Pokestop> {
+    const dto = await this.send<PokestopDto>('POST', '/pokestops', toNewPokestop(report, position));
     return toPokestop(dto);
   }
 

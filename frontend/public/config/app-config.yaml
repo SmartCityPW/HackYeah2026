@@ -3,13 +3,13 @@
 # a w środowisku produkcyjnym wystarczy podmienić plik przy wdrożeniu. SEKRETÓW tu nie ma.
 
 api:
-  baseUrl: http://localhost:8001/api/v1   # adres backendu (patrz backend/config/default.yaml: server, app.api_prefix)
+  baseUrl: http://localhost:8000/api/v1   # adres backendu (patrz backend/config/default.yaml: server, app.api_prefix)
   # Źródło danych per obszar. Sposób przechodzenia z atrap na backend: docs/frontend-adaptation.md
   #   mock = dane w pamięci (src/app/core/api/*.mock.ts), http = prawdziwy backend
   mode:
-    pokestops: http
+    pokestops: mock
     game: mock
-    account: http      # konto, logowanie, organizacje (mock = rola wybierana ręcznie przełącznikiem deweloperskim)
+    account: mock      # konto, logowanie, organizacje (mock = rola wybierana ręcznie przełącznikiem deweloperskim)
     scenarios: mock    # katalog scenariuszy zgłoszeń (mock = zaszyty w kodzie, http = GET /scenarios)
 
 auth:
@@ -26,11 +26,18 @@ map:
   bearing: -15
 
 game:
-  interactionRangeM: 50                   # tylko do wyświetlania i wyłączania przycisków, decyduje backend
+  interactionRangeM: 50                   # promień kółka interakcji (głos, nowa pinezka, walka); tylko do wyświetlania, decyduje backend
+  maxTeamSize: 3                          # ilu pokemonów do jednej walki (backend: game.max_party_size)
+  typeMultiplier: 1.2                     # podgląd mnożnika typu (backend: game.same_type_multiplier), wynik walki liczy backend
+  actionDwellSeconds: 20                  # "akcja na miejscu": tyle sekund w kółku przy przeciwniku przed wyborem drużyny
+  leaveGraceSeconds: 5                    # tyle sekund na powrót do kółka w trakcie walki, potem walka się przerywa
+  encounterRefreshMeters: 10              # po tylu metrach ruchu pytamy o przeciwników na nowo
+  encounterRefreshSeconds: 30             # odświeżanie przeciwników także na postoju
+  battleClashMs: 1600                     # najkrótszy czas animacji starcia
   simulatedGps: { lat: 50.0617, lng: 19.9373 }  # pozycja z przycisku "GPS" (narzędzia deweloperskie)
 
 upload:
-  enabled: false                         # false ukrywa pola zdjęć (tryb http, dopóki backend nie ma POST /photos: dziś 501)
+  enabled: true                          # false ukrywa pola zdjęć (tryb http, dopóki backend nie ma POST /photos: dziś 501)
   maxPhotos: 3
   maxPhotoBytes: 5242880                  # 5 MB (zgodnie z backendem: pokestops.photos.max_bytes)
 

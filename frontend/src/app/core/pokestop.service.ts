@@ -4,6 +4,7 @@ import { AppConfigService } from './config/app-config.service';
 import { Pokemon } from './pokemon.model';
 import { PokemonService } from './pokemon.service';
 import { ProgressService } from './progress.service';
+import { Position } from './game.model';
 import { Bbox, NewReport, Pokestop, PokestopStatus, VoteContext } from './pokestop.model';
 import { hasInteraction } from './pokestop.utils';
 
@@ -102,8 +103,8 @@ export class PokestopService {
     }));
   }
 
-  async addReport(report: NewReport): Promise<Pokestop> {
-    const stop = await this.api.create(report);
+  async addReport(report: NewReport, position: Position): Promise<Pokestop> {
+    const stop = await this.api.create(report, position);
     this.merge([stop]);
     void this.pokemons.refresh(); // zastawiony pokemon przestaje być dostępny
     return stop;

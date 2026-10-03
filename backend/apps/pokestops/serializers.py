@@ -127,6 +127,14 @@ class NewQuestionSerializer(serializers.Serializer):
         return data
 
 
+class PositionSerializer(CamelSerializer):
+    """Pozycja gracza w chwili akcji (`PositionRequest`): serwer liczy z niej odległość od celu."""
+
+    lat = serializers.FloatField(min_value=-90, max_value=90)
+    lng = serializers.FloatField(min_value=-180, max_value=180)
+    accuracy_m = serializers.FloatField(required=False, min_value=0)
+
+
 class NewPokestopSerializer(CamelSerializer):
     scenario_code = serializers.CharField()
     title = serializers.CharField(min_length=3, max_length=80)
@@ -134,6 +142,7 @@ class NewPokestopSerializer(CamelSerializer):
     character = serializers.CharField(required=False, allow_null=True)
     lat = serializers.FloatField(min_value=-90, max_value=90)
     lng = serializers.FloatField(min_value=-180, max_value=180)
+    position = PositionSerializer()
     photo_ids = serializers.ListField(child=serializers.IntegerField(), required=False)
     details = serializers.DictField(required=False, default=dict)
     organization_id = serializers.IntegerField(required=False)
@@ -144,9 +153,7 @@ class NewPokestopSerializer(CamelSerializer):
 class VoteRequestSerializer(CamelSerializer):
     vote = serializers.ChoiceField(choices=['for', 'against'])
     pokemon_id = serializers.IntegerField()
-    lat = serializers.FloatField(min_value=-90, max_value=90)
-    lng = serializers.FloatField(min_value=-180, max_value=180)
-    accuracy_m = serializers.FloatField(required=False, min_value=0)
+    position = PositionSerializer()
 
 
 class StatusChangeSerializer(CamelSerializer):

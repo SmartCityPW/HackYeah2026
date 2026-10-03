@@ -21,3 +21,7 @@
 /* Pinezki różnią się nie tylko kolorem (dwa typy dzielą fiolet): zawsze ikona, a konsultacje także podwójnym obramowaniem. */
 .stop-marker { outline: 2px solid var(--color-plum); }
 .stop-marker[data-type='consultation'] { border-style: double; border-width: 7px; }
+
+/* Cele poza kółkiem interakcji: widoczne, ale przygaszone, bo trzeba do nich podejść. */
+.stop-marker.out-of-range, .enemy-marker.out-of-range { opacity: .45; filter: grayscale(.6); }
+.enemy-marker.out-of-range { animation: none; }

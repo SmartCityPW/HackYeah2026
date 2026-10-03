@@ -36,9 +36,12 @@ export interface PlayerProgressDto {
 export interface PokemonDto {
   id: number;
   character: string;
+  typeCode: string;
   nickname: string | null;
   level: number;
   exp: number;
+  expIntoLevel: number;
+  expForNextLevel: number;
   power: number;
   isStaked: boolean;
 }
@@ -83,5 +86,43 @@ export interface NewPokestopDto {
   stakedPokemonId?: number;
   lat: number;
   lng: number;
+  /** Pozycja gracza: serwer sprawdza, czy pinezka leży w jego kółku interakcji. */
+  position: { lat: number; lng: number };
   details: Record<string, unknown>;
 }
+
+export interface EncounterDto {
+  id: number;
+  name: string;
+  emoji: string;
+  level: number;
+  typeCode: string;
+  power: number;
+  description?: string;
+  actionLabel: string;
+  xpReward: number;
+  lat: number;
+  lng: number;
+  expiresAt: string;
+}
+
+export interface AttackPokemonResultDto {
+  pokemonId: number;
+  powerUsed: number;
+  typeMultiplierApplied: number;
+  expGained?: number;
+}
+
+/** Wynik ataku (`outcome` rozróżnia trzy kształty z openapi.yaml: won, lost, too_far). */
+export type AttackResultDto =
+  | {
+      outcome: 'won';
+      enemyPower: number;
+      pokemonPowerTotal: number;
+      pokemons: AttackPokemonResultDto[];
+      awardedCharacter?: string | null;
+      xpGained: number;
+      progress: PlayerProgressDto;
+    }
+  | { outcome: 'lost'; enemyPower: number; pokemonPowerTotal: number; pokemons: AttackPokemonResultDto[] }
+  | { outcome: 'too_far'; distanceM: number };

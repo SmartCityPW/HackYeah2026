@@ -104,7 +104,9 @@ class VoteView(APIView):
         s = VoteRequestSerializer(data=request.data)
         s.is_valid(raise_exception=True)
         d = s.validated_data
-        stop, pokemon = services.vote(user=request.user, pokestop_id=pk, value=d['vote'], pokemon_id=d['pokemon_id'], lat=d['lat'], lng=d['lng'])
+        stop, pokemon = services.vote(
+            user=request.user, pokestop_id=pk, value=d['vote'], pokemon_id=d['pokemon_id'], lat=d['position']['lat'], lng=d['position']['lng'],
+        )
         from apps.collection.serializers import PokemonSerializer
 
         stop_data = _detail(request, stop.id).data

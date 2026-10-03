@@ -12,11 +12,25 @@ export class ApiHttpError extends Error {
   }
 }
 
+/** Gracz stoi poza kółkiem interakcji (kod `too_far`): serwer podaje, jak daleko jest i jaki jest promień kółka. */
+export class TooFarError extends ApiHttpError {
+  constructor(
+    readonly distanceM: number,
+    readonly radiusM: number,
+    message = 'Podejdź bliżej',
+  ) {
+    super(422, 'too_far', message);
+  }
+}
+
 /** Tłumaczy odpowiedź HTTP z błędem na `ApiHttpError` (także gdy backend jest nieosiągalny). */
 export function toApiError(error: unknown): ApiHttpError {
   if (error instanceof ApiHttpError) return error;
   if (error instanceof HttpErrorResponse) {
-    const body = error.error as { code?: string; message?: string; fields?: Record<string, string> } | null;
+    const body = error.error as { code?: string; message?: string; fields?: Record<string, string>; distanceM?: number; radiusM?: number } | null;
+    if (body?.code === 'too_far' && typeof body.distanceM === 'number' && typeof body.radiusM === 'number') {
+      return new TooFarError(body.distanceM, body.radiusM, body.message);
+    }
     if (body && typeof body === 'object' && body.code) {
       return new ApiHttpError(error.status, body.code, body.message ?? error.message, body.fields);
     }
@@ -38,6 +52,7 @@ export class NotAdaptedYet extends Error {
  */
 export function describeError(error: unknown): string {
   const e = toApiError(error);
+  if (e instanceof TooFarError) return `Za daleko: ${e.distanceM} m. Podejdź na mniej niż ${e.radiusM} m.`;
   if (e.code === 'network_error') return 'Brak połączenia z serwerem. Sprawdź internet i spróbuj ponownie.';
   if (e.code === 'unknown_error' || e.code === 'http_error') return 'Coś poszło nie tak. Spróbuj ponownie.';
   return e.message;

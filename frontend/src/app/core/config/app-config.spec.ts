@@ -38,7 +38,7 @@ describe('parseAppConfig', () => {
   });
 
   it('requires the account mode and the new ui and upload keys', () => {
-    for (const [section, key] of [['api.mode', 'account'], ['ui', 'commentsPageSize'], ['ui', 'mapReloadDebounceMs'], ['upload', 'enabled'], ['api.mode', 'scenarios'], ['auth', 'passwordMinLength']]) {
+    for (const [section, key] of [['api.mode', 'account'], ['ui', 'commentsPageSize'], ['ui', 'mapReloadDebounceMs'], ['upload', 'enabled'], ['api.mode', 'scenarios'], ['auth', 'passwordMinLength'], ['game', 'maxTeamSize'], ['game', 'actionDwellSeconds'], ['game', 'battleClashMs']]) {
       const raw = realYaml();
       const target = section === 'api.mode' ? raw['api'].mode : raw[section];
       delete target[key];

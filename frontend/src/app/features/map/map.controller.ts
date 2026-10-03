@@ -2,8 +2,22 @@ import { Injectable, OnDestroy, inject, signal } from '@angular/core';
 import { AppConfigService } from '../../core/config/app-config.service';
 import * as maplibregl from 'maplibre-gl';
 import { Encounter } from '../../core/game.model';
+import { circleRing } from '../../core/geo.utils';
 import { Bbox, POKESTOP_TYPES, Pokestop } from '../../core/pokestop.model';
 import { CharactersLayer } from './three/characters-layer';
+
+const RANGE_SOURCE = 'interaction-range';
+const RIPPLE_SOURCE = 'interaction-ripple';
+/** Ile trwa przejście jednej fali od gracza do krawędzi kółka (ms). */
+const RIPPLE_MS = 2400;
+/** Dwie fale przesunięte o pół okresu, żeby kółko pulsowało bez przerw. */
+const RIPPLES = ['interaction-ripple-a', 'interaction-ripple-b'];
+const EARTH_CIRCUMFERENCE_M = 40_075_016.686;
+/** MapLibre liczy zoom dla kafelków 512 px. */
+const TILE_SIZE_PX = 512;
+
+/** Kolor z tokenu palety (styles.css), bo warstwy MapLibre wymagają konkretnej wartości, a nie zmiennej CSS. */
+const token = (name: string): string => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
 /**
  * Jedyne miejsce w aplikacji, które zna MapLibre: tworzy mapę, rysuje pinezki i postacie 3D.
@@ -11,14 +25,22 @@ import { CharactersLayer } from './three/characters-layer';
  */
 @Injectable()
 export class MapController implements OnDestroy {
-  private readonly config = inject(AppConfigService).config.map;
+  private readonly appConfig = inject(AppConfigService).config;
+  private readonly config = this.appConfig.map;
+  private readonly radiusM = this.appConfig.game.interactionRangeM;
   readonly ready = signal(false);
+  /** Środek widoku (tam celuje celownik przy dodawaniu zgłoszenia), aktualizowany przy każdym ruchu mapy. */
+  readonly centerPosition = signal<{ lat: number; lng: number } | null>(null);
 
   private map?: maplibregl.Map;
   private readonly characters = new CharactersLayer();
   private readonly markers = new Map<number, maplibregl.Marker>();
   private readonly enemyMarkers = new Map<number, maplibregl.Marker>();
   private userMarker?: maplibregl.Marker;
+  private pulseFrame?: number;
+  private userLat?: number;
+  /** Widok sprzed trybu walki, przywracany po jej zakończeniu. */
+  private beforeBattle?: { zoom: number; pitch: number };
 
   init(container: HTMLElement): void {
     // Worker serwujemy jako zasób statyczny (angular.json -> assets), bo bundler nie radzi sobie z workerem MapLibre.
@@ -32,8 +54,15 @@ export class MapController implements OnDestroy {
       bearing: this.config.bearing,
       attributionControl: { compact: true },
     });
+    const syncCenter = () => {
+      const { lat, lng } = this.map!.getCenter();
+      this.centerPosition.set({ lat, lng });
+    };
+    this.map.on('move', syncCenter);
     this.map.on('load', () => {
       this.map!.addLayer(this.characters);
+      syncCenter();
+      this.addRangeLayers();
       this.ready.set(true);
     });
   }
@@ -75,6 +104,18 @@ export class MapController implements OnDestroy {
 
   showUser(lngLat: [number, number]): void {
     if (!this.map) return;
+    const ring = circleRing({ lng: lngLat[0], lat: lngLat[1] }, this.radiusM);
+    (this.map.getSource(RANGE_SOURCE) as maplibregl.GeoJSONSource | undefined)?.setData({
+      type: 'Feature',
+      properties: {},
+      geometry: { type: 'Polygon', coordinates: [ring] },
+    });
+    (this.map.getSource(RIPPLE_SOURCE) as maplibregl.GeoJSONSource | undefined)?.setData({
+      type: 'Feature',
+      properties: {},
+      geometry: { type: 'Point', coordinates: lngLat },
+    });
+    this.userLat = lngLat[1];
     if (this.userMarker) {
       this.userMarker.setLngLat(lngLat);
       return;
@@ -100,13 +141,69 @@ export class MapController implements OnDestroy {
     this.map?.on('moveend', callback);
   }
 
-  /** Środek widoku, czyli miejsce wskazywane celownikiem przy dodawaniu zgłoszenia. */
-  center(): { lat: number; lng: number } | null {
-    return this.map?.getCenter() ?? null;
+  /** Tryb walki: kamera najeżdża nisko na przeciwnika. */
+  enterBattle(lat: number, lng: number): void {
+    if (!this.map) return;
+    this.beforeBattle ??= { zoom: this.map.getZoom(), pitch: this.map.getPitch() };
+    this.map.easeTo({ center: [lng, lat], zoom: 18.6, pitch: 65, duration: 900 });
+  }
+
+  exitBattle(): void {
+    if (!this.map || !this.beforeBattle) return;
+    this.map.easeTo({ ...this.beforeBattle, duration: 700 });
+    this.beforeBattle = undefined;
+  }
+
+  /** Przygasza pinezki i przeciwników spoza kółka interakcji (z nimi nie da się nic zrobić, trzeba podejść). */
+  markInRange(stopIds: ReadonlySet<number>, encounterIds: ReadonlySet<number>): void {
+    for (const [id, marker] of this.markers) marker.getElement().classList.toggle('out-of-range', !stopIds.has(id));
+    for (const [id, marker] of this.enemyMarkers) marker.getElement().classList.toggle('out-of-range', !encounterIds.has(id));
   }
 
   ngOnDestroy(): void {
+    if (this.pulseFrame !== undefined) cancelAnimationFrame(this.pulseFrame);
     this.map?.remove();
+  }
+
+  /**
+   * Kółko interakcji: stała krawędź (wielokąt w metrach, więc przy przybliżaniu i oddalaniu mapy obejmuje zawsze
+   * ten sam teren) i fale rozchodzące się od gracza aż do tej krawędzi. Pozycję ustawia `showUser`,
+   * dopóki jej nie znamy, kółka nie ma. Kolor to token marki (fiolet).
+   */
+  private addRangeLayers(): void {
+    const map = this.map!;
+    const color = token('--color-indigo');
+    const empty = { type: 'FeatureCollection' as const, features: [] };
+    map.addSource(RANGE_SOURCE, { type: 'geojson', data: empty });
+    map.addSource(RIPPLE_SOURCE, { type: 'geojson', data: empty });
+    map.addLayer({ id: 'interaction-range-fill', type: 'fill', source: RANGE_SOURCE, paint: { 'fill-color': color, 'fill-opacity': 0.1 } });
+    for (const id of RIPPLES) {
+      map.addLayer({
+        id,
+        type: 'circle',
+        source: RIPPLE_SOURCE,
+        // Fala leży płasko na mapie i skaluje się razem z nią (jak wielokąt krawędzi).
+        paint: { 'circle-color': color, 'circle-pitch-alignment': 'map', 'circle-pitch-scale': 'map', 'circle-stroke-color': color },
+      });
+    }
+    map.addLayer({ id: 'interaction-range-line', type: 'line', source: RANGE_SOURCE, paint: { 'line-color': color, 'line-width': 2.5, 'line-opacity': 0.9 } });
+
+    const pulse = (now: number) => {
+      if (this.userLat !== undefined) {
+        const metersPerPx = (EARTH_CIRCUMFERENCE_M * Math.cos((this.userLat * Math.PI) / 180)) / (TILE_SIZE_PX * 2 ** map.getZoom());
+        const edgePx = this.radiusM / metersPerPx;
+        RIPPLES.forEach((id, i) => {
+          const t = (((now / RIPPLE_MS + i / RIPPLES.length) % 1) + 1) % 1; // 0 przy kropce, 1 na krawędzi
+          const fade = 1 - t;
+          map.setPaintProperty(id, 'circle-radius', edgePx * t);
+          map.setPaintProperty(id, 'circle-opacity', 0.28 * fade);
+          map.setPaintProperty(id, 'circle-stroke-width', 2.5);
+          map.setPaintProperty(id, 'circle-stroke-opacity', 0.9 * fade);
+        });
+      }
+      this.pulseFrame = requestAnimationFrame(pulse);
+    };
+    this.pulseFrame = requestAnimationFrame(pulse);
   }
 
   private createMarker(stop: Pokestop, onSelect: (id: number) => void): maplibregl.Marker {

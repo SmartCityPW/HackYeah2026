@@ -2,7 +2,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { provideTestConfig, TEST_CONFIG } from '../../config/testing';
-import { ApiHttpError, describeError } from '../../http/api-error';
+import { ApiHttpError, TooFarError, describeError } from '../../http/api-error';
 import { GameApi } from '../game.api';
 import { PokestopApi } from '../pokestop.api';
 import { MockGameApi } from '../game.api.mock';
@@ -122,7 +122,7 @@ describe('HttpPokestopApi (real backend responses captured from the running API)
     const api = TestBed.inject(PokestopApi);
     const all = api.listPokemons();
     http.expectOne(`${BASE}/me/pokemons`).flush(sample.pokemons);
-    expect(await all).toEqual([{ id: sample.pokemons[0].id, character: 'cyclist', nickname: null, level: 1, exp: 0, power: 20, isStaked: false }]);
+    expect(await all).toEqual([{ id: sample.pokemons[0].id, character: 'cyclist', typeCode: 'transport', nickname: null, level: 1, exp: 0, expIntoLevel: 0, expForNextLevel: 100, power: 20, isStaked: false }]);
 
     const free = api.listPokemons(true);
     http.expectOne(`${BASE}/me/pokemons?availableOnly=true`).flush([]);
@@ -134,7 +134,7 @@ describe('HttpPokestopApi (real backend responses captured from the running API)
     const result = TestBed.inject(PokestopApi).vote(8, 'for', { pokemonId: 12, position: { lat: 50.0618, lng: 19.9373 } });
     const req = http.expectOne(`${BASE}/pokestops/8/vote`);
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({ vote: 'for', pokemonId: 12, lat: 50.0618, lng: 19.9373 });
+    expect(req.request.body).toEqual({ vote: 'for', pokemonId: 12, position: { lat: 50.0618, lng: 19.9373 } });
     req.flush(sample.voteResult);
     const { stop, pokemon } = await result;
     expect(stop).toMatchObject({ id: 8, votesFor: 1, myVote: 'for', mine: false });
@@ -145,10 +145,11 @@ describe('HttpPokestopApi (real backend responses captured from the running API)
     const { http } = setup();
     const api = TestBed.inject(PokestopApi);
     const far = api.vote(8, 'for', { pokemonId: 12, position: { lat: 50.07, lng: 19.93 } });
-    http.expectOne(`${BASE}/pokestops/8/vote`).flush(sample.errors.tooFar, { status: 403, statusText: 'Forbidden' });
-    const error = (await far.catch((e) => e)) as ApiHttpError;
-    expect([error.status, error.code]).toEqual([403, 'too_far']);
-    expect(describeError(error)).toBe(sample.errors.tooFar.message);
+    http.expectOne(`${BASE}/pokestops/8/vote`).flush(sample.errors.tooFar, { status: 422, statusText: 'Unprocessable' });
+    const error = (await far.catch((e) => e)) as TooFarError;
+    expect(error).toBeInstanceOf(TooFarError);
+    expect([error.status, error.code, error.distanceM, error.radiusM]).toEqual([422, 'too_far', 1112, 50]);
+    expect(describeError(error)).toBe('Za daleko: 1112 m. Podejdź na mniej niż 50 m.');
   });
 
   it('maps a real comment page with replies and posts a reply under its parent', async () => {
@@ -173,17 +174,20 @@ describe('HttpPokestopApi (real backend responses captured from the running API)
     const result = TestBed.inject(PokestopApi).create({
       type: 'report', scenarioId: 'res-pothole', icon: '🕳️', photos: [], details: {}, title: 'Dziura próbna', description: 'x',
       character: 'cyclist', stakedPokemonId: 11, lat: 50.0617, lng: 19.9373,
-    });
+    }, { lat: 50.0618, lng: 19.9373 });
     const req = http.expectOne(`${BASE}/pokestops`);
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({ scenarioCode: 'res-pothole', title: 'Dziura próbna', description: 'x', stakedPokemonId: 11, lat: 50.0617, lng: 19.9373, details: {} });
+    expect(req.request.body).toEqual({
+      scenarioCode: 'res-pothole', title: 'Dziura próbna', description: 'x', stakedPokemonId: 11, lat: 50.0617, lng: 19.9373,
+      position: { lat: 50.0618, lng: 19.9373 }, details: {},
+    });
     req.flush(sample.createdStop);
     expect(await result).toMatchObject({ id: 8, mine: true, character: 'cyclist' });
   });
 
   it('a place sends the chosen character and no stake', async () => {
     const { http } = setup();
-    void TestBed.inject(PokestopApi).create({ type: 'place', scenarioId: 'place-food', icon: '☕', photos: [], details: { rating: '5' }, title: 'Kawiarnia', description: '', character: 'bin', lat: 1, lng: 2 });
+    void TestBed.inject(PokestopApi).create({ type: 'place', scenarioId: 'place-food', icon: '☕', photos: [], details: { rating: '5' }, title: 'Kawiarnia', description: '', character: 'bin', lat: 1, lng: 2 }, { lat: 1, lng: 2 });
     const body = http.expectOne(`${BASE}/pokestops`).request.body;
     expect(body).toMatchObject({ character: 'bin', details: { rating: '5' } });
     expect(body).not.toHaveProperty('stakedPokemonId');
@@ -191,7 +195,7 @@ describe('HttpPokestopApi (real backend responses captured from the running API)
 
   it('keeps the moderation verdict readable when a report is refused', async () => {
     const { http } = setup();
-    const result = TestBed.inject(PokestopApi).create({ type: 'report', scenarioId: 'res-pothole', icon: '🕳️', photos: [], details: {}, title: 'x [odrzuć]', description: '', character: 'cyclist', stakedPokemonId: 11, lat: 1, lng: 2 });
+    const result = TestBed.inject(PokestopApi).create({ type: 'report', scenarioId: 'res-pothole', icon: '🕳️', photos: [], details: {}, title: 'x [odrzuć]', description: '', character: 'cyclist', stakedPokemonId: 11, lat: 1, lng: 2 }, { lat: 1, lng: 2 });
     http.expectOne(`${BASE}/pokestops`).flush(sample.errors.moderationRejected, { status: 422, statusText: 'Unprocessable' });
     const error = (await result.catch((e) => e)) as ApiHttpError;
     expect([error.status, error.code]).toEqual([422, 'moderation_rejected']);

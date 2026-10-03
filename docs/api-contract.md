@@ -31,7 +31,14 @@ i do wyboru 3 pokemonów do walki.
 
 ## Reguły, które egzekwuje backend
 
-- **Głosowanie tylko z bliska** (`opis.md`): klient wysyła swoją pozycję, serwer liczy odległość od pinezki i przy przekroczeniu zasięgu (dziś 50 m) odpowiada `403` z kodem `too_far`. To samo dotyczy ankiet i zameldowania na wydarzeniu. Komentowanie nie wymaga bliskości.
+- **Kółko interakcji** (`opis.md`, jak w Pokémon GO): wokół gracza jest kółko o promieniu **50 m** (konfiguracja
+  `game.interaction_range_m`, ten sam zasięg co atak). Tylko w nim można **głosować, dodawać pinezki, walczyć** (oraz
+  wypełniać ankiety i meldować się na wydarzeniach). **Komentować można z dowolnego miejsca**, podgląd pinezki
+  (`GET /pokestops/{id}`) też. Klient wysyła w tych akcjach swoją pozycję: `position` (`PositionRequest`) przy głosie i
+  nowej pinezce, `lat`/`lng` przy ataku. Serwer liczy odległość sam: przy głosie od pinezki, przy nowej pinezce od jej
+  `lat`/`lng`. Poza kółkiem odpowiada `422` z kodem `too_far` (`TooFarError`: `distanceM`, `radiusM`) i niczego nie
+  zapisuje (głos, exp, pinezka, zastaw). Na mapie kółko ma stały promień w metrach, więc przybliżanie nie zwiększa
+  zasięgu i trzeba podejść. (Decyzja 2026-10-03: kółko ogranicza głos, walkę i nowe pinezki, a komentarze nie.)
 - **Głosowanie:** jeden głos na użytkownika (klucz główny w bazie), bez zmiany. Głosujący wskazuje `pokemonId`
   (jeden z własnych, dowolny — może być zastawiony) i **przy pierwszym głosie** ten pokemon dostaje +10 exp
   (`VoteResult.pokemon`, patrz niżej); kolejna próba głosu na tę samą pinezkę zwraca `409` i exp się nie powtarza.
@@ -49,7 +56,7 @@ i do wyboru 3 pokemonów do walki.
   Bez ostatnich dwóch punktów pokemon zastawiony na odrzuconym lub martwym zgłoszeniu byłby zablokowany na zawsze.
   Skutek jest widoczny w `GET /pokestops/{id}` jako `stakeReleasedAt`.
 - **Walka:** klient wybiera do 3 własnych, niezastawionych pokemonów (`pokemonIds`) i wysyła pozycję. Serwer liczy
-  odległość (dziś 50 m; za daleko → `too_far`, pokemony się nie liczą), dla pokemonów w zasięgu liczy moc każdego
+  odległość (dziś 50 m; za daleko → wynik `too_far`, pokemony się nie liczą), dla pokemonów w zasięgu liczy moc każdego
   (z jego exp) × **1.2, jeśli jego typ = typ przeciwnika**, sumuje i porównuje z mocą przeciwnika
   (`Encounter.power`). Suma większa → `won`: każdy użyty pokemon dostaje exp (= `xpReward`), gracz dostaje nową
   postać do kolekcji i XP. Suma mniejsza lub równa → `lost`: próba się zapisuje, nagrody nie ma, przeciwnik
@@ -57,7 +64,12 @@ i do wyboru 3 pokemonów do walki.
   więc dwóch graczy nie pokona tego samego przeciwnika. Klient liczy odległość i podgląd mocy tylko na wyświetlanie —
   serwer rozstrzyga walkę od nowa.
 - **Przeciwnicy:** generuje wyłącznie serwer (losowanie z `game_enemy_type` wg wag, czas życia `expiresAt`); moc i
-  typ przeciwnika są widoczne w `GET /encounters`, żeby gracz mógł dobrać pokemony przed podejściem.
+  typ przeciwnika są widoczne w `GET /encounters`, żeby gracz mógł dobrać pokemony przed podejściem. Są
+  **przypisani do miejsc**: teren dzieli się na kwadraty 100 × 100 m, każdy kwadrat przy pierwszym odwiedzeniu losuje
+  0–6 przeciwników, którzy stoją w miejscu do pokonania albo wygaśnięcia, a wyczyszczony kwadrat zasiedla się na nowo
+  po ~60 s. Wracając w to samo miejsce, gracz spotyka tych samych przeciwników, a gracze stojący obok siebie widzą
+  tych samych. `GET /encounters?radius=50` zwraca najbliższych w kółku, **najwyżej 5** (może nie być żadnego). Klient
+  pyta po każdych ~10 m ruchu i co ~30 s na postoju. Wartości są konfiguracją (`game.encounters`).
 - **Pokemon startowy:** `POST /auth/guest` i `POST /auth/register` przyznają jeden egzemplarz gatunku startowego —
   inaczej nowy gracz nie miałby czym głosować.
 - **Moderacja AI (tylko zgłoszenia mieszkańców):** przed zapisem agent ze zahardkodowanym promptem dostaje treść zgłoszenia i
@@ -90,11 +102,14 @@ Dzisiejsze atrapy (`core/api/*.mock.ts`) działają inaczej w kilku miejscach. T
 7. **Rola i organizacja:** z `GET /me` i `/me/organization`, a tryb deweloperski (przełącznik ról, symulowany GPS) ma zniknąć lub zostać tylko w buildzie deweloperskim.
 8. **Tokeny:** interceptor HTTP z JWT i odświeżaniem.
 9. **Wybór pokemona przy głosowaniu i zgłaszaniu:** ekran głosu musi dać wybrać `pokemonId` z `/me/pokemons` (nie wysyłać samego `vote`), a formularz zgłoszenia problemu/pomysłu — `stakedPokemonId` (i pokazać, że ten pokemon jest "zablokowany" do zwrotu progu głosów).
-10. **Ekran walki:** wybór do 3 pokemonów z `/me/pokemons` (z podglądem mocy/typu i mnożnika, jeśli typ = typ przeciwnika z `GET /encounters`) zamiast samego przycisku "atakuj"; obsłużyć nowy wynik `lost` (dziś atrapa znała tylko `won`/`too_far`).
+10. **Ekran walki:** ✔ zrobione (`features/map/battle`). Kliknięcie przeciwnika w kółku → tryb walki (kamera najeżdża na
+    przeciwnika) → akcja na miejscu (czas z `app-config.yaml`) → wybór 1–3 pokemonów z `/me/pokemons` z podglądem mocy
+    i mnożnika → `POST /encounters/{id}/attack` → wynik `won` (exp dla drużyny, nowa postać, XP) albo `lost` (ponowna
+    próba innym składem). Wyjście z kółka przed starciem przerywa walkę po krótkim czasie łaski.
 11. **Słownik z API:** postacie i typy z `GET /catalog` zamiast stałych `CHARACTERS` w kodzie (modele 3D zostają we frontendzie, wiązane po `code`).
 12. **Zgłoszenie z pokemonem:** postać na pinezce `report`/`idea` to gatunek zastawionego pokemona, a nie pole scenariusza. Wymaga to kroku wyboru pokemona w formularzu i przycisku "Wycofaj zgłoszenie".
 13. **Odrzucenie przez moderację:** błąd `moderation_rejected` pokazać użytkownikowi (komunikat ogólny, bez powodu) bez utraty wpisanych danych, a `moderation_unavailable` jako "spróbuj ponownie".
-14. **Głosowanie z pozycją:** `POST .../vote` wymaga `lat`/`lng` (i `accuracyM`). Dziś atrapa nie sprawdza odległości, a przycisk głosu jest zawsze aktywny. Dochodzi obsługa `too_far`.
+14. **Pozycja w akcjach na pinezkach:** ✔ zrobione. `POST .../vote` i `POST /pokestops` wysyłają `position`, a `422 too_far` jest zamieniane na `TooFarError` (komunikat „Za daleko: 112 m. Podejdź na mniej niż 50 m”). Przycisk głosu i dodawania pinezki jest nieaktywny poza kółkiem.
 15. **Ankiety:** wyświetlenie `questions` na karcie pinezki `ngo`/`consultation`, formularz odpowiedzi (z nagrodą-pokemonem) oraz po stronie organizacji kreator pytań i widok wyników.
 16. **Wydarzenia:** nowy rodzaj pinezki na mapie, szczegóły, przycisk zameldowania i panel organizacji do tworzenia wydarzeń.
 17. **Komentarze:** `GET .../comments` ze stronicowaniem i odpowiedziami zamiast pełnej listy w szczegółach pinezki (dziś `comments` siedzą w obiekcie pinezki).
@@ -113,7 +128,7 @@ reguły w jednym miejscu (SRP). Gdzie decyzja ma świadomy koszt, jest on wypisa
 | 3 | "Akcja na miejscu" | **Tylko obecność** (`action_kind = 'checkin'` dla wszystkich). `actionLabel` to instrukcja w interfejsie, bez weryfikacji. | Weryfikacja zdjęciem lub kodem QR to osobna funkcja. Kolumna zostaje na przyszłość. W demo mówimy to otwarcie. |
 | 4 | Stałe gry | **Wartości w pliku YAML** (`backend/config/default.yaml`, sekcja `game`): exp za głos 10, premia za zwrot 50, mnożnik typu 1.2, zasięg interakcji 50 m (głos, ankieta, zameldowanie, atak), drużyna 3, poziomy, limity antyoszustwa. **Bez tabeli `game_config`.** | Pierwotnie zahardkodowane w module, ale zasada projektu mówi, że wszystkie wartości zmienne leżą w YAML-u (sekrety w zmiennych środowiskowych). Zmiana = edycja pliku, bez migracji i bez przebudowy. Triggery nagród usunięte, baza zapisuje tylko wynik (`exp_granted`, `stake_bonus_exp`, `type_multiplier_applied`), więc zmiana wartości nie psuje historii. Test sprawdza, że zmiana w konfiguracji rzeczywiście zmienia zachowanie. |
 | 5 | Farmienie walk | **Bez cooldownu po porażce.** | Moc przeciwnika jest jawna, a próba kosztuje tylko czas i mieści się w limicie z pkt 2. Cooldown utrudniałby testowanie różnych trójek. |
-| 6 | Generowanie przeciwników | **Leniwie przy `GET /encounters`, bez Celery.** Siatka ok. 500 m, do 3 aktywnych na komórkę, dolosowanie wg `spawn_weight`, życie 30 min, blokada `pg_advisory_xact_lock` na komórkę. Wygasłe odfiltrowane po `expires_at` i hurtowo oznaczane `expired`. Niezależne od liczby graczy. | Zero infrastruktury w tle. Koszt: pierwsze zapytanie w pustej okolicy jest wolniejsze. |
+| 6 | Generowanie przeciwników | **Leniwie przy `GET /encounters`, bez Celery** (decyzja 2026-10-03: zasady z brancha `enemy_and_point_of_interest_range_detection`). Kwadraty **100 × 100 m**, wspólne dla graczy; kwadrat przy pierwszym odwiedzeniu losuje **0–6** przeciwników wg `spawn_weight`, życie 30 min, wyczyszczony kwadrat odnawia się po **60 s**, odpowiedź zawiera **najwyżej 5** najbliższych w kółku. Wygasłe odfiltrowane po `expires_at` i oznaczane `expired`. Wartości w YAML (`game.encounters`). | Zero infrastruktury w tle. Gracze obok siebie widzą tych samych przeciwników, a wracając w miejsce spotyka się tych samych. Koszt: pierwsze zapytanie w nowym kwadracie jest wolniejsze. |
 | 7 | RODO i lokalizacja | **Pozycje z `game_attack` kasowane po 30 dniach** (komenda zarządzania uruchamiana z crona). Usunięcie konta = anonimizacja (nazwa "Usunięty użytkownik", e-mail `NULL`), historia i pokemony zostają. Zgoda na lokalizację przy pierwszym użyciu. | Zgodne z kluczami `RESTRICT` na autorach. Na hackathon wystarczy komenda, nie harmonogram. |
 | 8 | Moderacja treści | **Agent AI przy tworzeniu zgłoszeń mieszkańców** (tytuł, opis, pola tekstowe). Zgłoszenia zweryfikowanych organizacji agenta nie przechodzą. Komentarze: administrator może je ukryć, brak automatu. **Zdjęcia: tylko limity techniczne** (typ, 5 MB), bez analizy treści. | `opis.md`: agent moderuje zgłoszenia od użytkowników. Organizacje są weryfikowane przez administratora, więc im ufamy. Brak analizy zdjęć to świadomie zaakceptowane ryzyko na demo, do dodania przed produkcją. |
 | 9 | Log agenta AI i awaria agenta | **Log: tak** (`pokestops_moderation_log`: treść, werdykt tak/nie/błąd, model, czas). **Awaria lub timeout 5 s: zgłoszenie nie powstaje** (`503`, ponowienie przez użytkownika), a nie przechodzi bez oceny. | Agent zwraca tylko tak/nie, więc bez logu nie da się ocenić ani poprawić promptu. Wcześniejszy pomysł "przepuść przy awarii" odrzucony: treść bez oceny nie powinna trafić na publiczną mapę, a wymuszone ponowienie kosztuje użytkownika kilka sekund. |

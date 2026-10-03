@@ -1,6 +1,8 @@
 from rest_framework import serializers
 
 from apps.collection.models import Character, Pokemon, PokemonType
+from django.conf import settings
+
 from apps.collection.services import level_for, power_for
 from core.serializers import CamelSerializer
 
@@ -12,12 +14,20 @@ class PokemonSerializer(CamelSerializer):
     nickname = serializers.CharField(allow_null=True)
     level = serializers.SerializerMethodField()
     exp = serializers.IntegerField()
+    exp_into_level = serializers.SerializerMethodField()
+    exp_for_next_level = serializers.SerializerMethodField()
     power = serializers.SerializerMethodField()
     is_staked = serializers.BooleanField()
     caught_at = serializers.DateTimeField(source='created_at')
 
     def get_level(self, obj: Pokemon) -> int:
         return level_for(obj.exp)
+
+    def get_exp_into_level(self, obj: Pokemon) -> int:
+        return obj.exp % settings.APP.game.levels.exp_per_pokemon_level
+
+    def get_exp_for_next_level(self, obj: Pokemon) -> int:
+        return settings.APP.game.levels.exp_per_pokemon_level
 
     def get_power(self, obj: Pokemon) -> int:
         return power_for(obj.character, obj.exp)

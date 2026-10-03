@@ -1,18 +1,19 @@
 import { Injectable, inject } from '@angular/core';
 import { AppConfigService } from '../config/app-config.service';
+import { Position } from '../game.model';
 import { distanceMeters } from '../geo.utils';
-import { ApiHttpError } from '../http/api-error';
+import { ApiHttpError, TooFarError } from '../http/api-error';
 import { Pokemon } from '../pokemon.model';
 import { Bbox, CHARACTER_IDS, CharacterId, CommentPage, NewReport, Pokestop, PokestopComment, PokestopStatus, VoteContext, VoteResult } from '../pokestop.model';
 import { hasInteraction } from '../pokestop.utils';
 import { PokestopApi } from './pokestop.api';
-import { MOCK_POKEMONS, MOCK_STOPS } from './pokestop.mock-data';
+import { MockPlayerState, toPokemon } from './mock-player.state';
+import { MOCK_STOPS } from './pokestop.mock-data';
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 
-/** Exp za głos i exp na poziom: te same wartości co w backend/config/default.yaml (game.exp.per_vote, game.levels). */
+/** Exp za głos: ta sama wartość co w backend/config/default.yaml (game.exp.per_vote). */
 const EXP_PER_VOTE = 10;
-const EXP_PER_LEVEL = 100;
 
 /**
  * Atrapa backendu w pamięci. Robi to, co zrobiłby serwer: nadaje ID, ustala autora, pilnuje zasięgu i jednego głosu,
@@ -21,8 +22,8 @@ const EXP_PER_LEVEL = 100;
 @Injectable()
 export class MockPokestopApi extends PokestopApi {
   private readonly range = inject(AppConfigService).config.game.interactionRangeM;
+  private readonly player = inject(MockPlayerState);
   private stops: Pokestop[] = clone(MOCK_STOPS);
-  private pokemons: Pokemon[] = clone(MOCK_POKEMONS);
 
   async list(area?: Bbox, status?: PokestopStatus): Promise<Pokestop[]> {
     const inArea = (s: Pokestop) => !area || (s.lng >= area.west && s.lng <= area.east && s.lat >= area.south && s.lat <= area.north);
@@ -43,17 +44,14 @@ export class MockPokestopApi extends PokestopApi {
     const stop = this.require(id);
     if (stop.mine) throw new ApiHttpError(403, 'own_pokestop', 'Nie możesz głosować na własne zgłoszenie.');
     if (stop.myVote) throw new ApiHttpError(409, 'already_voted', 'Już głosowałeś na tę pinezkę.');
-    const pokemon = this.pokemons.find((p) => p.id === pokemonId);
+    const pokemon = this.player.find(pokemonId);
     if (!pokemon) throw new ApiHttpError(404, 'not_found', 'Nie masz takiego pokemona.');
-    if (distanceMeters(position, stop) > this.range) {
-      throw new ApiHttpError(403, 'too_far', `Jesteś za daleko od tego miejsca. Podejdź na mniej niż ${this.range} m.`);
-    }
+    this.requireInRange(position, stop);
     stop.myVote = vote;
     if (vote === 'for') stop.votesFor++;
     else stop.votesAgainst++;
     pokemon.exp += EXP_PER_VOTE;
-    pokemon.level = 1 + Math.floor(pokemon.exp / EXP_PER_LEVEL);
-    return { stop: clone(stop), pokemon: clone(pokemon) };
+    return { stop: clone(stop), pokemon: toPokemon(pokemon) };
   }
 
   async listComments(id: number, page: number, pageSize: number): Promise<CommentPage> {
@@ -75,11 +73,12 @@ export class MockPokestopApi extends PokestopApi {
     return clone(created);
   }
 
-  async create(report: NewReport): Promise<Pokestop> {
+  async create(report: NewReport, position: Position): Promise<Pokestop> {
+    this.requireInRange(position, report);
     const staked = report.type === 'report' || report.type === 'idea';
     let character = report.character;
     if (staked) {
-      const pokemon = this.pokemons.find((p) => p.id === report.stakedPokemonId);
+      const pokemon = this.player.find(report.stakedPokemonId ?? -1);
       if (!pokemon) throw new ApiHttpError(422, 'validation_error', 'Wybierz pokemona, którego zostawisz na zgłoszeniu.');
       if (pokemon.isStaked) throw new ApiHttpError(409, 'pokemon_unavailable', 'Ten pokemon jest już zastawiony. Wybierz innego.');
       pokemon.isStaked = true;
@@ -110,12 +109,18 @@ export class MockPokestopApi extends PokestopApi {
 
   async listCollection(): Promise<Record<CharacterId, number>> {
     const counts = Object.fromEntries(CHARACTER_IDS.map((c) => [c, 0])) as Record<CharacterId, number>;
-    for (const p of this.pokemons) counts[p.character]++;
+    for (const p of this.player.pokemons) counts[p.character]++;
     return counts;
   }
 
   async listPokemons(availableOnly = false): Promise<Pokemon[]> {
-    return clone(this.pokemons.filter((p) => !availableOnly || !p.isStaked));
+    return this.player.pokemons.filter((p) => !availableOnly || !p.isStaked).map(toPokemon);
+  }
+
+  /** Jak serwer: głos i nowa pinezka tylko w kółku interakcji gracza (inaczej 422 `too_far` z odległością i promieniem). */
+  private requireInRange(position: Position, target: Position): void {
+    const distanceM = Math.round(distanceMeters(position, target));
+    if (distanceM > this.range) throw new TooFarError(distanceM, this.range, `Jesteś za daleko (${distanceM} m), podejdź na mniej niż ${this.range} m`);
   }
 
   private require(id: number): Pokestop {

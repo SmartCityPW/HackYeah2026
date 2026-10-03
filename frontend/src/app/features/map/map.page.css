@@ -57,3 +57,7 @@
 .enemy-action { margin: 6px 0; }
 .fight { width: 100%; margin-top: 6px; }
 .fight:disabled { opacity: .4; cursor: not-allowed; }
+
+.tool.fight-now { background: var(--accent-strong); color: var(--on-strong); }
+.crosshair.out-of-range { opacity: .45; filter: grayscale(1) drop-shadow(0 4px 4px var(--shadow-strong)); }
+.locate { position: absolute; top: 64px; left: 16px; right: 16px; z-index: 15; max-width: 520px; margin: 0 auto; padding: 10px 14px; border-radius: 16px; background: var(--surface); font-size: .85rem; box-shadow: 0 4px 14px var(--shadow); border-left: 5px solid var(--brand); }

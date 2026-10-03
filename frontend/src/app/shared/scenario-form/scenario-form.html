@@ -109,5 +109,5 @@
 
 <div class="actions">
   <button type="button" class="btn ghost" (click)="cancelled.emit()">Wróć</button>
-  <button type="button" class="btn primary" (click)="submit()">{{ submitLabel() }}</button>
+  <button type="button" class="btn primary" [disabled]="submitDisabled()" (click)="submit()">{{ submitLabel() }}</button>
 </div>

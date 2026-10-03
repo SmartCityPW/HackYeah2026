@@ -87,7 +87,9 @@ class LevelsSection:
 class EncountersSection:
     cell_size_m: int
     max_per_cell: int
+    max_in_response: int
     lifetime_minutes: int
+    respawn_seconds: int
     default_radius_m: int
     max_radius_m: int
 

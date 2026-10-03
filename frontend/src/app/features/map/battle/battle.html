@@ -1,0 +1,111 @@
+@let enc = encounter();
+<section class="battle" [class.fighting]="phase() === 'fighting'" role="dialog" aria-label="Tryb walki">
+  <header class="enemy">
+    <span class="enemy-emoji" aria-hidden="true">{{ enc.emoji }}</span>
+    <div>
+      <p class="kicker">⚔️ Tryb walki · poziom {{ enc.level }}</p>
+      <h2>{{ enc.name }}</h2>
+      <p class="meta">
+        <span class="chip">{{ types[enc.typeCode].emoji }} {{ types[enc.typeCode].label }}</span>
+        <span class="chip power">💪 Moc {{ enc.power }}</span>
+      </p>
+    </div>
+  </header>
+
+  @if (graceLeft() !== null && (phase() === 'action' || phase() === 'team')) {
+    <p class="grace" role="alert">🚶 Jesteś poza kółkiem! Wróć w ciągu {{ graceLeft() }} s, inaczej walka się przerwie.</p>
+  }
+
+  @switch (phase()) {
+    @case ('action') {
+      <div class="panel">
+        <h3>Akcja na miejscu</h3>
+        <p class="task">{{ enc.actionLabel }}</p>
+        <div class="dwell" [style.--progress]="(dwellTotal - dwellLeft()) / dwellTotal">
+          <span>{{ dwellLeft() }} s</span>
+        </div>
+        <p class="hint">Zostań w kółku wokół siebie. Jeśli z niego wyjdziesz, masz {{ graceTotal }} s na powrót, inaczej walka się przerwie.</p>
+        @if (devTools) {
+          <button class="btn ghost skip" (click)="skipAction()">⏩ Pomiń odliczanie (tryb deweloperski)</button>
+        }
+      </div>
+    }
+
+    @case ('result') {
+      @let r = result()!;
+      <div class="panel result" [class.won]="r.outcome === 'won'">
+        @if (r.outcome === 'won') {
+          <h3>🏆 Wygrana!</h3>
+          <p>Twoja drużyna: <strong>{{ r.pokemonPowerTotal }}</strong> vs <strong>{{ r.enemyPower }}</strong></p>
+          <ul class="rewards">
+            @for (p of team(); track p.id) {
+              <li>{{ characters[p.character].emoji }} {{ characters[p.character].label }} <strong>+{{ expGained(p.id) }} exp</strong></li>
+            }
+            <li>⭐ <strong>+{{ r.xpGained }} XP</strong> dla Ciebie</li>
+            @if (r.awardedCharacter; as c) {
+              <li class="new">🎁 Nowy Spryciak: {{ characters[c].emoji }} <strong>{{ characters[c].label }}</strong></li>
+            }
+          </ul>
+          <button class="btn go" (click)="closed.emit()">Wróć na mapę</button>
+        } @else {
+          <h3>💥 Przegrana</h3>
+          <p>Twoja drużyna: <strong>{{ r.pokemonPowerTotal }}</strong> vs <strong>{{ r.enemyPower }}</strong>. Przeciwnik wciąż tu jest.</p>
+          <div class="actions">
+            <button class="btn go" (click)="retry()">Spróbuj innym składem</button>
+            <button class="btn ghost" (click)="closed.emit()">Wróć na mapę</button>
+          </div>
+        }
+      </div>
+    }
+
+    @default {
+      <div class="panel">
+        <div class="clash" aria-live="polite">
+          <div class="bar ours"><span [style.width.%]="bars().oursPct"></span><b>Ty {{ bars().ours }}</b></div>
+          <div class="bar theirs"><span [style.width.%]="bars().theirsPct"></span><b>{{ enc.emoji }} {{ bars().theirs }}</b></div>
+        </div>
+
+        @if (phase() === 'fighting') {
+          <p class="fighting-label">⚔️ Starcie trwa…</p>
+        } @else {
+          <h3>Wybierz drużynę ({{ team().length }}/{{ maxTeam }})</h3>
+          @if (available().length === 0) {
+            <p class="hint">Nie masz wolnych Spryciaków do walki.</p>
+          }
+          <div class="roster">
+            @for (p of available(); track p.id) {
+              @let picked = selectedIds().includes(p.id);
+              @let bonus = p.typeCode === enc.typeCode;
+              <button
+                class="pokemon"
+                [class.picked]="picked"
+                [disabled]="!picked && team().length >= maxTeam"
+                [attr.aria-pressed]="picked"
+                (click)="toggle(p.id)"
+              >
+                <span class="p-emoji">{{ characters[p.character].emoji }}</span>
+                <strong>{{ characters[p.character].label }}</strong>
+                <small>poz. {{ p.level }} · {{ types[p.typeCode].emoji }} · 💪 {{ p.power }}</small>
+                @if (bonus) { <span class="bonus">bonus typu</span> }
+              </button>
+            }
+          </div>
+          <p class="verdict" [class.ok]="preview().beatsEnemy">
+            @if (team().length === 0) {
+              Wybierz od 1 do {{ maxTeam }} Spryciaków.
+            } @else if (preview().beatsEnemy) {
+              Twoja drużyna ma przewagę.
+            } @else {
+              Za słabo: potrzeba więcej niż {{ enc.power }} mocy.
+            }
+          </p>
+          <button class="btn fight" [disabled]="team().length === 0" (click)="fight()">⚔️ Atakuj</button>
+        }
+      </div>
+    }
+  }
+
+  @if (phase() === 'action' || phase() === 'team') {
+    <button class="flee" (click)="closed.emit()">🏃 Uciekaj</button>
+  }
+</section>

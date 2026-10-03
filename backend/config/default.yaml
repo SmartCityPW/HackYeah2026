@@ -53,12 +53,14 @@ game:
   levels:
     exp_per_pokemon_level: 100
     xp_per_player_level: 100
-  encounters:
-    cell_size_m: 500
-    max_per_cell: 3
-    lifetime_minutes: 30
-    default_radius_m: 1000
-    max_radius_m: 5000
+  encounters:                    # przeciwnicy są przypisani do miejsc (kwadratów terenu) i wspólni dla graczy
+    cell_size_m: 100             # bok kwadratu terenu
+    max_per_cell: 6              # kwadrat przy zasiedleniu losuje 0..max_per_cell przeciwników
+    max_in_response: 5           # ilu najbliższych w promieniu zwraca GET /encounters
+    lifetime_minutes: 30         # po tym czasie przeciwnik wygasa
+    respawn_seconds: 60          # wyczyszczony (pokonani lub wygasli) kwadrat zasiedla się na nowo po tym czasie
+    default_radius_m: 50         # promień zapytania domyślny: kółko interakcji
+    max_radius_m: 500
   anti_cheat:
     max_accuracy_m: 100
     max_speed_mps: 40

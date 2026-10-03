@@ -1,4 +1,3 @@
-import { Pokemon } from '../pokemon.model';
 import { Pokestop } from '../pokestop.model';
 
 export const MOCK_STOPS: Pokestop[] = [
@@ -17,10 +16,4 @@ export const MOCK_STOPS: Pokestop[] = [
     details: { shopKind: 'veg', whoBenefits: ['seniors', 'parents'] }, comments: [] },
   // Tuż przy symulowanym GPS (Rynek, ~30 m): dzięki niej da się w atrapach oddać głos bez wychodzenia z domu.
   { id: 9, character: 'tree', type: 'report', status: 'open', icon: '🪑', title: 'Zniszczona ławka przy Rynku', description: 'Połamane deski, nie da się usiąść.', author: 'Marek', lat: 50.0619, lng: 19.9376, votesFor: 2, votesAgainst: 0, myVote: null, comments: [] },
-];
-
-/** Pokemony zalogowanego użytkownika (zgodne z głosami w MOCK_STOPS). Poziom = 1 + exp / 100, jak na backendzie. */
-export const MOCK_POKEMONS: Pokemon[] = [
-  { id: 1, character: 'cyclist', nickname: null, level: 1, exp: 10, power: 20, isStaked: false },
-  { id: 2, character: 'lamp', nickname: null, level: 1, exp: 10, power: 20, isStaked: false },
 ];

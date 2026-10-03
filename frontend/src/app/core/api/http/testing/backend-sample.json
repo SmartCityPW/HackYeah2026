@@ -63,7 +63,9 @@
       "exp": 0,
       "power": 20,
       "isStaked": false,
-      "caughtAt": "2026-10-03T19:16:10.640740+02:00"
+      "caughtAt": "2026-10-03T19:16:10.640740+02:00",
+      "expIntoLevel": 0,
+      "expForNextLevel": 100
     }
   ],
   "voteResult": {
@@ -105,7 +107,9 @@
       "exp": 10,
       "power": 20,
       "isStaked": false,
-      "caughtAt": "2026-10-03T19:16:10.640740+02:00"
+      "caughtAt": "2026-10-03T19:16:10.640740+02:00",
+      "expIntoLevel": 10,
+      "expForNextLevel": 100
     }
   },
   "commentsPage": {
@@ -164,7 +168,9 @@
   "errors": {
     "tooFar": {
       "code": "too_far",
-      "message": "Jesteś za daleko (1112 m), podejdź na mniej niż 50 m"
+      "message": "Jesteś za daleko (1112 m), podejdź na mniej niż 50 m",
+      "distanceM": 1112,
+      "radiusM": 50
     },
     "moderationRejected": {
       "code": "moderation_rejected",

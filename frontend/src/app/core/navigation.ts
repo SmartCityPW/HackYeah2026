@@ -21,7 +21,6 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
     { label: 'Spryciaki', icon: '🎒', path: '/spryciaki' },
     { label: 'Inicjatywy', icon: '📋', path: '/inicjatywy' },
     { label: 'Konto', icon: '👤', path: '/konto' },
-    { label: 'Walka', icon: '⚔️', path: '/walka', soon: true },
   ],
   org: [
     { label: 'Mapa', icon: '🗺️', path: '/org', exact: true },

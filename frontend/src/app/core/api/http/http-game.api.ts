@@ -1,34 +1,39 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { AppConfigService } from '../../config/app-config.service';
 import { AttackResult, Encounter, PlayerProgress, Position } from '../../game.model';
-import { NotAdaptedYet, toApiError } from '../../http/api-error';
+import { toApiError } from '../../http/api-error';
 import { GameApi } from '../game.api';
-import { PlayerProgressDto } from './contract.types';
+import { AttackResultDto, EncounterDto, PlayerProgressDto } from './contract.types';
+import { toAttackResult, toEncounter } from './pokestop.mapper';
 
-/**
- * Implementacja `GameApi` na prawdziwym backendzie (api.mode.game: http).
- * Gotowe: postęp gracza. Przeciwnicy i walka czekają na backend (dziś 501) oraz na ekran wyboru drużyny.
- */
+/** Implementacja `GameApi` na prawdziwym backendzie (api.mode.game: http). */
 @Injectable({ providedIn: 'root' })
 export class HttpGameApi extends GameApi {
   private readonly http = inject(HttpClient);
   private readonly base = inject(AppConfigService).config.api.baseUrl;
 
   async getProgress(): Promise<PlayerProgress> {
+    return this.request<PlayerProgressDto>('GET', '/me/progress');
+  }
+
+  async listEncounters(around: Position, radiusM: number): Promise<Encounter[]> {
+    const params = new HttpParams().set('lat', around.lat).set('lng', around.lng).set('radius', radiusM);
+    const dtos = await this.request<EncounterDto[]>('GET', '/encounters', undefined, params);
+    return dtos.map(toEncounter);
+  }
+
+  async attack(id: number, position: Position, pokemonIds: number[]): Promise<AttackResult> {
+    const dto = await this.request<AttackResultDto>('POST', `/encounters/${id}/attack`, { lat: position.lat, lng: position.lng, pokemonIds });
+    return toAttackResult(dto);
+  }
+
+  private async request<T>(method: 'GET' | 'POST', path: string, body?: unknown, params?: HttpParams): Promise<T> {
     try {
-      return await firstValueFrom(this.http.get<PlayerProgressDto>(`${this.base}/me/progress`));
+      return await firstValueFrom(this.http.request<T>(method, `${this.base}${path}`, { body, params }));
     } catch (error) {
       throw toApiError(error);
     }
-  }
-
-  async listEncounters(_around: Position): Promise<Encounter[]> {
-    throw new NotAdaptedYet('przeciwnicy', 'Backend zwraca na razie 501 (GET /encounters). Po jego implementacji: GET /encounters?lat=&lng=.');
-  }
-
-  async attack(_id: number, _position: Position): Promise<AttackResult> {
-    throw new NotAdaptedYet('atak', 'Backend wymaga pokemonIds (1-3 własne pokemony) i zwraca też wynik "lost". Zob. api-contract.md, punkt 10.');
   }
 }
