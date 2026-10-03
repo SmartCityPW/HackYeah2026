@@ -1,11 +1,37 @@
 <div #mapContainer class="map"></div>
 
-@if (canParticipate()) {
-  <nav class="toolbar">
+<nav class="toolbar">
+  <span class="xp" [title]="progress().xpIntoLevel + ' / ' + progress().xpForNextLevel + ' XP do następnego poziomu'">
+    ⭐ Lv {{ progress().level }}
+    <span class="xp-bar"><span [style.width.%]="(progress().xpIntoLevel / progress().xpForNextLevel) * 100"></span></span>
+  </span>
+  @if (canParticipate()) {
     <button class="tool" [class.active]="panelOpen()" (click)="togglePanel()">
       {{ session.role() === 'org' ? '🏢 Nowa inicjatywa' : '➕ Zgłoś' }}
     </button>
-  </nav>
+  }
+</nav>
+
+@if (selectedEncounter(); as enc) {
+  <section class="sheet tall enemy" style="--stop-color: #dc2626">
+    <button class="sheet-close" (click)="close()" aria-label="Zamknij">×</button>
+    <p class="sheet-type">⚔️ Przeciwnik · poziom {{ enc.level }}</p>
+    <h2>{{ enc.emoji }} {{ enc.name }}</h2>
+    <p class="sheet-desc">{{ enc.description }}</p>
+    <p class="enemy-action"><strong>Jak go pokonać:</strong> {{ enc.actionLabel }}</p>
+    <p class="sheet-author">Nagroda: {{ enc.xpReward }} XP</p>
+
+    @if (canParticipate()) {
+      @if (encounterDistance() === null) {
+        <p class="hint">Włącz lokalizację, żeby walczyć. Musisz być na miejscu.</p>
+      } @else if (!canAttack()) {
+        <p class="hint">Jesteś {{ encounterDistance() }} m od celu. Podejdź na mniej niż {{ attackRange }} m.</p>
+      }
+      <button class="btn btn-against fight" [disabled]="!canAttack()" (click)="attack(enc.id)">
+        {{ attacking() ? 'Walczysz…' : '⚔️ Walcz' }}
+      </button>
+    }
+  </section>
 }
 
 @if (panelOpen()) {
@@ -48,8 +74,8 @@
         <p class="voted">Twój głos został zapisany ✔</p>
       } @else {
         <div class="actions">
-          <button class="btn btn-for" (click)="vote(stop.id, 'for')">Potwierdzam</button>
-          <button class="btn btn-against" (click)="vote(stop.id, 'against')">Nie zgadzam się</button>
+          <button class="btn btn-for" (click)="vote(stop.id, 'for')">{{ types[stop.type].vote[0] }}</button>
+          <button class="btn btn-against" (click)="vote(stop.id, 'against')">{{ types[stop.type].vote[1] }}</button>
         </div>
       }
     }

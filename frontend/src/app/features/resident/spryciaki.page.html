@@ -2,6 +2,8 @@
   <h1>Moje Spryciaki</h1>
   <p class="lead">Zdobyto {{ collection.unlocked() }} z {{ total }}. Głosuj i komentuj inicjatywy, żeby poznać kolejne.</p>
 
+  <p class="level">⭐ Poziom {{ progress().level }} · {{ progress().xpIntoLevel }} / {{ progress().xpForNextLevel }} XP</p>
+
   <div class="dex">
     @for (c of characters; track c.id) {
       @let count = collection.counts()[c.id];

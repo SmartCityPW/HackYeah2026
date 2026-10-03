@@ -1,22 +1,39 @@
-@if (chosen(); as scenario) {
-  <p class="kicker">{{ scenario.emoji }} {{ isOrg() ? 'Inicjatywa organizacji' : 'Nowe zgłoszenie' }}</p>
-  <h2>{{ scenario.label }}</h2>
-  <p class="pin-hint">Przesuń mapę, aby pinezka 📍 wskazała właściwe miejsce.</p>
-  <app-scenario-form
-    [scenario]="scenario"
-    [submitLabel]="isOrg() ? 'Opublikuj inicjatywę' : 'Dodaj zgłoszenie'"
-    (submitted)="submit(scenario, $event)"
-    (cancelled)="chosen.set(null)"
-  />
-} @else {
-  <p class="kicker">{{ isOrg() ? '🏢 ' + organization() : '🚧 Nowe zgłoszenie' }}</p>
-  <h2>{{ isOrg() ? 'Wybierz rodzaj inicjatywy' : 'Co chcesz zgłosić?' }}</h2>
-  <div class="catalog">
-    @for (s of catalog(); track s.id) {
-      <button type="button" class="card" (click)="chosen.set(s)">
-        <span class="emoji">{{ s.emoji }}</span>
-        <span><strong>{{ s.label }}</strong><small>{{ s.description }}</small></span>
-      </button>
-    }
-  </div>
+@switch (step()) {
+  @case ('form') {
+    @let scenario = chosen()!;
+    <p class="kicker">{{ scenario.emoji }} {{ isOrg() ? 'Inicjatywa organizacji' : categoryMeta()?.label }}</p>
+    <h2>{{ scenario.label }}</h2>
+    <p class="pin-hint">Przesuń mapę, aby pinezka 📍 wskazała właściwe miejsce.</p>
+    <app-scenario-form
+      [scenario]="scenario"
+      [submitLabel]="isOrg() ? 'Opublikuj inicjatywę' : 'Dodaj na mapę'"
+      (submitted)="submit(scenario, $event)"
+      (cancelled)="back()"
+    />
+  }
+  @case ('scenario') {
+    <p class="kicker">{{ isOrg() ? '🏢 ' + organization() : categoryMeta()?.emoji + ' ' + categoryMeta()?.label }}</p>
+    <h2>{{ isOrg() ? 'Wybierz rodzaj inicjatywy' : 'Wybierz rodzaj' }}</h2>
+    <div class="catalog">
+      @for (s of catalog(); track s.id) {
+        <button type="button" class="card" (click)="chosen.set(s)">
+          <span class="emoji">{{ s.emoji }}</span>
+          <span><strong>{{ s.label }}</strong><small>{{ s.description }}</small></span>
+        </button>
+      }
+    </div>
+    @if (!isOrg()) { <button type="button" class="back" (click)="back()">← Wróć</button> }
+  }
+  @default {
+    <p class="kicker">➕ Nowa pinezka</p>
+    <h2>Co chcesz dodać?</h2>
+    <div class="catalog">
+      @for (c of categories; track c.id) {
+        <button type="button" class="card" (click)="category.set(c.id)">
+          <span class="emoji">{{ c.emoji }}</span>
+          <span><strong>{{ c.label }}</strong><small>{{ c.description }}</small></span>
+        </button>
+      }
+    </div>
+  }
 }

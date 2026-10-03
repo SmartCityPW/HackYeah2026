@@ -1,5 +1,6 @@
 import { Injectable, OnDestroy, signal } from '@angular/core';
 import * as maplibregl from 'maplibre-gl';
+import { Encounter } from '../../core/game.model';
 import { POKESTOP_TYPES, Pokestop } from '../../core/pokestop.model';
 import { CharactersLayer } from './three/characters-layer';
 
@@ -19,6 +20,7 @@ export class MapController implements OnDestroy {
   private map?: maplibregl.Map;
   private readonly characters = new CharactersLayer();
   private readonly markers = new Map<number, maplibregl.Marker>();
+  private readonly enemyMarkers = new Map<number, maplibregl.Marker>();
   private userMarker?: maplibregl.Marker;
 
   init(container: HTMLElement): void {
@@ -50,6 +52,26 @@ export class MapController implements OnDestroy {
       if (!this.markers.has(stop.id)) this.markers.set(stop.id, this.createMarker(stop, onSelect));
     }
     void this.characters.setStops(stops);
+  }
+
+  /** Dopasowuje markery przeciwników do listy (dodaje nowe, usuwa pokonanych i wygasłych). */
+  showEncounters(encounters: Encounter[], onSelect: (id: number) => void): void {
+    if (!this.map) return;
+    const ids = new Set(encounters.map((e) => e.id));
+    for (const [id, marker] of this.enemyMarkers) {
+      if (ids.has(id)) continue;
+      marker.remove();
+      this.enemyMarkers.delete(id);
+    }
+    for (const enc of encounters) {
+      if (this.enemyMarkers.has(enc.id)) continue;
+      const el = document.createElement('button');
+      el.className = 'enemy-marker';
+      el.innerHTML = `<span>${enc.emoji}</span>`;
+      el.setAttribute('aria-label', `Przeciwnik: ${enc.name}`);
+      el.addEventListener('click', () => onSelect(enc.id));
+      this.enemyMarkers.set(enc.id, new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat([enc.lng, enc.lat]).addTo(this.map));
+    }
   }
 
   showUser(lngLat: [number, number]): void {

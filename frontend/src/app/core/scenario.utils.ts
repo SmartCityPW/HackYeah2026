@@ -60,7 +60,7 @@ export function toReport(scenario: Scenario, values: FieldValues, organization: 
   return {
     scenarioId: scenario.id,
     icon: scenario.emoji,
-    type: scenario.audience === 'org' ? 'ngo' : 'report',
+    type: scenario.pokestopType,
     organization: organization ?? undefined,
     title: String(values['title'] ?? '').trim(),
     description: String(values['description'] ?? '').trim(),
@@ -84,8 +84,9 @@ export function describeDetails(scenario: Scenario, details: Record<string, unkn
     if (isEmpty(v)) continue;
     let text: string;
     if (f.type === 'boolean') text = v ? 'Tak' : 'Nie';
+    else if (f.type === 'rating') text = '★'.repeat(Number(v)) + '☆'.repeat(5 - Number(v));
     else if (Array.isArray(v)) text = v.map((x) => f.options?.find((o) => o.value === x)?.label ?? String(x)).join(', ');
-    else if (f.type === 'select') text = f.options?.find((o) => o.value === v)?.label ?? String(v);
+    else if (f.type === 'select' || f.type === 'choice') text = f.options?.find((o) => o.value === v)?.label ?? String(v);
     else text = f.unit ? `${v} ${f.unit}` : String(v);
     rows.push({ label: f.label, text });
   }

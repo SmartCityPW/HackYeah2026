@@ -1,4 +1,4 @@
-import { CharacterId } from './pokestop.model';
+import { CharacterId, PokestopType } from './pokestop.model';
 
 export type FieldType =
   | 'text'
@@ -10,7 +10,11 @@ export type FieldType =
   | 'tags'
   | 'date'
   | 'photos'
-  | 'character';
+  | 'character'
+  /** Wybór jednej opcji w formie "chipów". */
+  | 'choice'
+  /** Ocena 1–5 gwiazdek. */
+  | 'rating';
 
 export interface FieldOption {
   value: string;
@@ -39,9 +43,16 @@ export interface ScenarioSection {
 
 export type Audience = 'resident' | 'org';
 
+/** Kategorie menu "Zgłoś" dla mieszkańca. */
+export type ScenarioCategory = 'problem' | 'initiative' | 'place';
+
 export interface Scenario {
   id: string;
   audience: Audience;
+  /** Kategoria w menu "Zgłoś" (tylko scenariusze mieszkańca). */
+  category?: ScenarioCategory;
+  /** Jakiego rodzaju pinezka powstaje ze zgłoszenia. */
+  pokestopType: PokestopType;
   label: string;
   emoji: string;
   description: string;

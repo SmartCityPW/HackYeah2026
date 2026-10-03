@@ -1,40 +1,144 @@
-import { FieldDef, FieldOption, Scenario, ScenarioSection } from './scenario.model';
+import { FieldDef, FieldOption, Scenario, ScenarioCategory, ScenarioSection } from './scenario.model';
 import { Role } from './session.service';
 
 const yes = (key: string, label: string, extra: Partial<FieldDef> = {}): FieldDef => ({ key, label, type: 'boolean', ...extra });
 const opts = (...pairs: [string, string][]): FieldOption[] => pairs.map(([value, label]) => ({ value, label }));
 
-// ───────────── Mieszkańcy: prosty formularz (tytuł, opis, zdjęcie) + ikona ─────────────
+// ───────────── Mieszkańcy: kategorie menu "Zgłoś" ─────────────
 
-const residentSection = (titlePlaceholder: string): ScenarioSection[] => [
+export const RESIDENT_CATEGORIES: { id: ScenarioCategory; label: string; emoji: string; description: string }[] = [
+  { id: 'problem', label: 'Zgłoś problem', emoji: '🚧', description: 'Coś w mieście nie działa: dziura, ciemna latarnia, brak kosza.' },
+  { id: 'initiative', label: 'Zgłoś inicjatywę miejską', emoji: '✨', description: 'Masz pomysł, co mogłoby się tu pojawić: przystanek, sklep, plac zabaw.' },
+  { id: 'place', label: 'Zgłoś cool miejsce', emoji: '😎', description: 'Podziel się miejscem, które warto znać, i oceń je jak w Mapach.' },
+];
+
+const photoField = (): FieldDef => ({ key: 'photos', label: 'Zdjęcie', type: 'photos', hint: 'Do 3 zdjęć' });
+
+const simpleSection = (titlePlaceholder: string, extra: FieldDef[] = []): ScenarioSection[] => [
   {
     title: 'Zgłoszenie',
     fields: [
       { key: 'title', label: 'Tytuł', type: 'text', required: true, placeholder: titlePlaceholder },
       { key: 'description', label: 'Opis (opcjonalnie)', type: 'textarea' },
-      { key: 'photos', label: 'Zdjęcie', type: 'photos', hint: 'Do 3 zdjęć' },
+      ...extra,
+      photoField(),
     ],
   },
 ];
 
-const resident = (id: string, label: string, emoji: string, character: Scenario['character'], description: string, defaultTitle: string): Scenario => ({
-  id,
+interface ResidentSpec {
+  id: string;
+  category: ScenarioCategory;
+  pokestopType: Scenario['pokestopType'];
+  label: string;
+  emoji: string;
+  character: Scenario['character'];
+  description: string;
+  defaultTitle: string;
+  sections?: ScenarioSection[];
+}
+
+const resident = (spec: ResidentSpec): Scenario => ({
   audience: 'resident',
-  label,
-  emoji,
-  description,
-  character,
-  defaultTitle,
-  sections: residentSection(defaultTitle),
+  sections: simpleSection(spec.defaultTitle),
+  ...spec,
 });
 
+// Problemy: tytuł, opis, zdjęcie, ikona.
+const problem = (id: string, label: string, emoji: string, character: Scenario['character'], description: string, defaultTitle: string): Scenario =>
+  resident({ id, category: 'problem', pokestopType: 'report', label, emoji, character, description, defaultTitle });
+
+// Inicjatywy: pomysł + dla kogo i ewentualne doprecyzowanie.
+const beneficiaries = (): FieldDef => ({
+  key: 'whoBenefits',
+  label: 'Kto by na tym skorzystał',
+  type: 'multiselect',
+  options: opts(['kids', 'Dzieci'], ['teens', 'Młodzież'], ['seniors', 'Seniorzy'], ['parents', 'Rodzice z wózkami'], ['bikers', 'Rowerzyści'], ['disabled', 'Osoby z niepełnosprawnościami'], ['all', 'Wszyscy']),
+});
+
+const initiative = (id: string, label: string, emoji: string, character: Scenario['character'], description: string, defaultTitle: string, extra: FieldDef[] = []): Scenario =>
+  resident({ id, category: 'initiative', pokestopType: 'idea', label, emoji, character, description, defaultTitle, sections: simpleSection(defaultTitle, [...extra, beneficiaries()]) });
+
+// Cool miejsca: kwestionariusz w stylu opinii z map (ocena, koszt, klimat, pora, dostępność).
+const costField = (): FieldDef => ({
+  key: 'cost',
+  label: 'Ile kosztuje skorzystanie',
+  type: 'choice',
+  required: true,
+  options: opts(['free', 'Za darmo'], ['cheap', 'Tanio (do 20 zł)'], ['medium', 'Średnio (20–60 zł)'], ['expensive', 'Drogo (60 zł i więcej)']),
+});
+
+const placeSections = (titlePlaceholder: string, extra: FieldDef[]): ScenarioSection[] => [
+  {
+    title: 'O miejscu',
+    fields: [
+      { key: 'title', label: 'Nazwa miejsca', type: 'text', required: true, placeholder: titlePlaceholder },
+      { key: 'description', label: 'Co tu jest fajnego?', type: 'textarea' },
+      photoField(),
+    ],
+  },
+  {
+    title: 'Twoja opinia',
+    fields: [
+      { key: 'rating', label: 'Ocena', type: 'rating', required: true },
+      costField(),
+      {
+        key: 'vibes',
+        label: 'Jaki jest klimat',
+        type: 'multiselect',
+        options: opts(['calm', 'Spokojnie'], ['loud', 'Głośno'], ['friends', 'Z ekipą'], ['date', 'Na randkę'], ['solo', 'Samemu'], ['kids', 'Z dzieckiem'], ['photo', 'Instagramowe'], ['dogs', 'Z psem']),
+      },
+      {
+        key: 'bestTime',
+        label: 'Kiedy najlepiej wpaść',
+        type: 'multiselect',
+        options: opts(['morning', 'Rano'], ['afternoon', 'Popołudnie'], ['evening', 'Wieczór'], ['night', 'Noc'], ['weekend', 'Weekend']),
+      },
+      yes('accessible', 'Dostępne dla wózków i osób z niepełnosprawnościami'),
+      ...extra,
+      { key: 'tips', label: 'Wskazówka dla innych', type: 'textarea', placeholder: 'np. wejdź od podwórka, najlepsze miejsca przy oknie' },
+    ],
+  },
+];
+
+const place = (id: string, label: string, emoji: string, character: Scenario['character'], description: string, titlePlaceholder: string, extra: FieldDef[]): Scenario =>
+  resident({ id, category: 'place', pokestopType: 'place', label, emoji, character, description, defaultTitle: '', sections: placeSections(titlePlaceholder, extra) });
+
 export const RESIDENT_SCENARIOS: Scenario[] = [
-  resident('res-pothole', 'Dziura lub uszkodzony chodnik', '🕳️', 'cyclist', 'Dziura, wyrwa, zapadnięta kostka.', 'Dziura w chodniku'),
-  resident('res-bin', 'Brak kosza na śmieci', '🗑️', 'bin', 'Brakuje kosza albo jest przepełniony.', 'Brakuje kosza na śmieci'),
-  resident('res-lamp', 'Zepsuta latarnia', '💡', 'lamp', 'Ciemno, latarnia nie świeci.', 'Zepsuta latarnia'),
-  resident('res-green', 'Zieleń do posadzenia lub zadbania', '🌳', 'tree', 'Tu przydałoby się drzewo lub zadbany skwer.', 'Potrzeba zieleni'),
-  resident('res-transport', 'Problem z komunikacją', '🚆', 'train', 'Przystanek, rozkład, korek, niebezpieczne przejście.', 'Problem z komunikacją'),
-  resident('res-bike', 'Rowery i ścieżki', '🚴', 'cyclist', 'Brak ścieżki, stojaków, niebezpieczny odcinek.', 'Potrzeba infrastruktury rowerowej'),
+  problem('res-pothole', 'Dziura lub uszkodzony chodnik', '🕳️', 'cyclist', 'Dziura, wyrwa, zapadnięta kostka.', 'Dziura w chodniku'),
+  problem('res-bin', 'Brak kosza na śmieci', '🗑️', 'bin', 'Brakuje kosza albo jest przepełniony.', 'Brakuje kosza na śmieci'),
+  problem('res-lamp', 'Zepsuta latarnia', '💡', 'lamp', 'Ciemno, latarnia nie świeci.', 'Zepsuta latarnia'),
+  problem('res-green', 'Zaniedbana zieleń', '🌳', 'tree', 'Zarośnięty skwer, chore drzewo, brak trawnika.', 'Zaniedbana zieleń'),
+  problem('res-transport', 'Problem z komunikacją', '🚆', 'train', 'Przystanek, rozkład, korek, niebezpieczne przejście.', 'Problem z komunikacją'),
+  problem('res-bike', 'Problem dla rowerzystów', '🚴', 'cyclist', 'Brak ścieżki, zepsuty stojak, niebezpieczny odcinek.', 'Problem dla rowerzystów'),
+
+  initiative('idea-bus-stop', 'Przystanek autobusowy', '🚏', 'train', 'Tu przydałby się nowy przystanek.', 'Nowy przystanek'),
+  initiative('idea-shop', 'Sklep lub usługa na osiedlu', '🥕', 'bin', 'Warzywniak, piekarnia, apteka, punkt usługowy.', 'Sklep warzywny na osiedlu', [
+    { key: 'shopKind', label: 'Czego brakuje', type: 'choice', options: opts(['veg', 'Warzywniak'], ['bakery', 'Piekarnia'], ['pharmacy', 'Apteka'], ['grocery', 'Sklep spożywczy'], ['service', 'Punkt usługowy'], ['other', 'Coś innego']) },
+  ]),
+  initiative('idea-playground', 'Plac zabaw lub boisko', '🛝', 'cyclist', 'Miejsce do zabawy i sportu.', 'Nowy plac zabaw'),
+  initiative('idea-greenery', 'Zieleń, drzewa, skwer', '🌿', 'tree', 'Tu mogłoby być zielono.', 'Więcej zieleni'),
+  initiative('idea-bike', 'Rowery: stojaki, ścieżka', '🚲', 'cyclist', 'Infrastruktura dla rowerzystów.', 'Stojaki lub ścieżka rowerowa'),
+  initiative('idea-other', 'Inny pomysł', '💭', 'lamp', 'Coś, czego tu brakuje.', 'Mój pomysł dla miasta'),
+
+  place('place-food', 'Jedzenie i kawa', '☕', 'bin', 'Kawiarnia, street food, bar, cukiernia.', 'np. Kawiarnia pod żyrandolem', [
+    { key: 'offer', label: 'Co tu zjesz i wypijesz', type: 'choice', options: opts(['coffee', 'Kawa i desery'], ['streetfood', 'Street food'], ['fast', 'Fast food'], ['restaurant', 'Restauracja'], ['bar', 'Bar'], ['bakery', 'Piekarnia']) },
+    yes('vegan', 'Są opcje wegetariańskie lub wegańskie'),
+    yes('wifi', 'Jest Wi-Fi'),
+  ]),
+  place('place-chill', 'Zieleń i chillout', '🌇', 'tree', 'Park, skwer, widok, miejsce nad wodą.', 'np. Skwer z hamakami', [
+    { key: 'spotType', label: 'Rodzaj miejsca', type: 'choice', options: opts(['park', 'Park'], ['square', 'Skwer'], ['view', 'Punkt widokowy'], ['water', 'Nad wodą'], ['bench', 'Ławka z klimatem']) },
+    yes('shade', 'Jest cień'),
+    yes('dogsOk', 'Można z psem'),
+  ]),
+  place('place-fun', 'Rozrywka i sport', '🛹', 'cyclist', 'Skatepark, boisko, arcade, tor rowerowy.', 'np. Skatepark pod mostem', [
+    { key: 'activity', label: 'Co tu robisz', type: 'choice', options: opts(['skate', 'Skatepark'], ['court', 'Boisko'], ['gym', 'Siłownia plenerowa'], ['arcade', 'Salon gier'], ['trampoline', 'Trampoliny'], ['other', 'Coś innego']) },
+    yes('ownGear', 'Trzeba mieć własny sprzęt'),
+  ]),
+  place('place-culture', 'Kultura i hobby', '🎨', 'lamp', 'Mural, galeria, biblioteka, księgarnia, koncerty.', 'np. Mural na starej kamienicy', [
+    { key: 'cultureKind', label: 'Rodzaj miejsca', type: 'choice', options: opts(['mural', 'Mural / street art'], ['gallery', 'Galeria'], ['library', 'Biblioteka'], ['bookshop', 'Księgarnia'], ['museum', 'Muzeum'], ['concerts', 'Koncerty']) },
+    yes('ticket', 'Potrzebny bilet'),
+  ]),
 ];
 
 // ───────────── Organizacje zaufane: szczegółowe scenariusze ─────────────
@@ -70,6 +174,7 @@ export const ORG_SCENARIOS: Scenario[] = [
   {
     id: 'org-bus-stop',
     audience: 'org',
+    pokestopType: 'ngo',
     label: 'Nowy przystanek autobusowy',
     emoji: '🚏',
     description: 'Propozycja nowego przystanku wraz ze zmianami w liniach.',
@@ -116,6 +221,7 @@ export const ORG_SCENARIOS: Scenario[] = [
   {
     id: 'org-tree',
     audience: 'org',
+    pokestopType: 'ngo',
     label: 'Nowe drzewo w danym miejscu',
     emoji: '🌳',
     description: 'Propozycja nasadzenia drzewa lub grupy drzew.',
@@ -149,6 +255,7 @@ export const ORG_SCENARIOS: Scenario[] = [
   {
     id: 'org-small-architecture',
     audience: 'org',
+    pokestopType: 'ngo',
     label: 'Uszkodzona mała architektura',
     emoji: '🪑',
     description: 'Zgłoszenie uszkodzonej ławki, kosza, placu zabaw, wiaty itp.',
@@ -175,6 +282,7 @@ export const ORG_SCENARIOS: Scenario[] = [
   {
     id: 'org-surface-damage',
     audience: 'org',
+    pokestopType: 'ngo',
     label: 'Szkoda na powierzchni',
     emoji: '🚧',
     description: 'Dziury, zapadnięcia i uszkodzenia nawierzchni.',
@@ -202,6 +310,10 @@ export const ORG_SCENARIOS: Scenario[] = [
 export function scenariosFor(role: Role): Scenario[] {
   if (role === 'org') return ORG_SCENARIOS;
   return role === 'resident' ? RESIDENT_SCENARIOS : [];
+}
+
+export function scenariosInCategory(category: ScenarioCategory): Scenario[] {
+  return RESIDENT_SCENARIOS.filter((s) => s.category === category);
 }
 
 export function findScenario(id: string | undefined): Scenario | undefined {

@@ -36,9 +36,25 @@ describe('scenario utils', () => {
     expect(rows.find((r) => r.label === 'Wiata przystankowa')?.text).toBe('Nie');
   });
 
-  it('resident scenarios only ask for title, description and photos', () => {
-    for (const s of RESIDENT_SCENARIOS) {
+  it('resident problem scenarios only ask for title, description and photos', () => {
+    for (const s of RESIDENT_SCENARIOS.filter((x) => x.category === 'problem')) {
       expect(s.sections.flatMap((x) => x.fields).map((f) => f.key)).toEqual(['title', 'description', 'photos']);
     }
+  });
+
+  it('every resident scenario belongs to a category and maps to the matching pin type', () => {
+    const expected = { problem: 'report', initiative: 'idea', place: 'place' };
+    for (const s of RESIDENT_SCENARIOS) expect(s.pokestopType).toBe(expected[s.category!]);
+  });
+
+  it('cool place scenarios require rating and cost and render stars', () => {
+    const place = RESIDENT_SCENARIOS.find((s) => s.id === 'place-food')!;
+    const base = { ...initialValues(place), title: 'Kawiarnia' };
+    expect(Object.keys(validate(place, base)).sort()).toEqual(['cost', 'rating']);
+    const values = { ...base, rating: '4', cost: 'cheap' };
+    expect(validate(place, values)).toEqual({});
+    const rows = describeDetails(place, toReport(place, values, null).details);
+    expect(rows.find((r) => r.label === 'Ocena')?.text).toBe('★★★★☆');
+    expect(rows.find((r) => r.label.startsWith('Ile kosztuje'))?.text).toBe('Tanio (do 20 zł)');
   });
 });

@@ -49,3 +49,18 @@
 .comment-form input { flex: 1; padding: 10px; border: 2px solid #e5e7eb; border-radius: 12px; font: inherit; }
 .comment-form .btn { flex: 0 0 auto; padding: 10px 16px; }
 .comment-form .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+.xp { display: inline-flex; flex-direction: column; gap: 2px; align-items: stretch; background: #fff; border-radius: 999px; padding: 6px 14px; font-weight: 700; font-size: .85rem; box-shadow: 0 4px 14px rgb(0 0 0 / .25); }
+.xp-bar { display: block; height: 4px; background: #e5e7eb; border-radius: 99px; overflow: hidden; }
+.xp-bar > span { display: block; height: 100%; background: #6366f1; }
+.toolbar { align-items: center; }
+.hint { margin: 8px 0; font-size: .85rem; color: #b45309; }
+.enemy-action { margin: 6px 0; }
+.fight { width: 100%; margin-top: 6px; }
+.fight:disabled { opacity: .4; cursor: not-allowed; }
+:host ::ng-deep .enemy-marker {
+  width: 54px; height: 54px; border-radius: 50%; border: 3px solid #fff; background: #dc2626; cursor: pointer; padding: 0;
+  display: grid; place-items: center; box-shadow: 0 0 0 0 rgb(220 38 38 / .6); animation: enemy-pulse 1.8s infinite;
+}
+:host ::ng-deep .enemy-marker span { font-size: 28px; line-height: 1; }
+@keyframes enemy-pulse { 70% { box-shadow: 0 0 0 16px rgb(220 38 38 / 0); } 100% { box-shadow: 0 0 0 0 rgb(220 38 38 / 0); } }

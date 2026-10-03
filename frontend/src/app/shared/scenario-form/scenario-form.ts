@@ -23,6 +23,7 @@ export class ScenarioForm {
   protected readonly photoError = signal<string | null>(null);
   protected readonly errors = computed(() => validate(this.scenario(), this.values()));
 
+  protected readonly stars = [1, 2, 3, 4, 5];
   protected readonly characters = CHARACTER_IDS.map((id) => ({ id, ...CHARACTERS[id] }));
 
   protected visible(field: FieldDef): boolean {

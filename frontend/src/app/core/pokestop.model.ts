@@ -1,4 +1,4 @@
-export type PokestopType = 'report' | 'ngo' | 'consultation';
+export type PokestopType = 'report' | 'idea' | 'place' | 'ngo' | 'consultation';
 export type CharacterId = 'cyclist' | 'bin' | 'tree' | 'train' | 'lamp';
 export type PokestopStatus = 'open' | 'in_progress' | 'resolved' | 'rejected';
 
@@ -53,10 +53,20 @@ export interface VoteResult {
   awarded: CharacterId | null;
 }
 
-export const POKESTOP_TYPES: Record<PokestopType, { label: string; emoji: string; color: string }> = {
-  report: { label: 'Zgłoszenie mieszkańca', emoji: '🚧', color: '#f59e0b' },
-  ngo: { label: 'Pomysł NGO', emoji: '🌱', color: '#10b981' },
-  consultation: { label: 'Konsultacje miejskie', emoji: '🏛️', color: '#6366f1' },
+export interface PokestopTypeMeta {
+  label: string;
+  emoji: string;
+  color: string;
+  /** Etykiety przycisków głosowania: [za, przeciw]. */
+  vote: [string, string];
+}
+
+export const POKESTOP_TYPES: Record<PokestopType, PokestopTypeMeta> = {
+  report: { label: 'Zgłoszenie problemu', emoji: '🚧', color: '#f59e0b', vote: ['Potwierdzam', 'Nie zgadzam się'] },
+  idea: { label: 'Pomysł mieszkańca', emoji: '✨', color: '#0ea5e9', vote: ['Popieram', 'Nie popieram'] },
+  place: { label: 'Cool miejsce', emoji: '😎', color: '#ec4899', vote: ['Polecam', 'Nie polecam'] },
+  ngo: { label: 'Pomysł NGO', emoji: '🌱', color: '#10b981', vote: ['Popieram', 'Nie popieram'] },
+  consultation: { label: 'Konsultacje miejskie', emoji: '🏛️', color: '#6366f1', vote: ['Jestem za', 'Jestem przeciw'] },
 };
 
 export const STATUS_META: Record<PokestopStatus, { label: string; color: string }> = {

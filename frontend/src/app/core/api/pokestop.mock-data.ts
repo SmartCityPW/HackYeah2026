@@ -8,6 +8,12 @@ export const MOCK_STOPS: Pokestop[] = [
     comments: [{ id: 3, author: 'Ania', text: 'Super pomysł, przy upałach to się przyda.', mine: false }] },
   { id: 4, character: 'train', type: 'consultation', status: 'open', icon: '🚆', title: 'Nowa ścieżka rowerowa', description: 'Miasto konsultuje przebieg ścieżki rowerowej wzdłuż ulicy. Zagłosuj za lub przeciw.', author: 'Urząd Miasta', organization: 'Urząd Miasta', lat: 50.0680, lng: 19.9150, votesFor: 88, votesAgainst: 31, myVote: null, comments: [] },
   { id: 5, character: 'lamp', type: 'report', status: 'in_progress', icon: '💡', title: 'Zepsuta latarnia', description: 'Latarnia nie świeci od tygodnia, wieczorem jest tu ciemno.', author: 'Ola', lat: 50.0555, lng: 19.9440, votesFor: 3, votesAgainst: 0, myVote: 'for', comments: [] },
+  { id: 6, character: 'cyclist', type: 'place', status: 'open', icon: '🛹', scenarioId: 'place-fun', title: 'Skatepark pod mostem', description: 'Betonowy skatepark z widokiem na rzekę, wieczorem świetne światło.', author: 'Kuba', lat: 50.0590, lng: 19.9330, votesFor: 21, votesAgainst: 1, myVote: null,
+    details: { rating: '5', cost: 'free', vibes: ['friends', 'photo'], bestTime: ['afternoon', 'evening'], accessible: false, activity: 'skate', ownGear: true, tips: 'Wpadnij przed zachodem słońca.' }, comments: [] },
+  { id: 7, character: 'bin', type: 'place', status: 'open', icon: '☕', scenarioId: 'place-food', title: 'Kawiarnia pod żyrandolem', description: 'Mała kawiarnia z najlepszymi ciastami w okolicy.', author: 'Marta', lat: 50.0630, lng: 19.9395, votesFor: 14, votesAgainst: 0, myVote: null,
+    details: { rating: '4', cost: 'medium', vibes: ['calm', 'date'], bestTime: ['morning', 'weekend'], accessible: true, offer: 'coffee', vegan: true, wifi: true, tips: 'Zapytaj o ciasto dnia.' }, comments: [] },
+  { id: 8, character: 'train', type: 'idea', status: 'open', icon: '🥕', scenarioId: 'idea-shop', title: 'Sklep warzywny na osiedlu', description: 'Na osiedlu nie ma żadnego warzywniaka, a do najbliższego trzeba jechać autobusem.', author: 'Pani Halina', lat: 50.0598, lng: 19.9470, votesFor: 32, votesAgainst: 3, myVote: null,
+    details: { shopKind: 'veg', whoBenefits: ['seniors', 'parents'] }, comments: [] },
 ];
 
 /** Postacie zdobyte przez zalogowanego użytkownika (zgodne z głosami w MOCK_STOPS). */

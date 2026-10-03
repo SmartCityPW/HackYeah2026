@@ -22,6 +22,22 @@
                 }
               </div>
             }
+            @case ('choice') {
+              <span class="label">{{ f.label }}@if (f.required) { <b> *</b> }</span>
+              <div class="chips">
+                @for (o of f.options; track o.value) {
+                  <button type="button" class="chip" [class.on]="values()[f.key] === o.value" (click)="set(f.key, o.value)">{{ o.label }}</button>
+                }
+              </div>
+            }
+            @case ('rating') {
+              <span class="label">{{ f.label }}@if (f.required) { <b> *</b> }</span>
+              <div class="stars" role="radiogroup" [attr.aria-label]="f.label">
+                @for (n of stars; track n) {
+                  <button type="button" class="star" [class.on]="+str(f.key) >= n" (click)="set(f.key, '' + n)" [attr.aria-label]="n + ' z 5'">★</button>
+                }
+              </div>
+            }
             @case ('multiselect') {
               <span class="label">{{ f.label }}</span>
               <div class="chips">

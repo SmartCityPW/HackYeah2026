@@ -1,6 +1,7 @@
 import { Component, computed, inject } from '@angular/core';
 import { Router, RouterOutlet } from '@angular/router';
 import { NAV_ITEMS, ROLE_HOME } from '../../core/navigation';
+import { GeolocationService } from '../../core/geolocation.service';
 import { Role, SessionService } from '../../core/session.service';
 import { ToastService } from '../../core/toast.service';
 import { Navbar } from '../../shared/navbar/navbar';
@@ -21,11 +22,18 @@ const ROLES: { role: Role; label: string }[] = [
 export class Shell {
   private readonly session = inject(SessionService);
   private readonly router = inject(Router);
+  private readonly geo = inject(GeolocationService);
   protected readonly toast = inject(ToastService);
+  protected readonly gpsSimulated = this.geo.isSimulated;
 
   protected readonly role = this.session.role;
   protected readonly navItems = computed(() => NAV_ITEMS[this.session.role()]);
   protected readonly roles = ROLES;
+
+  /** Tryb deweloperski: symuluje pozycję na Rynku, żeby testować walkę bez wychodzenia z domu. */
+  protected toggleSimulatedGps(): void {
+    this.geo.simulate(this.geo.isSimulated() ? null : [19.9373, 50.0617]);
+  }
 
   /** Tryb deweloperski: przełączanie widoku do czasu logowania z backendu. */
   protected switchRole(role: Role): void {
