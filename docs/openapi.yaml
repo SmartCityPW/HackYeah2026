@@ -87,10 +87,21 @@ paths:
       summary: Kolekcja postaci ("Moje Spryciaki")
       responses:
         '200':
-          description: Liczba zdobytych sztuk każdej postaci (klucz = kod postaci)
+          description: Liczba posiadanych sztuk każdej postaci (klucz = kod postaci)
           content:
             application/json:
               schema: { type: object, additionalProperties: { type: integer, minimum: 0 }, example: { cyclist: 1, bin: 0, tree: 0, train: 0, lamp: 2 } }
+  /me/pokemons:
+    get:
+      tags: [me]
+      summary: Posiadane pokemony wraz z poziomem i mocą (zakładka "Pokemony")
+      description: |
+        W przeciwieństwie do `/me/collection` (tylko liczba sztuk per gatunek) zwraca każdy egzemplarz z osobna:
+        do wyboru pokemona przy głosowaniu (`pokemonId`), zgłaszaniu (`stakedPokemonId`) i walce (`pokemonIds`).
+      parameters:
+        - { name: availableOnly, in: query, required: false, description: Tylko niezastawione (gotowe do walki), schema: { type: boolean, default: false } }
+      responses:
+        '200': { description: Lista posiadanych pokemonów, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Pokemon' } } } } }
   /me/progress:
     get:
       tags: [me]
@@ -145,6 +156,10 @@ paths:
         Serwer ustala autora, status `open`, rodzaj pinezki (z scenariusza) i organizację (z członkostwa).
         `details` jest walidowane względem definicji scenariusza (pola wymagane, zakresy, warunki widoczności).
         Scenariusze `org` wymagają roli `org` i zweryfikowanej organizacji.
+
+        Dla typu `report`/`idea` wymagane jest `stakedPokemonId` — jeden z własnych, niezastawionych pokemonów
+        użytkownika. Serwer blokuje go do walki, ustala `character` na jego gatunek i zwraca go autorowi z +50 exp,
+        gdy `votesFor` osiągnie `votesRequired` scenariusza.
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/NewPokestop' } } } }
       responses:
         '201': { description: Utworzono, content: { application/json: { schema: { $ref: '#/components/schemas/PokestopDetail' } } } }
@@ -173,11 +188,12 @@ paths:
       tags: [pokestops]
       summary: Zagłosuj za lub przeciw
       description: |
-        Jeden głos na użytkownika, bez zmiany. Pierwszy głos przyznaje postać z pinezki (`awarded`),
-        kolejna próba zwraca `409`. Administrator nie głosuje (`403`).
+        Jeden głos na użytkownika, bez zmiany. `pokemonId` to jeden z własnych pokemonów głosującego — przy
+        pierwszym głosie dostaje +10 exp (nie trzeba, by był dostępny/niezastawiony). Kolejna próba głosu na tę
+        samą pinezkę zwraca `409` i exp się nie powtarza. Administrator nie głosuje (`403`).
       requestBody:
         required: true
-        content: { application/json: { schema: { type: object, required: [vote], properties: { vote: { $ref: '#/components/schemas/VoteValue' } } } } }
+        content: { application/json: { schema: { type: object, required: [vote, pokemonId], properties: { vote: { $ref: '#/components/schemas/VoteValue' }, pokemonId: { type: integer, description: Pokemon głosującego, który dostanie exp } } } } }
       responses:
         '200': { description: Zapisano głos, content: { application/json: { schema: { $ref: '#/components/schemas/VoteResult' } } } }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -187,10 +203,10 @@ paths:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     post:
       tags: [pokestops]
-      summary: Dodaj komentarz
+      summary: Dodaj komentarz (lub odpowiedź na inny)
       requestBody:
         required: true
-        content: { application/json: { schema: { type: object, required: [text], properties: { text: { type: string, minLength: 1, maxLength: 300 } } } } }
+        content: { application/json: { schema: { type: object, required: [text], properties: { text: { type: string, minLength: 1, maxLength: 300 }, parentCommentId: { type: integer, description: 'Odpowiedź na komentarz o tym id (musi należeć do tej samej pinezki)' } } } } }
       responses:
         '201': { description: Pinezka z nowym komentarzem, content: { application/json: { schema: { $ref: '#/components/schemas/PokestopDetail' } } } }
         '403': { $ref: '#/components/responses/Forbidden' }
@@ -214,7 +230,9 @@ paths:
     get:
       tags: [game]
       summary: Przeciwnicy w okolicy użytkownika
-      description: Przeciwników generuje serwer (losowo, z czasem życia). Klient tylko ich wyświetla.
+      description: |
+        Przeciwników generuje serwer (losowo, z czasem życia). Klient tylko ich wyświetla — `power` i `typeCode`
+        są widoczne z góry, żeby gracz mógł dobrać pokemony przed podejściem.
       parameters:
         - { name: lat, in: query, required: true, schema: { type: number, format: double } }
         - { name: lng, in: query, required: true, schema: { type: number, format: double } }
@@ -225,15 +243,21 @@ paths:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     post:
       tags: [game]
-      summary: Spróbuj pokonać przeciwnika
+      summary: Zaatakuj przeciwnika do 3 wybranymi pokemonami
       description: |
-        Klient wysyła swoją pozycję. Serwer sprawdza odległość (dziś 50 m), wiarygodność pozycji (dokładność, skoki, tempo ruchu)
-        i limity częstotliwości, zapisuje próbę i rozstrzyga walkę. Zwycięstwo jest atomowe: tylko jeden gracz pokona danego przeciwnika.
+        Klient wysyła swoją pozycję i `pokemonIds` (1–3 własne, niezastawione pokemony). Serwer sprawdza odległość
+        (dziś 50 m; za daleko → `too_far`, do walki nie dochodzi) i wiarygodność pozycji (dokładność, skoki, tempo
+        ruchu), potem liczy moc każdego pokemona z jego aktualnego exp, mnoży razy 1.2 jeśli jego typ = typ
+        przeciwnika, sumuje i porównuje z mocą przeciwnika. Suma większa → `won` (exp dla każdego użytego pokemona,
+        nowa postać do kolekcji, XP gracza); suma mniejsza/równa → `lost` (próba zapisana, przeciwnik nadal aktywny,
+        można próbować ponownie). Zapisuje każdą próbę i limituje częstotliwość. Zwycięstwo jest atomowe: tylko
+        jeden gracz pokona danego przeciwnika.
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AttackRequest' } } } }
       responses:
-        '200': { description: Wynik próby, content: { application/json: { schema: { $ref: '#/components/schemas/AttackResult' } } } }
+        '200': { description: Wynik walki, content: { application/json: { schema: { $ref: '#/components/schemas/AttackResult' } } } }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { description: Przeciwnik pokonany lub wygasły, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { $ref: '#/components/responses/ValidationError' }
         '429': { description: Za dużo prób, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
 
   /admin/organizations:
@@ -306,6 +330,7 @@ components:
     FieldType: { type: string, enum: [text, textarea, number, select, multiselect, boolean, tags, date, photos, character, choice, rating] }
     VerificationStatus: { type: string, enum: [pending, verified, suspended] }
     CharacterCode: { type: string, enum: [cyclist, bin, tree, train, lamp], description: 'Kody postaci ze słownika `collection_character` (lista rośnie wraz z grą)' }
+    TypeCode: { type: string, enum: [transport, clean, green, energy, air, infra], description: 'Typ postaci/przeciwnika do mnożnika w walce (słownik `collection_type`)' }
 
     # ---- konta
     Credentials:
@@ -402,6 +427,7 @@ components:
       required: [id, author, text, mine]
       properties:
         id: { type: integer }
+        parentCommentId: { type: integer, nullable: true, description: Odpowiedź na inny komentarz (wątek) }
         author: { type: string }
         text: { type: string }
         mine: { type: boolean }
@@ -428,7 +454,10 @@ components:
         lng: { type: number, format: double }
         votesFor: { type: integer }
         votesAgainst: { type: integer }
+        votesRequired: { type: integer, description: 'Próg `votesFor`, przy którym zwraca się zastawiony pokemon (tylko `report`/`idea`)' }
         myVote: { allOf: [{ $ref: '#/components/schemas/VoteValue' }], nullable: true }
+        stakedPokemonId: { type: integer, nullable: true, description: 'Pokemon zostawiony przez autora (tylko `report`/`idea`)' }
+        stakeReleasedAt: { type: string, format: date-time, nullable: true, description: Kiedy pokemon wrócił do autora z exp }
         commentCount: { type: integer }
         rejectionReason: { type: string, nullable: true }
         createdAt: { type: string, format: date-time }
@@ -447,12 +476,13 @@ components:
         results: { type: array, items: { $ref: '#/components/schemas/Pokestop' } }
     NewPokestop:
       type: object
-      required: [scenarioCode, title, character, lat, lng]
+      required: [scenarioCode, title, lat, lng]
       properties:
         scenarioCode: { type: string }
         title: { type: string, minLength: 3, maxLength: 80 }
         description: { type: string }
-        character: { $ref: '#/components/schemas/CharacterCode' }
+        character: { allOf: [{ $ref: '#/components/schemas/CharacterCode' }], nullable: true, description: 'Tylko dla `place`/`ngo`/`consultation`. Dla `report`/`idea` serwer go ustala z `stakedPokemonId`.' }
+        stakedPokemonId: { type: integer, description: 'Wymagane dla `report`/`idea`: własny, niezastawiony pokemon zostawiany na zgłoszeniu (patrz `GET /me/pokemons`).' }
         lat: { type: number, format: double }
         lng: { type: number, format: double }
         photoIds: { type: array, maxItems: 3, items: { type: integer } }
@@ -466,48 +496,87 @@ components:
         note: { type: string, description: Powód (wymagany przy `rejected`) }
     VoteResult:
       type: object
-      required: [stop]
+      required: [stop, pokemon]
       properties:
         stop: { $ref: '#/components/schemas/PokestopDetail' }
-        awarded: { allOf: [{ $ref: '#/components/schemas/CharacterCode' }], nullable: true, description: Postać zdobyta za ten głos }
+        pokemon: { allOf: [{ $ref: '#/components/schemas/Pokemon' }], description: Pokemon nagrodzony za ten głos (po doliczeniu +10 exp) }
+
+    # ---- kolekcja (posiadane pokemony)
+    Pokemon:
+      type: object
+      required: [id, character, typeCode, level, exp, power, isStaked]
+      properties:
+        id: { type: integer }
+        character: { $ref: '#/components/schemas/CharacterCode' }
+        typeCode: { $ref: '#/components/schemas/TypeCode' }
+        nickname: { type: string, nullable: true }
+        level: { type: integer, description: Wyliczone przez serwer z `exp` (wzór może się zmieniać) }
+        exp: { type: integer }
+        power: { type: integer, description: Aktualna moc do walki, wyliczona z `level` }
+        isStaked: { type: boolean, description: Zostawiony na własnym zgłoszeniu/pomyśle — niedostępny do walki }
+        caughtAt: { type: string, format: date-time }
 
     # ---- gra
     Encounter:
       type: object
-      required: [id, name, emoji, level, actionLabel, xpReward, lat, lng, expiresAt]
+      required: [id, name, emoji, level, typeCode, power, actionLabel, xpReward, lat, lng, expiresAt]
       properties:
         id: { type: integer }
         name: { type: string }
         emoji: { type: string }
         level: { type: integer }
+        typeCode: { $ref: '#/components/schemas/TypeCode' }
+        power: { type: integer, description: Moc, którą muszą przewyższyć wybrane pokemony (po mnożniku typu) }
         description: { type: string }
-        actionLabel: { type: string, description: Co trzeba zrobić na miejscu }
-        xpReward: { type: integer }
+        actionLabel: { type: string, description: Co trzeba zrobić na miejscu, zanim można zaatakować }
+        xpReward: { type: integer, description: Exp dla każdego użytego pokemona po wygranej }
         lat: { type: number, format: double }
         lng: { type: number, format: double }
         expiresAt: { type: string, format: date-time }
     AttackRequest:
       type: object
-      required: [lat, lng]
+      required: [lat, lng, pokemonIds]
       properties:
         lat: { type: number, format: double }
         lng: { type: number, format: double }
         accuracyM: { type: number, description: Deklarowana dokładność GPS w metrach }
         clientTime: { type: string, format: date-time }
+        pokemonIds: { type: array, minItems: 1, maxItems: 3, items: { type: integer }, description: Własne, niezastawione pokemony użyte w walce }
     AttackResult:
       oneOf:
         - $ref: '#/components/schemas/AttackWon'
+        - $ref: '#/components/schemas/AttackLost'
         - $ref: '#/components/schemas/AttackTooFar'
       discriminator:
         propertyName: outcome
-        mapping: { won: '#/components/schemas/AttackWon', too_far: '#/components/schemas/AttackTooFar' }
+        mapping: { won: '#/components/schemas/AttackWon', lost: '#/components/schemas/AttackLost', too_far: '#/components/schemas/AttackTooFar' }
+    AttackPokemonResult:
+      type: object
+      required: [pokemonId, powerUsed, typeMultiplierApplied]
+      properties:
+        pokemonId: { type: integer }
+        powerUsed: { type: integer, description: Moc tego pokemona przed mnożnikiem }
+        typeMultiplierApplied: { type: number, description: '1.2, gdy typ pokemona = typ przeciwnika, inaczej 1.0' }
+        expGained: { type: integer, description: Tylko gdy walka wygrana }
     AttackWon:
       type: object
-      required: [outcome, xpGained, progress]
+      required: [outcome, enemyPower, pokemonPowerTotal, pokemons, xpGained, progress]
       properties:
         outcome: { type: string, enum: [won] }
-        xpGained: { type: integer }
+        enemyPower: { type: integer }
+        pokemonPowerTotal: { type: integer, description: Suma mocy użytych pokemonów (po mnożniku typu) }
+        pokemons: { type: array, items: { $ref: '#/components/schemas/AttackPokemonResult' } }
+        awardedCharacter: { allOf: [{ $ref: '#/components/schemas/CharacterCode' }], nullable: true, description: Nowa postać zdobyta za wygraną walkę }
+        xpGained: { type: integer, description: XP gracza (niezależne od exp pokemonów) }
         progress: { $ref: '#/components/schemas/PlayerProgress' }
+    AttackLost:
+      type: object
+      required: [outcome, enemyPower, pokemonPowerTotal, pokemons]
+      properties:
+        outcome: { type: string, enum: [lost] }
+        enemyPower: { type: integer }
+        pokemonPowerTotal: { type: integer, description: Suma mocy użytych pokemonów (po mnożniku typu) — nie wystarczyła }
+        pokemons: { type: array, items: { $ref: '#/components/schemas/AttackPokemonResult' } }
     AttackTooFar:
       type: object
       required: [outcome, distanceM]

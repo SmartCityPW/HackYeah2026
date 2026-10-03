@@ -18,16 +18,40 @@ Kształt bazy danych: [`db/README.md`](db/README.md).
 | Konta | `POST /auth/guest`, `/auth/register`, `/auth/login`, `/auth/refresh`, `/auth/upgrade`; `GET /me` |
 | Scenariusze | `GET /scenarios?category=` (katalog dla roli); admin: `PUT /admin/scenarios/{code}` |
 | Pinezki | `GET /pokestops?bbox=&type=&status=&organizationId=`, `POST /pokestops`, `GET /pokestops/{id}`, `POST /pokestops/{id}/vote`, `POST /pokestops/{id}/comments`, `POST /photos` |
-| Użytkownik | `GET /me/collection`, `/me/progress`, `/me/interactions`, `/me/organization` |
+| Użytkownik | `GET /me/collection`, `/me/pokemons`, `/me/progress`, `/me/interactions`, `/me/organization` |
 | Gra | `GET /encounters?lat=&lng=&radius=`, `POST /encounters/{id}/attack` |
 | Administracja | `PATCH /pokestops/{id}` (status), `GET /admin/organizations`, `PATCH /admin/organizations/{id}` |
 
+`GET /me/pokemons` jest nowe: zwraca listę posiadanych egzemplarzy (nie tylko liczbę per gatunek jak
+`/me/collection`) — poziom, exp i moc każdego, do zakładki "Pokemony", do wyboru pokemona przy głosowaniu/zgłaszaniu
+i do wyboru 3 pokemonów do walki.
+
 ## Reguły, które egzekwuje backend
 
-- **Głosowanie:** jeden głos na użytkownika (klucz główny w bazie), bez zmiany. Pierwszy głos zwraca `awarded` (postać), kolejny `409`.
-- **Zgłoszenie:** serwer ustala autora, status `open`, rodzaj pinezki (z scenariusza) i organizację (z członkostwa). `details` jest walidowane względem definicji scenariusza (pola wymagane, zakresy liczb, `showIf`). Błędy wracają w `fields` (klucz = `key` pola).
-- **Walka:** serwer liczy odległość (dziś 50 m), ocenia wiarygodność pozycji, zapisuje każdą próbę (`game_attack`) i rozstrzyga. Zwycięstwo jest atomowe (unikalny indeks), więc dwóch graczy nie pokona tego samego przeciwnika. Klient sprawdza odległość tylko po to, by wyłączyć przycisk.
-- **Przeciwnicy:** generuje wyłącznie serwer (losowanie z `game_enemy_type` wg wag, czas życia `expiresAt`).
+- **Głosowanie:** jeden głos na użytkownika (klucz główny w bazie), bez zmiany. Głosujący wskazuje `pokemonId`
+  (jeden z własnych, dowolny — może być zastawiony) i **przy pierwszym głosie** ten pokemon dostaje +10 exp
+  (`VoteResult.pokemon`, patrz niżej); kolejna próba głosu na tę samą pinezkę zwraca `409` i exp się nie powtarza.
+  Administrator nie głosuje (`403`).
+- **Zgłoszenie:** serwer ustala autora, status `open`, rodzaj pinezki (z scenariusza) i organizację (z członkostwa).
+  Dla `report`/`idea` klient **musi** podać `stakedPokemonId` — jeden z własnych, niezastawionych pokemonów; serwer
+  wymusza, że jego gatunek = `character` pinezki, i oznacza go jako zastawiony (nie da się go użyć do walki, dopóki
+  nie wróci). `details` jest walidowane względem definicji scenariusza (pola wymagane, zakresy liczb, `showIf`).
+  Błędy wracają w `fields` (klucz = `key` pola).
+- **Zwrot zastawionego pokemona:** gdy `votesFor` zgłoszenia osiągnie próg scenariusza (`votesRequired`, domyślnie
+  10), serwer automatycznie zwraca pokemona autorowi i dopisuje mu +50 exp — bez dodatkowego wywołania API, widoczne
+  przy kolejnym `GET /pokestops/{id}` jako `stakeReleasedAt`.
+- **Walka:** klient wybiera do 3 własnych, niezastawionych pokemonów (`pokemonIds`) i wysyła pozycję. Serwer liczy
+  odległość (dziś 50 m; za daleko → `too_far`, pokemony się nie liczą), dla pokemonów w zasięgu liczy moc każdego
+  (z jego exp) × **1.2, jeśli jego typ = typ przeciwnika**, sumuje i porównuje z mocą przeciwnika
+  (`Encounter.power`). Suma większa → `won`: każdy użyty pokemon dostaje exp (= `xpReward`), gracz dostaje nową
+  postać do kolekcji i XP. Suma mniejsza lub równa → `lost`: próba się zapisuje, nagrody nie ma, przeciwnik
+  pozostaje aktywny i można próbować ponownie (także innymi pokemonami). Zwycięstwo jest atomowe (unikalny indeks),
+  więc dwóch graczy nie pokona tego samego przeciwnika. Klient liczy odległość i podgląd mocy tylko na wyświetlanie —
+  serwer rozstrzyga walkę od nowa.
+- **Przeciwnicy:** generuje wyłącznie serwer (losowanie z `game_enemy_type` wg wag, czas życia `expiresAt`); moc i
+  typ przeciwnika są widoczne w `GET /encounters`, żeby gracz mógł dobrać pokemony przed podejściem.
+- **Pokemon startowy:** `POST /auth/guest` i `POST /auth/register` przyznają jeden egzemplarz gatunku startowego —
+  inaczej nowy gracz nie miałby czym głosować.
 - **Moderacja:** zmiana statusu zapisuje wpis w historii (`pokestops_status_change`). Odrzucona pinezka znika z mapy mieszkańców.
 
 ## Co musi zmienić frontend, żeby się spiąć z tym kontraktem
@@ -42,16 +66,29 @@ Dzisiejsze atrapy (`core/api/*.mock.ts`) działają inaczej w kilku miejscach. T
 6. **Katalog scenariuszy:** z `GET /scenarios` zamiast `scenario.catalog.ts` (ten plik zostaje źródłem seedu: `npm run db:seed-scenarios`).
 7. **Rola i organizacja:** z `GET /me` i `/me/organization`, a tryb deweloperski (przełącznik ról, symulowany GPS) ma zniknąć lub zostać tylko w buildzie deweloperskim.
 8. **Tokeny:** interceptor HTTP z JWT i odświeżaniem.
+9. **Wybór pokemona przy głosowaniu i zgłaszaniu:** ekran głosu musi dać wybrać `pokemonId` z `/me/pokemons` (nie wysyłać samego `vote`), a formularz zgłoszenia problemu/pomysłu — `stakedPokemonId` (i pokazać, że ten pokemon jest "zablokowany" do zwrotu progu głosów).
+10. **Ekran walki:** wybór do 3 pokemonów z `/me/pokemons` (z podglądem mocy/typu i mnożnika, jeśli typ = typ przeciwnika z `GET /encounters`) zamiast samego przycisku "atakuj"; obsłużyć nowy wynik `lost` (dziś atrapa znała tylko `won`/`too_far`).
 
 ## Pytania otwarte (do rozmowy o backendzie)
 
 1. **Wiele miast?** Schemat zakłada jedno wdrożenie. Jeśli aplikacja ma obsługiwać kilka miast, potrzebna jest tabela `city` i zakres (tenant) na pinezkach, organizacjach i przeciwnikach. To najtańsze zrobić teraz.
 2. **Antyoszustwo w walce:** jakie sygnały uznajemy za podejrzane (skoki pozycji, nierealna prędkość, mock location, wiele kont z jednego urządzenia) i co robimy (odrzucenie, flaga, blokada)? Dziennik `game_attack` zbiera dane, a decyzje wymagają ustaleń.
-3. **"Akcja na miejscu":** dziś weryfikuje się tylko obecność. Czy potrzebne jest potwierdzenie (zdjęcie, kod QR, czas pobytu)? Schemat ma `action_kind` na to miejsce.
-4. **Reguła nagrody dla autora** ("jeśli dużo osób potwierdzi, autor dostaje pokemona"): jaki próg i czy zależy od typu? Tabela nagród ma na to źródło `report_confirmed`.
-5. **Generowanie przeciwników:** gęstość, limity na obszar, odnawianie, zadanie okresowe (Celery beat albo cron). Czy mają zależeć od liczby graczy w okolicy?
-6. **RODO i lokalizacja:** jak długo trzymamy pozycje z prób ataku, czy anonimizujemy użytkowników zamiast ich usuwać (klucze obce `RESTRICT` na autorach są pod to przygotowane).
-7. **Moderacja treści:** zdjęcia i komentarze (dziś komentarz można ukryć, zdjęcia nie mają jeszcze statusu moderacji).
-8. **Aktualizacje na żywo** (nowe pinezki, głosy): wystarczy odpytywanie, czy potrzebne WebSockety?
-9. **Słownik postaci:** frontend trzyma jego opis (nazwy, ikony, modele 3D). Czy ma być też dostępny z API (`GET /characters`)?
-10. **Podział na aplikacje Django (SRP):** `accounts`, `scenarios`, `pokestops`, `collection`, `game`. Granice w schemacie są dobrane tak, by każda miała własne tabele, a zależności szły w jedną stronę (`game` → `accounts`; `collection` → `pokestops`, `game`).
+3. **"Akcja na miejscu":** dziś weryfikuje się tylko obecność, zanim można zaatakować. Czy potrzebne jest potwierdzenie (zdjęcie, kod QR, czas pobytu)? Schemat ma `action_kind` na to miejsce.
+4. **Stałe gry (exp za głos = 10, za potwierdzone zgłoszenie = 50, mnożnik typu = 1.2, próg głosów = 10):** to
+   wartości-placeholder do wytuningowania na podstawie testów, dziś stałe w kodzie backendu. Jeśli mają się zmieniać
+   bez wdrożenia, potrzebna osobna tabela `game_config` (key/value) — czy to jest potrzebne na hackathon, czy można
+   to zahardkodować?
+5. **Farmienie walk:** gracz może dowolną liczbę razy przegrać i spróbować ponownie tym samym przeciwnikiem (nie ma
+   cooldownu). Czy to problem (np. przy teście różnych trójek pokemonów), czy zostaje tak jak jest?
+6. **Generowanie przeciwników:** gęstość, limity na obszar, odnawianie, zadanie okresowe (Celery beat albo cron). Czy mają zależeć od liczby graczy w okolicy?
+7. **RODO i lokalizacja:** jak długo trzymamy pozycje z prób walki, czy anonimizujemy użytkowników zamiast ich usuwać (klucze obce `RESTRICT` na autorach są pod to przygotowane).
+8. **Moderacja treści:** zdjęcia i komentarze (dziś komentarz można ukryć, zdjęcia nie mają jeszcze statusu moderacji).
+9. **Moderacja zgłoszeń przez agenta AI:** dziś nie ma dedykowanej tabeli na jego werdykt — zakładamy, że ocena
+   dzieje się synchronicznie przy `POST /pokestops` (odrzucone przez agenta nigdy nie trafia do bazy jako widoczne;
+   `pokestops_status_change` z `changedById = null` służy tylko do późniejszych zmian przez administratora). Czy to
+   wystarczające, czy potrzebny jest log samych decyzji agenta (np. do testów/promptu)?
+10. **Aktualizacje na żywo** (nowe pinezki, głosy, walki w okolicy): wystarczy odpytywanie, czy potrzebne WebSockety?
+11. **Słownik postaci i typów:** frontend trzyma jego opis (nazwy, ikony, modele 3D). Czy ma być też dostępny z API (`GET /characters`, `GET /types`)?
+12. **Podział na aplikacje Django (SRP):** `accounts`, `scenarios`, `pokestops`, `collection`, `game`. `collection` i
+    `game` zależą teraz od siebie nawzajem (walka używa posiadanych pokemonów, wygrana tworzy nowego) — patrz
+    [`db/README.md`](db/README.md) sekcja "Podział na aplikacje". To jest zamierzone, nie przeoczenie.
