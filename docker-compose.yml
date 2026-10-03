@@ -1,4 +1,5 @@
 # Uruchomienie: skopiuj .env.example do .env, uzupełnij sekrety, a potem `docker compose up --build`.
+# Aplikacja: http://localhost:4200 (frontend, nginx), API: http://localhost:8000/api/v1 (backend, gunicorn).
 # Wartości niesekretne (host i nazwa bazy, port aplikacji) pochodzą z backend/config/default.yaml.
 # Domyślne wartości poniżej muszą się z nim zgadzać (pilnuje tego test tests/test_deployment_files.py).
 services:
@@ -32,6 +33,19 @@ services:
       - "${BACKEND_PORT:-8000}:8000"    # po prawej port z backend/config/default.yaml (server.port)
     volumes:
       - media:/app/data/media           # backend/config/default.yaml (storage.media_root)
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NODE_VERSION: ${NODE_VERSION:-24}
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-4200}:80"     # adres z backend/config/default.yaml (app.cors_allowed_origins) musi się zgadzać z portem
+    volumes:
+      # Konfiguracja aplikacji (adres backendu, api.mode.*): edytujesz plik na hoście i odświeżasz stronę, bez przebudowy obrazu.
+      - ./frontend/public/config:/usr/share/nginx/html/config:ro
 
 volumes:
   db-data:

@@ -14,14 +14,14 @@ class Command(BaseCommand):
     )
 
     def add_arguments(self, parser):
-        parser.add_argument('--cases', default=None, help='plik z przypadkami (domyślnie config/moderation_cases.yaml)')
+        parser.add_argument('--cases', default=None, help='plik z przypadkami (domyślnie moderation.cases_file z YAML)')
         parser.add_argument('--delay', type=float, default=0, help='przerwa między zapytaniami w sekundach (limity darmowego planu)')
 
     def handle(self, *args, **options):
         cfg = settings.APP.moderation
         if cfg.provider == 'stub':
             raise CommandError('moderation.provider to "stub" (atrapa nie ocenia treści). Ustaw gemini albo http, patrz config/local.example.yaml.')
-        path = Path(options['cases']) if options['cases'] else settings.APP.path('config/moderation_cases.yaml')
+        path = Path(options['cases']) if options['cases'] else settings.APP.path(settings.APP.moderation.cases_file)
         cases = load_cases(path)
         model = cfg.gemini.model if cfg.provider == 'gemini' else cfg.http.model
         self.stdout.write(f'provider: {cfg.provider}' + (f', model: {model}' if model else '') + f', przypadków: {len(cases)}\n')

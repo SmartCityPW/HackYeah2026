@@ -10,7 +10,7 @@ game: { interactionRangeM: 50, simulatedGps: { lat: 1, lng: 2 }, maxTeamSize: 3,
 upload: { enabled: true, maxPhotos: 3, maxPhotoBytes: 100 }
 timeline: { titleMaxLength: 120, bodyMaxLength: 1000, maxCustomFields: 10, customFieldLabelMaxLength: 40, customFieldValueMaxLength: 300 }
 survey: { maxQuestions: 12, maxOptions: 10 }
-ui: { toastMs: 10, commentsPageSize: 5, mapReloadDebounceMs: 0 }
+ui: { toastMs: 10, commentsPageSize: 5, mapReloadDebounceMs: 0, moderationPollSeconds: 30 }
 dev: { tools: false }
 `;
 

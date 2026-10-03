@@ -1,0 +1,50 @@
+<p class="info">
+  Zgłoszenia, które agent AI odrzucił, nie trafiają na mapę. Autor dostaje tylko ogólny komunikat, więc tu widzisz ich treść.
+  Zgłoszeń nie przywracamy: jeśli agent się pomylił, autor może dodać je ponownie.
+</p>
+
+<div class="chip-row" role="group" aria-label="Werdykt">
+  @for (f of filters; track f.id) {
+    <button type="button" [class.on]="filter().id === f.id" [attr.aria-pressed]="filter().id === f.id" (click)="load(f)">{{ f.label }}</button>
+  }
+</div>
+
+<div class="list" aria-live="polite">
+  @for (e of moderation.entries(); track e.id) {
+    <article [attr.data-verdict]="e.verdict">
+      <header>
+        <span class="verdict"><span aria-hidden="true">{{ meta[e.verdict].icon }}</span> {{ meta[e.verdict].label }}</span>
+        @if (isNew(e)) { <span class="new">Nowe</span> }
+        <time [attr.datetime]="e.createdAt">{{ format(e.createdAt) }}</time>
+      </header>
+      <h3>{{ e.submitted.title }}</h3>
+      @if (e.submitted.description) { <p class="description">{{ e.submitted.description }}</p> }
+      @if (detailRows(e).length) {
+        <dl>
+          @for (r of detailRows(e); track r.key) { <dt>{{ r.key }}</dt><dd>{{ r.value }}</dd> }
+        </dl>
+      }
+      <footer>
+        <span>Autor: <strong>{{ e.author }}</strong></span>
+        <span>{{ e.scenarioLabel }}</span>
+        @if (e.model) { <span>Model: {{ e.model }}</span> }
+        @if (e.latencyMs !== null) { <span>{{ e.latencyMs }} ms</span> }
+        @if (e.reason) { <span>Powód: {{ e.reason }}</span> }
+        <span class="id">Wpis #{{ e.id }}</span>
+      </footer>
+    </article>
+  } @empty {
+    @if (loaded() && !moderation.loading()) { <p class="empty">Brak wpisów w tym widoku.</p> }
+  }
+</div>
+
+@if (moderation.total() > moderation.entries().length) {
+  <p class="info">Pokazano {{ moderation.entries().length }} z {{ moderation.total() }} wpisów (najnowsze).</p>
+}
+
+<details class="tip">
+  <summary>Agent się pomylił? Dopisz przypadek do zestawu regresyjnego</summary>
+  <p>Wpis z numerem ze stopki trafia do <code>config/moderation_cases.yaml</code>, a <code>moderation_eval</code> sprawdza wtedy, czy zmiana promptu go naprawiła:</p>
+  <pre>python manage.py moderation_log_to_cases &lt;numer&gt; --expect approve</pre>
+  <p>Użyj <code>--expect reject</code>, gdy odrzucenie było słuszne i chcesz je utrwalić albo gdy agent przepuścił atak.</p>
+</details>

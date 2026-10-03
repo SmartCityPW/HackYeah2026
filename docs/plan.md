@@ -116,13 +116,15 @@ Stan wyjściowy: rola z `/me` działała (Etap 1), ale nie było logowania, reje
 
 Problem: odrzucone przez agenta zgłoszenie nie powstaje jako pinezka, więc administrator nie ma jak się o nim dowiedzieć. Dziś ślad jest tylko w tabeli `pokestops_moderation_log` (treść, werdykt, model, czas, autor), do której nie ma endpointu ani ekranu.
 
-- [ ] 7.1 Backend: `GET /admin/moderation-log` (kontrakt w `docs/openapi.yaml` i implementacja): strona wpisów z filtrem werdyktu (`rejected`, `error`), z treścią zgłoszenia, autorem (nazwa wyświetlana), modelem i czasem. Tylko administrator
-- [ ] 7.2 Frontend (administrator): ekran „Moderacja AI” w nawigacji z odznaką liczby nowych odrzuceń od ostatniej wizyty, lista z treścią i autorem, filtr. Ikona + tekst, nie sam kolor (paleta)
-- [ ] 7.3 Odświeżanie: sprawdzanie nowych wpisów co N sekund (wartość w `app-config.yaml`), toast „nowe odrzucenie” przy otwartej aplikacji
-- [ ] 7.4 Wygodne dopisanie wpisu z logu do `moderation_cases.yaml` (np. `manage.py moderation_log_to_cases <id>`), żeby fałszywe odrzucenia i przepuszczone ataki trafiały do zestawu regresyjnego
-- [ ] 7.5 Retencja: log zawiera odrzuconą treść, która może zawierać dane osobowe, więc potrzebny jest limit czasu przechowywania (wartość w YAML) i polecenie czyszczące
+- [x] 7.1 Backend: `GET /admin/moderation-log` (kontrakt w `docs/openapi.yaml` i implementacja): strona wpisów z filtrem werdyktu (`rejected`, `error`), z treścią zgłoszenia, autorem (nazwa wyświetlana), modelem i czasem. Tylko administrator
+- [x] 7.2 Frontend (administrator): zakładka „Odrzucenia AI” na ekranie Moderacji (nie osobny przycisk, bo pasek ma już 5) z odznaką liczby nowych odrzuceń od ostatniej wizyty, lista z treścią i autorem, filtr. Ikona + tekst, nie sam kolor (paleta)
+- [x] 7.3 Odświeżanie: sprawdzanie nowych wpisów co N sekund (wartość w `app-config.yaml`), toast „nowe odrzucenie” przy otwartej aplikacji
+- [x] 7.4 Wygodne dopisanie wpisu z logu do `moderation_cases.yaml` (np. `manage.py moderation_log_to_cases <id>`), żeby fałszywe odrzucenia i przepuszczone ataki trafiały do zestawu regresyjnego
+- [x] 7.5 Retencja: log zawiera odrzuconą treść, która może zawierać dane osobowe, więc potrzebny jest limit czasu przechowywania (wartość w YAML) i polecenie czyszczące
 
-**Do decyzji:** (a) czy administrator ma móc *przywrócić* odrzucone zgłoszenie (wymaga utworzenia pinezki i zastawu pokemona autora), czy tylko wiedzieć o odrzuceniu; (b) czy poza ekranem potrzebne jest powiadomienie zewnętrzne (e-mail, webhook), czy wystarcza odznaka w aplikacji.
+**Rozstrzygnięte (2026-10-04):** (a) bez przywracania, tylko informacja; (b) wystarcza odznaka i komunikat w aplikacji. Backend: `GET /admin/moderation-log`, `moderation_log_to_cases`, `moderation_prune_log` (też przy starcie), 168 testów ✔. Frontend: 206 testów ✔, `ng build` ✔; odznaka liczy odrzucenia od ostatniej wizyty (pamiętane w przeglądarce, więc per urządzenie). **Niesprawdzone w przeglądarce.**
+
+~~Do decyzji:~~ (a) czy administrator ma móc *przywrócić* odrzucone zgłoszenie (wymaga utworzenia pinezki i zastawu pokemona autora), czy tylko wiedzieć o odrzuceniu; (b) czy poza ekranem potrzebne jest powiadomienie zewnętrzne (e-mail, webhook), czy wystarcza odznaka w aplikacji.
 
 ## Etap 8: walka z przeciwnikami: integracja brancha `enemy_and_point_of_interest_range_detection` (dopisane 2026-10-03)
 
@@ -195,7 +197,8 @@ Pięć uwag użytkownika. Decyzje projektowe są przy punktach.
 
 ## Etap 5: wdrożenie i jakość
 - [ ] **PWA nie jest skonfigurowane:** w `frontend/public/` nie ma manifestu, a w `angular.json`, `index.html` i `app.config.ts` nie ma service workera (`ng add @angular/pwa` nie było wykonane). Specyfikacja wymaga PWA. Do zrobienia razem z paletą (`theme_color`, ikony)
-- [ ] weryfikacja PWA, `dev.tools: false` w produkcji, HTTPS, CI, jedno uruchomienie przez Docker, `docs/ASSETS.md`
+- [x] **Frontend w Dockerze:** `frontend/Dockerfile` (Node → nginx), `frontend/docker/nginx.conf` (fallback SPA, typ JavaScript dla workera MapLibre, konfiguracja bez cache), usługa `frontend` w `docker-compose.yml` (port 4200, konfiguracja montowana z hosta). Sprawdzone na żywo osobnym projektem compose: 3 usługi działają, podstrony bez 404, CORS poprawny. Testy spójności w `test_deployment_files.py`. **Niesprawdzone w przeglądarce**
+- [ ] weryfikacja PWA, `dev.tools: false` w produkcji, HTTPS, CI, `docs/ASSETS.md`
 
 ## Otwarte decyzje
 

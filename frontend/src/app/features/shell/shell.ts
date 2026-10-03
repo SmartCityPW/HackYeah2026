@@ -1,8 +1,9 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { NAV_ITEMS } from '../../core/navigation';
 import { AppConfigService } from '../../core/config/app-config.service';
 import { GeolocationService } from '../../core/geolocation.service';
+import { ModerationService } from '../../core/moderation.service';
 import { SessionService } from '../../core/session.service';
 import { ToastService } from '../../core/toast.service';
 import { Navbar } from '../../shared/navbar/navbar';
@@ -33,7 +34,17 @@ export class Shell {
   private readonly config = inject(AppConfigService).config;
   protected readonly toast = inject(ToastService);
   protected readonly devTools = this.config.dev.tools;
-  protected readonly navItems = computed(() => NAV_ITEMS[this.session.role()]);
+  private readonly moderation = inject(ModerationService);
+  protected readonly navItems = computed(() =>
+    NAV_ITEMS[this.session.role()].map((item) => (item.badgeSource === 'moderation' ? { ...item, badge: this.moderation.unseen() } : item)),
+  );
+
+  constructor() {
+    // Administrator na bieżąco dowiaduje się o odrzuceniach AI (odznaka i komunikat); inne role nic nie odpytują.
+    effect((onCleanup) => {
+      if (this.session.role() === 'admin') onCleanup(this.moderation.startPolling());
+    });
+  }
 
   /** Tryb deweloperski: przy symulowanym GPS strzałki i WASD przesuwają gracza po mapie (z Shiftem 5x dalej). */
   protected onKeydown(event: KeyboardEvent): void {

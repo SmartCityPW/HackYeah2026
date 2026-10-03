@@ -1,6 +1,6 @@
 """Typowana konfiguracja z YAML. Jedyne miejsce, które czyta pliki konfiguracyjne.
 
-Kolejność: plik bazowy (`APP_CONFIG`, domyślnie config/default.yaml) + opcjonalne nadpisania (`APP_CONFIG_OVERRIDE`).
+Kolejność: plik bazowy (`APP_CONFIG`, domyślnie config/default.yaml) + opcjonalne nadpisania (`APP_CONFIG_OVERRIDE`, także kilka plików po przecinku).
 Sekretów tu nie ma (patrz core/secrets.py). Ścieżki względne liczone są od katalogu backendu.
 """
 from __future__ import annotations
@@ -179,6 +179,8 @@ class ModerationGeminiSection:
 class ModerationSection:
     provider: str
     timeout_seconds: float
+    log_retention_days: int
+    cases_file: str
     prompt_file: str
     stub: ModerationStubSection
     http: ModerationHttpSection
@@ -268,7 +270,7 @@ def _resolve(value: str) -> Path:
 @lru_cache(maxsize=1)
 def get_config() -> Config:
     data = _read(_resolve(os.environ.get(ENV_CONFIG, DEFAULT_CONFIG)))
-    override = os.environ.get(ENV_OVERRIDE)
-    if override:
+    # Nadpisania mogą być listą plików rozdzieloną przecinkami (scalane po kolei, późniejszy wygrywa), np. dane demo + Gemini.
+    for override in filter(None, (part.strip() for part in os.environ.get(ENV_OVERRIDE, '').split(','))):
         data = _merge(data, _read(_resolve(override)))
     return _build(Config, data, 'config')

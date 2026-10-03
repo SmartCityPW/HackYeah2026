@@ -14,7 +14,7 @@ export const TEST_CONFIG: AppConfig = {
   upload: { enabled: true, maxPhotos: 3, maxPhotoBytes: 5 * 1024 * 1024 },
   timeline: { titleMaxLength: 120, bodyMaxLength: 1000, maxCustomFields: 10, customFieldLabelMaxLength: 40, customFieldValueMaxLength: 300 },
   survey: { maxQuestions: 12, maxOptions: 10 },
-  ui: { toastMs: 3000, commentsPageSize: 2, mapReloadDebounceMs: 0 },
+  ui: { toastMs: 3000, commentsPageSize: 2, mapReloadDebounceMs: 0, moderationPollSeconds: 30 },
   dev: { tools: true },
 };
 

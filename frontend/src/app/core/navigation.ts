@@ -9,6 +9,10 @@ export interface NavItem {
   exact?: boolean;
   /** Funkcja zapowiedziana, jeszcze niedostępna. */
   soon?: boolean;
+  /** Liczba do pokazania na przycisku jako odznaka (np. nowe odrzucenia moderacji AI). Ustawia powłoka. */
+  badge?: number;
+  /** Co zasila odznakę; powłoka podstawia `badge`. */
+  badgeSource?: 'moderation';
 }
 
 export const ROLE_HOME: Record<Role, string> = { resident: '/', org: '/org', admin: '/admin' };
@@ -32,7 +36,7 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
     { label: 'Organizacja', icon: 'building', path: '/org/organizacja' },
   ],
   admin: [
-    { label: 'Moderacja', icon: 'shield', path: '/admin', exact: true },
+    { label: 'Moderacja', icon: 'shield', path: '/admin', exact: true, badgeSource: 'moderation' },
     { label: 'Organizacje', icon: 'building', path: '/admin/organizacje' },
     { label: 'Scenariusze', icon: 'grid', path: '/admin/scenariusze' },
     { label: 'Mapa', icon: 'map', path: '/admin/mapa' },

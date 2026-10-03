@@ -1,0 +1,5 @@
+# Moderacja zgłoszeń przez Google Gemini. Klucz (AI_API_KEY) jest wyłącznie w środowisku (.env), nigdy tutaj.
+# Użycie: w .env ustaw  APP_CONFIG_OVERRIDE=config/gemini.example.yaml  (z danymi demo: config/demo.example.yaml,config/gemini.example.yaml)
+# Model i adres: sekcja moderation.gemini w config/default.yaml.
+moderation:
+  provider: gemini

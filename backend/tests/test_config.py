@@ -80,3 +80,24 @@ def _flat_keys(data):
         for k, v in data.items():
             yield str(k)
             yield from _flat_keys(v)
+
+
+def test_several_override_files_are_merged_in_order(tmp_path, monkeypatch):
+    first, second = tmp_path / 'a.yaml', tmp_path / 'b.yaml'
+    first.write_text(yaml.safe_dump({'game': {'interaction_range_m': 75, 'max_party_size': 4}}), encoding='utf-8')
+    second.write_text(yaml.safe_dump({'game': {'interaction_range_m': 90}}), encoding='utf-8')
+    base = tmp_path / 'base.yaml'
+    base.write_text(yaml.safe_dump(VALID), encoding='utf-8')
+    monkeypatch.setenv(cfg.ENV_CONFIG, str(base))
+    monkeypatch.setenv(cfg.ENV_OVERRIDE, f'{first}, {second}')
+    cfg.get_config.cache_clear()
+    try:
+        c = cfg.get_config()
+    finally:
+        cfg.get_config.cache_clear()
+    assert (c.game.interaction_range_m, c.game.max_party_size) == (90, 4)  # późniejszy plik wygrywa, reszta z wcześniejszego
+
+
+def test_example_gemini_override_switches_only_the_provider(tmp_path, monkeypatch):
+    c = load(tmp_path, monkeypatch, VALID, override=yaml.safe_load((cfg.BASE_DIR / 'config' / 'gemini.example.yaml').read_text(encoding='utf-8')))
+    assert c.moderation.provider == 'gemini' and c.moderation.gemini.model == VALID['moderation']['gemini']['model']

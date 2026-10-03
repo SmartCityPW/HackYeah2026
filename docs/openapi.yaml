@@ -537,6 +537,25 @@ paths:
         '200': { description: Zaktualizowana organizacja, content: { application/json: { schema: { $ref: '#/components/schemas/Organization' } } } }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
+  /admin/moderation-log:
+    get:
+      tags: [admin]
+      summary: Log moderacji AI (co agent odrzucił)
+      description: |
+        Tylko administrator. Odrzucone przez agenta zgłoszenie nie powstaje jako pinezka, więc tu administrator dowiaduje się o nim:
+        z treścią, autorem (sama nazwa wyświetlana, bez e-maila), scenariuszem, modelem i czasem. Najnowsze pierwsze.
+        Domyślnie `rejected` i `error` (agent nie odpowiedział); `approved` tylko na jawne życzenie. `since` (ISO 8601) zwraca wpisy nowsze
+        od podanej chwili, więc `count` przy `pageSize=1` służy za odznakę "nowe odrzucenia". Wpisy starsze niż `moderation.log_retention_days` są usuwane.
+        Przywracanie odrzuconych zgłoszeń nie jest przewidziane.
+      parameters:
+        - { name: verdict, in: query, schema: { type: string, example: 'rejected,error' }, description: 'Werdykty po przecinku: `rejected`, `error`, `approved`' }
+        - { name: since, in: query, schema: { type: string, format: date-time } }
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/PageSize' }
+      responses:
+        '200': { description: Strona wpisów, content: { application/json: { schema: { $ref: '#/components/schemas/ModerationLogPage' } } } }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/ValidationError' }
   /admin/scenarios/{code}:
     parameters: [{ name: code, in: path, required: true, schema: { type: string } }]
     put:
@@ -642,6 +661,29 @@ components:
         role: { $ref: '#/components/schemas/Role' }
         isGuest: { type: boolean }
         organization: { allOf: [{ $ref: '#/components/schemas/Organization' }], nullable: true }
+    ModerationLogEntry:
+      type: object
+      required: [id, verdict, scenarioCode, scenarioLabel, submitted, author, createdAt]
+      properties:
+        id: { type: integer }
+        verdict: { type: string, enum: [approved, rejected, error] }
+        reason: { type: string, nullable: true, description: 'Komunikat błędu (tylko `error`); agent poza tym zwraca wyłącznie tak/nie' }
+        scenarioCode: { type: string }
+        scenarioLabel: { type: string }
+        submitted:
+          type: object
+          description: 'Treść oceniona przez agenta: `scenario`, `title`, `description`, `details`'
+          additionalProperties: true
+        author: { type: string, description: 'Nazwa wyświetlana autora' }
+        model: { type: string, nullable: true }
+        latencyMs: { type: integer, nullable: true }
+        createdAt: { type: string, format: date-time }
+    ModerationLogPage:
+      type: object
+      required: [count, results]
+      properties:
+        count: { type: integer }
+        results: { type: array, items: { $ref: '#/components/schemas/ModerationLogEntry' } }
     Organization:
       type: object
       required: [id, name, kind, verificationStatus]

@@ -41,7 +41,7 @@ narzędzie do konsultacji, ankiet i wydarzeń. Wymagania źródłowe: [`docs/opi
 
 ## Wymagania
 
-- **Node.js LTS** (frontend), **Python 3.12 lub nowszy** (backend; Django 6.1 nie zainstaluje się na starszym). Docker jest opcjonalny.
+- **Node.js LTS** (frontend), **Python 3.12 lub nowszy** (backend; Django 6.1 nie zainstaluje się na starszym). Docker jest opcjonalny (uruchamia całość: `docker compose up --build`).
 - Sprawdź wersję: `python3 --version`. Systemowy Python na macOS bywa 3.9, wtedy zainstaluj nowszy: `brew install python@3.13` i **w poleceniach poniżej wpisuj `python3.13` zamiast `python3`** (dotyczy tylko tworzenia środowiska `venv`).
 - Przeglądarka z WebGL (mapa 3D). Lokalizacja przeglądarki jest opcjonalna (jest symulator GPS).
 
@@ -150,15 +150,27 @@ curl -s -X POST http://localhost:8000/api/v1/auth/login -H 'Content-Type: applic
 W konsoli przeglądarki: `localStorage.setItem('scgo.access', '<access>'); localStorage.setItem('scgo.refresh', '<refresh>')`, odśwież stronę: rola (🛡️) przyjdzie z `/me`, więc w **Moderacji** zmienisz status pinezki.
 Dla widoku organizacji zaloguj się jako `fundacja@demo.smartcity.example`.
 
-### 7. Docker (jak na produkcji)
+### 7. Docker (cała aplikacja jedną komendą)
 
 ```bash
-cp .env.example .env               # uzupełnij DJANGO_SECRET_KEY i DB_PASSWORD
-docker compose up --build          # PostgreSQL + backend, migracje i słowniki przy starcie
+cp .env.example .env               # uzupełnij DJANGO_SECRET_KEY, DB_PASSWORD, ADMIN_PASSWORD (i ewentualnie DEMO_PASSWORD, AI_API_KEY)
+docker compose up --build          # PostgreSQL + backend + frontend (nginx)
 ```
 
-> **Ta ścieżka nie była jeszcze uruchamiana** (na maszynie, na której powstała, nie było Dockera), więc to jej pierwszy test.
-> Spójność `docker-compose.yml` z konfiguracją pilnują testy. Dane demo w Dockerze: `backend/config/demo.example.yaml`.
+| Usługa | Adres | Co to |
+|---|---|---|
+| `frontend` | http://localhost:4200 | zbudowana aplikacja Angular w nginx (`frontend/Dockerfile`, `frontend/docker/nginx.conf`) |
+| `backend` | http://localhost:8000/api/v1 | Django w gunicornie; migracje, słowniki, konto administratora i (opcjonalnie) dane demo przy starcie |
+| `db` | tylko w sieci Dockera | PostgreSQL 16 |
+
+- **Konfiguracja frontendu bez przebudowy:** `frontend/public/config/app-config.yaml` jest montowany z hosta, więc zmianę adresu backendu albo `api.mode.*` robisz w pliku i odświeżasz stronę.
+- **Dane demo i Gemini:** w `.env` ustaw `APP_CONFIG_OVERRIDE=config/demo.example.yaml,config/gemini.example.yaml` (pliki po przecinku).
+- **Port frontendu** zmienisz przez `FRONTEND_PORT`, ale musi być wtedy dopisany do `app.cors_allowed_origins` w `backend/config/default.yaml` (pilnuje tego test).
+- Zmiana kodu frontendu wymaga `docker compose up --build`. Do pracy nad frontendem wygodniejszy jest `npm start` (krok 3).
+
+> Przetestowane: `docker compose up --build` stawia wszystkie trzy usługi, frontend odpowiada na `/` i podstronach (`/inicjatywy` bez 404), a backend zakłada administratora i dane demo.
+> **Niesprawdzone w przeglądarce:** czy mapa i modele 3D ładują się z nginx. Pliki odpowiadają z właściwymi typami (`.mjs` jako JavaScript, `.glb`).
+> Spójność `docker-compose.yml` z konfiguracją pilnują testy (`backend/tests/test_deployment_files.py`).
 
 ### 8. Kontrola dokumentacji względem kodu
 
@@ -187,7 +199,7 @@ Kod nie zawiera wartości zmiennych na stałe, a testy pilnują, że w plikach Y
 │   ├── public/config/    app-config.yaml (konfiguracja ładowana przy starcie)
 │   └── src/app/          core (modele, serwisy, API: mock i http), features (mapa, widoki ról), shared
 ├── docs/                 kontrakt API, baza danych, wymagania, przewodnik adaptacji frontendu, licencje assetów
-├── docker-compose.yml    PostgreSQL + backend
+├── docker-compose.yml    PostgreSQL + backend + frontend (nginx)
 └── .env.example          wzór pliku z sekretami
 ```
 

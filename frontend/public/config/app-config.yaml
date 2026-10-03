@@ -57,6 +57,7 @@ ui:
   toastMs: 3000
   commentsPageSize: 10                    # komentarze nadrzędne na stronę
   mapReloadDebounceMs: 400                # po ilu ms od zatrzymania mapy dociągamy pinezki z widocznego obszaru
+  moderationPollSeconds: 30               # administrator: co ile sekund sprawdzamy nowe odrzucenia moderacji AI (odznaka i komunikat)
 
 dev:
   tools: true                             # przełącznik ról i symulator GPS; w produkcji ustaw false

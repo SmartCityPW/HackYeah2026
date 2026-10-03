@@ -97,6 +97,8 @@ pokestops:
 moderation:
   provider: stub                 # stub | http | gemini
   timeout_seconds: 5
+  log_retention_days: 90         # log werdyktów zawiera treść zgłoszeń (także odrzuconych, mogą w niej być dane osobowe): starsze wpisy czyści `manage.py moderation_prune_log` (i `bootstrap`)
+  cases_file: config/moderation_cases.yaml   # zestaw regresyjny agenta; dopisuje do niego `manage.py moderation_log_to_cases`
   prompt_file: config/moderation_prompt.txt
   stub:
     reject_marker: "[odrzuć]"    # tryb stub: tytuł lub opis z tym znacznikiem jest odrzucany (do demo i testów)

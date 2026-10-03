@@ -34,7 +34,7 @@ export interface AppConfig {
   timeline: { titleMaxLength: number; bodyMaxLength: number; maxCustomFields: number; customFieldLabelMaxLength: number; customFieldValueMaxLength: number };
   /** Limity kreatora ankiet (decyduje backend: pokestops.survey). */
   survey: { maxQuestions: number; maxOptions: number };
-  ui: { toastMs: number; commentsPageSize: number; mapReloadDebounceMs: number };
+  ui: { toastMs: number; commentsPageSize: number; mapReloadDebounceMs: number; moderationPollSeconds: number };
   dev: { tools: boolean };
 }
 
@@ -143,6 +143,7 @@ export function parseAppConfig(raw: unknown): AppConfig {
       toastMs: num(ui, 'toastMs', 'ui.toastMs'),
       commentsPageSize: num(ui, 'commentsPageSize', 'ui.commentsPageSize'),
       mapReloadDebounceMs: num(ui, 'mapReloadDebounceMs', 'ui.mapReloadDebounceMs'),
+      moderationPollSeconds: num(ui, 'moderationPollSeconds', 'ui.moderationPollSeconds'),
     },
     dev: { tools: flag(dev, 'tools', 'dev.tools') },
   };

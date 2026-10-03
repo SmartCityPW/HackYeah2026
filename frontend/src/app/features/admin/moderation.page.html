@@ -1,5 +1,16 @@
 <div class="page">
   <h1>Moderacja</h1>
+  <div class="tabs" role="tablist" aria-label="Widok moderacji">
+    <button type="button" role="tab" [class.on]="tab() === 'reports'" [attr.aria-selected]="tab() === 'reports'" (click)="tab.set('reports')">Zgłoszenia</button>
+    <button type="button" role="tab" [class.on]="tab() === 'ai'" [attr.aria-selected]="tab() === 'ai'" (click)="tab.set('ai')">
+      Odrzucenia AI @if (moderation.unseen()) { <span class="count" aria-label="nowych: {{ moderation.unseen() }}">{{ moderation.unseen() }}</span> }
+    </button>
+  </div>
+
+  @if (tab() === 'ai') {
+    <p class="lead">Co agent AI odrzucił przy zgłoszeniach mieszkańców.</p>
+    <app-ai-rejections />
+  } @else {
   <p class="lead">Przegląd zgłoszeń i inicjatyw. Odrzucone znikają z mapy mieszkańców.</p>
 
   <div class="chip-row">
@@ -22,4 +33,5 @@
       <p class="empty">Brak zgłoszeń w tym statusie.</p>
     }
   </div>
+  }
 </div>

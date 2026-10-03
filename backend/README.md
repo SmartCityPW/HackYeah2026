@@ -37,6 +37,9 @@ source config/local.env      # DJANGO_SECRET_KEY, APP_CONFIG_OVERRIDE, DEMO_PASS
 .venv/bin/python manage.py runserver     # http://localhost:8000/api/v1/
 ```
 
+Odrzucenia moderacji AI widzi administrator w aplikacji (karta „Odrzucenia AI”, `GET /admin/moderation-log`). Fałszywe odrzucenie albo przepuszczony atak dopisujesz do zestawu regresyjnego:
+`python manage.py moderation_log_to_cases <id> --expect approve` (albo `reject`), a stare wpisy (`moderation.log_retention_days`) czyści `moderation_prune_log` (też przy starcie).
+
 Konto administratora IT zakłada `bootstrap` (a ręcznie `manage.py ensure_admin`) z adresu `admin.email` w YAML i hasła `ADMIN_PASSWORD` ze środowiska.
 
 Dane demo (konta, zweryfikowana organizacja i 6 pinezek wokół Rynku w Krakowie; tylko tryb debug, hasło z `DEMO_PASSWORD`):
