@@ -7,8 +7,8 @@ export interface LatLng {
 }
 
 export interface AppConfig {
-  api: { baseUrl: string; mode: { pokestops: ApiMode; game: ApiMode; account: ApiMode } };
-  auth: { storageKeyPrefix: string; autoGuest: boolean };
+  api: { baseUrl: string; mode: { pokestops: ApiMode; game: ApiMode; account: ApiMode; scenarios: ApiMode } };
+  auth: { storageKeyPrefix: string; autoGuest: boolean; passwordMinLength: number };
   map: { styleUrl: string; workerUrl: string; center: LatLng; zoom: number; pitch: number; bearing: number };
   game: { interactionRangeM: number; simulatedGps: LatLng };
   upload: { enabled: boolean; maxPhotos: number; maxPhotoBytes: number };
@@ -71,9 +71,14 @@ export function parseAppConfig(raw: unknown): AppConfig {
         pokestops: mode(apiMode, 'pokestops', 'api.mode.pokestops'),
         game: mode(apiMode, 'game', 'api.mode.game'),
         account: mode(apiMode, 'account', 'api.mode.account'),
+        scenarios: mode(apiMode, 'scenarios', 'api.mode.scenarios'),
       },
     },
-    auth: { storageKeyPrefix: text(auth, 'storageKeyPrefix', 'auth.storageKeyPrefix'), autoGuest: flag(auth, 'autoGuest', 'auth.autoGuest') },
+    auth: {
+      storageKeyPrefix: text(auth, 'storageKeyPrefix', 'auth.storageKeyPrefix'),
+      autoGuest: flag(auth, 'autoGuest', 'auth.autoGuest'),
+      passwordMinLength: num(auth, 'passwordMinLength', 'auth.passwordMinLength'),
+    },
     map: {
       styleUrl: text(map, 'styleUrl', 'map.styleUrl'),
       workerUrl: text(map, 'workerUrl', 'map.workerUrl'),

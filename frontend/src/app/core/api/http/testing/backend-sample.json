@@ -1,5 +1,5 @@
 {
-  "_comment": "Prawdziwe odpowiedzi backendu (manage.py runserver na PostgreSQL, dane testowe, 2026-10-03). Odtwórz: patrz docs/frontend-adaptation.md",
+  "_comment": "Prawdziwe odpowiedzi backendu (manage.py runserver, dane testowe, 2026-10-03). Odtwórz: patrz docs/frontend-adaptation.md",
   "pokestopsPage": {
     "count": 1,
     "results": [
@@ -173,6 +173,91 @@
     "alreadyVoted": {
       "code": "already_voted",
       "message": "Już oddano głos na tę pinezkę"
+    },
+    "emailTaken": {
+      "code": "email_taken",
+      "message": "Konto z tym adresem e-mail już istnieje"
+    },
+    "invalidCredentials": {
+      "code": "invalid_credentials",
+      "message": "Nieprawidłowy e-mail lub hasło"
+    },
+    "validation": {
+      "code": "validation_error",
+      "message": "Błędne dane",
+      "fields": {
+        "email": "Podaj poprawny adres e-mail.",
+        "password": "Hasło musi mieć co najmniej 8 znaków"
+      }
+    },
+    "organizationNotVerified": {
+      "code": "organization_not_verified",
+      "message": "Organizacja czeka na weryfikację przez administratora"
     }
+  },
+  "meOrg": {
+    "id": 12,
+    "displayName": "Anna",
+    "role": "org",
+    "isGuest": false,
+    "organization": {
+      "id": 2,
+      "name": "Fundacja Testowa",
+      "kind": "foundation",
+      "krs": "0000999999",
+      "contactPerson": "Anna Test",
+      "contactEmail": "kontakt@testowa.example",
+      "contactPhone": "+48 600 000 000",
+      "verificationStatus": "pending"
+    }
+  },
+  "meAdmin": {
+    "id": 1,
+    "displayName": "Administrator",
+    "role": "admin",
+    "isGuest": false,
+    "organization": null
+  },
+  "organization": {
+    "id": 2,
+    "name": "Fundacja Testowa",
+    "kind": "foundation",
+    "krs": "0000999999",
+    "contactPerson": "Anna Test",
+    "contactEmail": "kontakt@testowa.example",
+    "contactPhone": "+48 600 000 000",
+    "verificationStatus": "pending"
+  },
+  "organizations": [
+    {
+      "id": 1,
+      "name": "Fundacja Zielone Miasto",
+      "kind": "foundation",
+      "krs": null,
+      "contactPerson": "Anna Kowalska",
+      "contactEmail": "kontakt@zielonemiasto.example",
+      "contactPhone": null,
+      "verificationStatus": "verified"
+    },
+    {
+      "id": 2,
+      "name": "Fundacja Testowa",
+      "kind": "foundation",
+      "krs": "0000999999",
+      "contactPerson": "Anna Test",
+      "contactEmail": "kontakt@testowa.example",
+      "contactPhone": "+48 600 000 000",
+      "verificationStatus": "pending"
+    }
+  ],
+  "organizationVerified": {
+    "id": 2,
+    "name": "Fundacja Testowa",
+    "kind": "foundation",
+    "krs": "0000999999",
+    "contactPerson": "Anna Test",
+    "contactEmail": "kontakt@testowa.example",
+    "contactPhone": "+48 600 000 000",
+    "verificationStatus": "verified"
   }
 }

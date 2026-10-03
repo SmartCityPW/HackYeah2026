@@ -26,7 +26,7 @@ narzędzie do konsultacji, ankiet i wydarzeń. Wymagania źródłowe: [`docs/opi
 | **Pinezki** | Zgłoszenie problemu, pomysł mieszkańca, cool miejsce, inicjatywa NGO, konsultacje. Formularze to dane (katalog 20 scenariuszy), nie kod. |
 | **Zastaw** | Zgłaszając problem lub pomysł zostawiasz na nim jednego swojego pokemona. Wraca z premią exp, gdy zgłoszenie zbierze próg głosów lub zostanie rozwiązane, a bez premii po odrzuceniu lub wycofaniu. |
 | **Głosowanie z bliska** | Głos „za/przeciw” działa tylko w promieniu 50 m od pinezki (liczy serwer). Za głos wybrany pokemon dostaje exp. Autor nie głosuje na własną pinezkę. |
-| **Moderacja AI** | Zgłoszenia mieszkańców ocenia agent (odpowiedź tylko tak/nie). Odrzucone nie powstają. Awaria agenta też nie przepuszcza treści. |
+| **Moderacja AI** | Zgłoszenia mieszkańców ocenia agent (odpowiedź tylko tak/nie): domyślnie atrapa `stub`, opcjonalnie Google Gemini (`moderation.provider: gemini`, klucz w `AI_API_KEY`). Odrzucone nie powstają. Awaria agenta też nie przepuszcza treści. |
 | **Pokemony** | Każdy dostaje startowego. Poziom i moc rosną z exp. Typy dają mnożnik ×1,2 w walce. |
 | **Walka** | Losowi przeciwnicy generowani przez serwer, drużyna do 3 pokemonów, wygrana daje exp, XP i nowego pokemona. *(Backend: jeszcze nie zaimplementowane, frontend ma atrapę.)* |
 | **Ankiety i wydarzenia** | Odpowiedź na ankietę daje pokemona. Udział w wydarzeniu daje unikalnego. *(Backend: modele gotowe, brak logiki.)* |

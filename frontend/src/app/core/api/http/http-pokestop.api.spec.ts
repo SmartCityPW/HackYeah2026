@@ -22,7 +22,7 @@ function setup(mode: 'mock' | 'http' = 'http') {
     providers: [
       provideHttpClient(),
       provideHttpClientTesting(),
-      provideTestConfig({ api: { ...TEST_CONFIG.api, mode: { pokestops: mode, game: mode, account: mode } } }),
+      provideTestConfig({ api: { ...TEST_CONFIG.api, mode: { pokestops: mode, game: mode, account: mode, scenarios: mode } } }),
       ...API_PROVIDERS,
     ],
   });

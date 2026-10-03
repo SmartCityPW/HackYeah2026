@@ -1,0 +1,29 @@
+<div class="page auth">
+  <h1>Zaloguj się</h1>
+  <p class="lead">Wróć do swoich pokemonów, głosów i inicjatyw.</p>
+
+  @if (!session.hasAccounts()) {
+    <p class="note">Logowanie działa po przełączeniu na backend (<code>api.mode.account: http</code> w <code>app-config.yaml</code>).</p>
+  }
+  @if (session.isGuest()) {
+    <p class="note">Grasz teraz jako gość. Po zalogowaniu na istniejące konto postęp tego gościa nie przeniesie się na nie.
+      Chcesz go zachować? <a routerLink="/rejestracja">Zapisz postęp</a> zamiast logować się.</p>
+  }
+
+  <form (submit)="submit($event)" novalidate>
+    <label class="field" [class.invalid]="errors()['email']">
+      <span class="label">E-mail</span>
+      <input type="email" autocomplete="username" [value]="email()" (input)="email.set(value($event))" />
+      @if (errors()['email']; as message) { <small class="error">{{ message }}</small> }
+    </label>
+    <label class="field" [class.invalid]="errors()['password']">
+      <span class="label">Hasło</span>
+      <input type="password" autocomplete="current-password" [value]="password()" (input)="password.set(value($event))" />
+      @if (errors()['password']; as message) { <small class="error">{{ message }}</small> }
+    </label>
+    @if (formError(); as message) { <p class="form-error" role="alert">{{ message }}</p> }
+    <button class="btn primary" type="submit" [disabled]="busy()">{{ busy() ? 'Logowanie…' : 'Zaloguj' }}</button>
+  </form>
+
+  <p class="alt">Nie masz konta? <a routerLink="/rejestracja">Zarejestruj się</a> albo <a routerLink="/rejestracja-organizacji">załóż konto organizacji</a>.</p>
+</div>

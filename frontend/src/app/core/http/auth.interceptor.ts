@@ -4,12 +4,15 @@ import { catchError, from, switchMap, throwError } from 'rxjs';
 import { AppConfigService } from '../config/app-config.service';
 import { AuthService } from './auth.service';
 
-/** Dokleja token do wywołań naszego API i raz próbuje odświeżyć go po 401. Wywołania /auth/* nie są modyfikowane. */
+/** Wywołania /auth/, które robi ktoś bez ważnej sesji: nie dostają tokenu i nie wywołują odświeżania. `/auth/upgrade` wymaga sesji gościa, więc nie jest tu wymienione. */
+const PUBLIC_AUTH = ['guest', 'login', 'register', 'register-organization', 'refresh'];
+
+/** Dokleja token do wywołań naszego API i raz próbuje odświeżyć go po 401. Publiczne wywołania /auth/* nie są modyfikowane. */
 export const authInterceptor: HttpInterceptorFn = (request, next) => {
   const baseUrl = inject(AppConfigService).config.api.baseUrl;
   const auth = inject(AuthService);
   const isOurApi = request.url.startsWith(baseUrl);
-  const isAuthCall = request.url.startsWith(`${baseUrl}/auth/`);
+  const isAuthCall = PUBLIC_AUTH.some((name) => request.url === `${baseUrl}/auth/${name}`);
   if (!isOurApi || isAuthCall) return next(request);
 
   const withToken = (req: HttpRequest<unknown>) => {

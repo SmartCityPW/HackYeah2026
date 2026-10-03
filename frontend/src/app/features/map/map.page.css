@@ -2,7 +2,7 @@
 .map { position: absolute; inset: 0; }
 
 .toolbar { position: absolute; top: 12px; right: 12px; z-index: 15; display: flex; gap: 8px; }
-.tool { background: var(--surface); border: 0; border-radius: 999px; padding: 10px 16px; font-weight: 700; box-shadow: 0 4px 14px var(--shadow); cursor: pointer; }
+.tool { color: var(--text); text-decoration: none; background: var(--surface); border: 0; border-radius: 999px; padding: 10px 16px; font-weight: 700; box-shadow: 0 4px 14px var(--shadow); cursor: pointer; }
 .tool.active { background: var(--text); color: var(--on-dark); }
 .crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); font-size: 40px; z-index: 5; pointer-events: none; filter: drop-shadow(0 4px 4px var(--shadow-strong)); }
 

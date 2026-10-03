@@ -3,17 +3,19 @@
 # a w środowisku produkcyjnym wystarczy podmienić plik przy wdrożeniu. SEKRETÓW tu nie ma.
 
 api:
-  baseUrl: http://localhost:8000/api/v1   # adres backendu (patrz backend/config/default.yaml: server, app.api_prefix)
+  baseUrl: http://localhost:8001/api/v1   # adres backendu (patrz backend/config/default.yaml: server, app.api_prefix)
   # Źródło danych per obszar. Sposób przechodzenia z atrap na backend: docs/frontend-adaptation.md
   #   mock = dane w pamięci (src/app/core/api/*.mock.ts), http = prawdziwy backend
   mode:
-    pokestops: mock
+    pokestops: http
     game: mock
-    account: mock      # profil i rola z GET /me (mock = rola wybierana ręcznie przełącznikiem deweloperskim)
+    account: http      # konto, logowanie, organizacje (mock = rola wybierana ręcznie przełącznikiem deweloperskim)
+    scenarios: mock    # katalog scenariuszy zgłoszeń (mock = zaszyty w kodzie, http = GET /scenarios)
 
 auth:
   storageKeyPrefix: scgo                  # klucze w localStorage: <prefix>.role, <prefix>.access, <prefix>.refresh
   autoGuest: true                         # tryb http: bez tokenu zakładamy konto gościa (POST /auth/guest)
+  passwordMinLength: 8                    # tak samo jak backend (auth.password_min_length); tylko do podpowiedzi w formularzu, decyduje serwer
 
 map:
   styleUrl: https://tiles.openfreemap.org/styles/liberty
@@ -28,7 +30,7 @@ game:
   simulatedGps: { lat: 50.0617, lng: 19.9373 }  # pozycja z przycisku "GPS" (narzędzia deweloperskie)
 
 upload:
-  enabled: true                          # false ukrywa pola zdjęć (tryb http, dopóki backend nie ma POST /photos: dziś 501)
+  enabled: false                         # false ukrywa pola zdjęć (tryb http, dopóki backend nie ma POST /photos: dziś 501)
   maxPhotos: 3
   maxPhotoBytes: 5242880                  # 5 MB (zgodnie z backendem: pokestops.photos.max_bytes)
 

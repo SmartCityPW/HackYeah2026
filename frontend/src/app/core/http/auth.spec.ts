@@ -15,7 +15,7 @@ function setup(mode: 'mock' | 'http', autoGuest = true, account: 'mock' | 'http'
     providers: [
       provideHttpClient(withInterceptors([authInterceptor])),
       provideHttpClientTesting(),
-      provideTestConfig({ api: { ...TEST_CONFIG.api, mode: { pokestops: mode, game: 'mock', account } }, auth: { ...TEST_CONFIG.auth, autoGuest } }),
+      provideTestConfig({ api: { ...TEST_CONFIG.api, mode: { pokestops: mode, game: 'mock', account, scenarios: 'mock' } }, auth: { ...TEST_CONFIG.auth, autoGuest } }),
     ],
   });
   return { http: TestBed.inject(HttpTestingController), auth: TestBed.inject(AuthService), client: TestBed.inject(HttpClient) };

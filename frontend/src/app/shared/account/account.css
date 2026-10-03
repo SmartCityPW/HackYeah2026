@@ -1,0 +1,26 @@
+/* Wspólne style ekranów konta (logowanie, rejestracja, panel konta). Kolory wyłącznie z tokenów palety (styles.css). */
+.auth { max-width: 460px; }
+form { display: grid; gap: 12px; }
+.field { display: grid; gap: 4px; }
+.label { font-weight: 700; font-size: .85rem; }
+.label b { color: var(--accent-strong); }
+input, select { width: 100%; box-sizing: border-box; padding: 11px; border: 2px solid var(--border); border-radius: 12px; font: inherit; color: var(--text); background: var(--surface); }
+.invalid input, .invalid select { border-color: var(--accent); }
+.error { color: var(--accent-strong); font-size: .8rem; font-weight: 600; }
+.error::before { content: '⚠ '; }
+.form-error { margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--accent-tint); color: var(--accent-ink); font-weight: 600; }
+.form-error::before { content: '⚠ '; }
+.hint { margin: 0; font-size: .85rem; color: var(--text-muted); }
+.note { margin: 0 0 14px; padding: 10px 12px; border-radius: 12px; background: var(--tint); font-size: .85rem; }
+.btn { display: inline-block; box-sizing: border-box; border: 0; border-radius: 14px; padding: 12px 18px; font: inherit; font-weight: 700; text-align: center; text-decoration: none; cursor: pointer; background: var(--tint); color: var(--text); }
+.btn.primary { background: var(--brand-strong); color: var(--on-strong); }
+.btn:disabled { opacity: .5; cursor: wait; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+.alt { margin: 16px 0 0; font-size: .9rem; color: var(--text-muted); }
+.alt a { color: var(--brand-strong); font-weight: 700; }
+fieldset { border: 0; padding: 0; margin: 4px 0 0; display: grid; gap: 12px; }
+legend { padding: 0; margin-bottom: 6px; font-weight: 800; font-size: .8rem; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); }
+.chip { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .75rem; font-weight: 700; background: var(--tint); color: var(--brand-strong); }
+.account { display: grid; gap: 10px; background: var(--surface); border-radius: 18px; padding: 16px; box-shadow: 0 1px 4px var(--shadow); }
+.account h2 { margin: 0; font-size: 1.15rem; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }

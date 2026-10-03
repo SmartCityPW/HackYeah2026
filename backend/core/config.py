@@ -140,12 +140,21 @@ class ModerationHttpSection:
 
 
 @dataclass(frozen=True)
+class ModerationGeminiSection:
+    base_url: str
+    model: str
+    temperature: float
+    max_output_tokens: int
+
+
+@dataclass(frozen=True)
 class ModerationSection:
     provider: str
     timeout_seconds: float
     prompt_file: str
     stub: ModerationStubSection
     http: ModerationHttpSection
+    gemini: ModerationGeminiSection
 
 
 @dataclass(frozen=True)

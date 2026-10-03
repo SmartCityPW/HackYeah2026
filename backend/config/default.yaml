@@ -77,7 +77,7 @@ pokestops:
     allowed_content_types: [image/jpeg, image/png, image/webp]
 
 moderation:
-  provider: stub                 # stub | http
+  provider: stub                 # stub | http | gemini
   timeout_seconds: 5
   prompt_file: config/moderation_prompt.txt
   stub:
@@ -85,6 +85,11 @@ moderation:
   http:
     url: ""                      # adres usługi agenta (klucz w env: AI_API_KEY)
     model: ""
+  gemini:                        # provider: gemini (Google Gemini API; klucz w env: AI_API_KEY, nigdy tutaj)
+    base_url: https://generativelanguage.googleapis.com/v1beta
+    model: gemini-3.5-flash-lite # tani i szybki wariant; nazwy modeli się zmieniają: https://ai.google.dev/gemini-api/docs/models
+    temperature: 0               # klasyfikacja ma być powtarzalna
+    max_output_tokens: 256       # zapas na wewnętrzne "myślenie" modelu; sama odpowiedź to jedna cyfra
 
 contract:               # dokumentacja, z którą kod jest porównywany w testach i w `manage.py contract_status`
   openapi_file: ../docs/openapi.yaml

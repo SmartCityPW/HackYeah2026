@@ -1,0 +1,22 @@
+<section class="account">
+  <h2>{{ session.profile().displayName }}</h2>
+  <div class="chips">
+    <span class="chip">{{ roleLabel() }}</span>
+    @if (session.isGuest()) { <span class="chip">🎮 Gość</span> }
+  </div>
+
+  @if (!session.hasAccounts()) {
+    <p class="hint">Tryb atrap: logowanie i rejestracja działają po przełączeniu na backend (<code>api.mode.account: http</code> w <code>app-config.yaml</code>).</p>
+  } @else if (session.isGuest()) {
+    <p class="hint">Grasz jako gość. Zapisz postęp, żeby nie stracić pokemonów, głosów i poziomu, a także móc wrócić z innego urządzenia.</p>
+    <div class="actions">
+      <a class="btn primary" routerLink="/rejestracja">💾 Zapisz postęp</a>
+      <a class="btn" routerLink="/logowanie">Zaloguj się</a>
+      <a class="btn" routerLink="/rejestracja-organizacji">🏢 Konto organizacji</a>
+    </div>
+  } @else {
+    <div class="actions">
+      <button type="button" class="btn" [disabled]="busy()" (click)="logout()">Wyloguj</button>
+    </div>
+  }
+</section>

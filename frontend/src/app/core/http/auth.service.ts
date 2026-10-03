@@ -3,7 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { AppConfigService } from '../config/app-config.service';
 
-interface Tokens {
+export interface Tokens {
   access: string;
   refresh: string;
 }
@@ -51,6 +51,16 @@ export class AuthService {
       this.clear();
       return false;
     }
+  }
+
+  /** Zapamiętuje tokeny po logowaniu lub rejestracji (sesja zaczyna działać od następnego żądania). */
+  signIn(tokens: Tokens): void {
+    this.store(tokens);
+  }
+
+  /** Wylogowanie: usuwa tokeny. Aplikacja po przeładowaniu założy wtedy nowe konto gościa (`auth.autoGuest`). */
+  signOut(): void {
+    this.clear();
   }
 
   clear(): void {

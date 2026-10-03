@@ -6,9 +6,13 @@
     <span class="xp-bar"><span [style.width.%]="(progress().xpIntoLevel / progress().xpForNextLevel) * 100"></span></span>
   </span>
   @if (canParticipate()) {
-    <button class="tool" [class.active]="panelOpen()" (click)="togglePanel()">
-      {{ session.role() === 'org' ? '🏢 Nowa inicjatywa' : '➕ Zgłoś' }}
-    </button>
+    @if (session.canPublishInitiatives()) {
+      <button class="tool" [class.active]="panelOpen()" (click)="togglePanel()">
+        {{ session.role() === 'org' ? '🏢 Nowa inicjatywa' : '➕ Zgłoś' }}
+      </button>
+    } @else {
+      <a class="tool" routerLink="/org/organizacja" title="Do czasu weryfikacji przez administratora nie możesz publikować inicjatyw">⏳ Czeka na weryfikację</a>
+    }
   }
 </nav>
 

@@ -1,0 +1,39 @@
+<div class="page auth">
+  @if (alreadySignedIn()) {
+    <h1>Jesteś zalogowany</h1>
+    <p class="lead">Masz już konto. Szczegóły i wylogowanie znajdziesz w <a routerLink="/konto">koncie</a>.</p>
+  } @else {
+    <h1>{{ savingProgress() ? 'Zapisz postęp' : 'Załóż konto' }}</h1>
+    <p class="lead">
+      @if (savingProgress()) { Zachowasz wszystkie pokemony, głosy i poziom z konta gościa. }
+      @else { Konto pozwala wrócić do gry z innego urządzenia. }
+    </p>
+
+    @if (!session.hasAccounts()) {
+      <p class="note">Rejestracja działa po przełączeniu na backend (<code>api.mode.account: http</code> w <code>app-config.yaml</code>).</p>
+    }
+
+    <form (submit)="submit($event)" novalidate>
+      <label class="field" [class.invalid]="errors()['displayName']">
+        <span class="label">Nazwa wyświetlana (opcjonalnie)</span>
+        <input type="text" autocomplete="nickname" maxlength="60" [value]="displayName()" (input)="displayName.set(value($event))" />
+        @if (errors()['displayName']; as message) { <small class="error">{{ message }}</small> }
+      </label>
+      <label class="field" [class.invalid]="errors()['email']">
+        <span class="label">E-mail <b>*</b></span>
+        <input type="email" autocomplete="username" [value]="email()" (input)="email.set(value($event))" />
+        @if (errors()['email']; as message) { <small class="error">{{ message }}</small> }
+      </label>
+      <label class="field" [class.invalid]="errors()['password']">
+        <span class="label">Hasło <b>*</b></span>
+        <input type="password" autocomplete="new-password" [value]="password()" (input)="password.set(value($event))" />
+        <small class="hint">Co najmniej {{ passwordMinLength }} znaków.</small>
+        @if (errors()['password']; as message) { <small class="error">{{ message }}</small> }
+      </label>
+      @if (formError(); as message) { <p class="form-error" role="alert">{{ message }}</p> }
+      <button class="btn primary" type="submit" [disabled]="busy()">{{ busy() ? 'Zapisywanie…' : savingProgress() ? 'Zapisz postęp' : 'Załóż konto' }}</button>
+    </form>
+
+    <p class="alt">Masz już konto? <a routerLink="/logowanie">Zaloguj się</a>. Reprezentujesz organizację? <a routerLink="/rejestracja-organizacji">Załóż konto organizacji</a>.</p>
+  }
+</div>

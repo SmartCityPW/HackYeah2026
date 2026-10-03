@@ -1,10 +1,25 @@
 <div class="page">
-  <h1>🏢 {{ organization }}</h1>
-  <p class="lead"><span class="verified">✔ Zweryfikowana organizacja</span> Mieszkańcy widzą Wasze inicjatywy jako zaufane.</p>
+  <h1>🏢 {{ name() }}</h1>
 
-  <dl class="rows">
-    @for (r of rows; track r.label) {
-      <dt>{{ r.label }}</dt><dd>{{ r.value }}</dd>
-    }
-  </dl>
+  @if (status(); as s) {
+    <p class="lead">
+      <span class="status" [style.--bg]="s.bg" [style.--fg]="s.fg"><span aria-hidden="true">{{ s.icon }}</span> {{ s.label }}</span>
+      @switch (s.key) {
+        @case ('verified') { Mieszkańcy widzą Wasze inicjatywy jako zaufane. }
+        @case ('pending') { Administrator sprawdza organizację. Do tego czasu nie możecie publikować inicjatyw. }
+        @case ('suspended') { Administrator zawiesił organizację: publikowanie inicjatyw jest wyłączone. }
+      }
+    </p>
+  }
+
+  @if (rows().length) {
+    <dl class="rows">
+      @for (r of rows(); track r.label) {
+        <dt>{{ r.label }}</dt><dd>{{ r.value }}</dd>
+      }
+    </dl>
+  }
+
+  <h2 class="account-title">Konto</h2>
+  <app-account-panel />
 </div>

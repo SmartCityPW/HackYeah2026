@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 import pytest
 from django.conf import settings
 from rest_framework.test import APIClient
@@ -20,6 +22,12 @@ def django_db_setup(django_db_setup, django_db_blocker):
         seed_dir = settings.APP.path(settings.APP.seed.dir)
         load_reference(seed_dir / 'reference.yaml')
         load_scenarios(seed_dir / 'scenarios.yaml')
+
+
+@pytest.fixture(autouse=True)
+def stub_moderation_provider(monkeypatch):
+    """Testy nie zależą od lokalnej konfiguracji dewelopera (np. `moderation.provider: gemini` w config/local.yaml)."""
+    monkeypatch.setattr(settings, 'APP', replace(settings.APP, moderation=replace(settings.APP.moderation, provider='stub')))
 
 
 def client_for(user: User | None = None) -> APIClient:

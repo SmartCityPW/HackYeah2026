@@ -1,3 +1,4 @@
+import { RouterLink } from '@angular/router';
 import { Component, ElementRef, computed, effect, inject, input, signal, untracked, viewChild, afterNextRender, DestroyRef } from '@angular/core';
 import { EncounterService } from '../../core/encounter.service';
 import { AppConfigService } from '../../core/config/app-config.service';
@@ -19,7 +20,7 @@ import { ReportDraft, ReportPanel } from './report-panel/report-panel';
 /** Ekran mapy ("home"): pinezki, głosowanie, komentarze i dodawanie zgłoszeń. Logikę MapLibre ma `MapController`. */
 @Component({
   selector: 'app-map-page',
-  imports: [ReportPanel, StatusChip],
+  imports: [ReportPanel, StatusChip, RouterLink],
   providers: [MapController],
   templateUrl: './map.page.html',
   styleUrl: './map.page.css',

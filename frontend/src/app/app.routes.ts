@@ -4,8 +4,22 @@ import { Shell } from './features/shell/shell';
 
 const map = () => import('./features/map/map.page').then((m) => m.MapPage);
 
+const account = () => import('./features/account/account.page').then((m) => m.AccountPage);
+
+/** Ekrany logowania i rejestracji: dostępne dla każdej roli (w powłoce z jej nawigacją). */
+const authRoutes: Routes = [
+  { path: 'logowanie', component: Shell, children: [{ path: '', loadComponent: () => import('./features/account/login.page').then((m) => m.LoginPage), title: 'Logowanie' }] },
+  { path: 'rejestracja', component: Shell, children: [{ path: '', loadComponent: () => import('./features/account/register.page').then((m) => m.RegisterPage), title: 'Rejestracja' }] },
+  {
+    path: 'rejestracja-organizacji',
+    component: Shell,
+    children: [{ path: '', loadComponent: () => import('./features/account/register-org.page').then((m) => m.RegisterOrgPage), title: 'Konto organizacji' }],
+  },
+];
+
 /** Trzy odrębne widoki w tej samej powłoce: mieszkaniec (/), zaufana organizacja (/org), administrator (/admin). */
 export const routes: Routes = [
+  ...authRoutes,
   {
     path: 'org',
     component: Shell,
@@ -24,6 +38,7 @@ export const routes: Routes = [
       { path: '', loadComponent: () => import('./features/admin/moderation.page').then((m) => m.ModerationPage), title: 'Moderacja' },
       { path: 'organizacje', loadComponent: () => import('./features/admin/organizations.page').then((m) => m.OrganizationsPage), title: 'Organizacje' },
       { path: 'scenariusze', loadComponent: () => import('./features/admin/scenarios.page').then((m) => m.ScenariosPage), title: 'Scenariusze' },
+      { path: 'konto', loadComponent: account, title: 'Konto' },
       { path: 'mapa', loadComponent: map, title: 'Mapa' },
     ],
   },
@@ -35,6 +50,7 @@ export const routes: Routes = [
       { path: '', loadComponent: map, title: 'Mapa' },
       { path: 'spryciaki', loadComponent: () => import('./features/resident/spryciaki.page').then((m) => m.SpryciakiPage), title: 'Moje Spryciaki' },
       { path: 'inicjatywy', loadComponent: () => import('./features/resident/initiatives.page').then((m) => m.InitiativesPage), title: 'Moje inicjatywy' },
+      { path: 'konto', loadComponent: account, title: 'Konto' },
     ],
   },
   { path: '**', redirectTo: '' },

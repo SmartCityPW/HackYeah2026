@@ -1,8 +1,8 @@
-.row { display: flex; align-items: center; gap: 10px; background: var(--surface); border-radius: 18px; padding: 12px; box-shadow: 0 1px 4px var(--shadow); }
-.row > div { flex: 1; display: flex; flex-direction: column; }
-small { color: var(--text-muted); }
-.badge::before { content: '⏳ '; }
-.badge.ok::before { content: ''; }
-.badge { padding: 2px 10px; border-radius: 99px; background: var(--accent-tint); color: var(--accent-ink); font-size: .75rem; font-weight: 700; }
-.badge.ok { background: var(--tint); color: var(--brand-strong); }
-button { border: 0; border-radius: 10px; padding: 6px 12px; background: var(--tint); font: inherit; font-size: .8rem; font-weight: 700; cursor: pointer; }
+.row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; background: var(--surface); border-radius: 18px; padding: 12px; box-shadow: 0 1px 4px var(--shadow); }
+.info { flex: 1 1 220px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+small { color: var(--text-muted); overflow-wrap: anywhere; }
+.badge { padding: 2px 10px; border-radius: 99px; background: var(--bg); color: var(--fg); font-size: .75rem; font-weight: 700; white-space: nowrap; }
+.buttons { display: flex; gap: 6px; }
+button { border: 0; border-radius: 10px; padding: 6px 12px; background: var(--tint); color: var(--text); font: inherit; font-size: .8rem; font-weight: 700; cursor: pointer; }
+button.danger { background: var(--accent-tint); color: var(--accent-ink); }
+button:disabled { opacity: .5; cursor: wait; }

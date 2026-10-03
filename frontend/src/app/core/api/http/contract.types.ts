@@ -62,7 +62,16 @@ export interface MeDto {
   displayName: string;
   role: 'resident' | 'org' | 'admin';
   isGuest: boolean;
-  organization: { id: number; name: string } | null;
+  organization: {
+    id: number;
+    name: string;
+    kind: 'ngo' | 'foundation' | 'association' | 'city_office' | 'district_council' | 'municipality' | 'other';
+    krs: string | null;
+    contactPerson: string | null;
+    contactEmail: string | null;
+    contactPhone: string | null;
+    verificationStatus: 'pending' | 'verified' | 'suspended';
+  } | null;
 }
 
 /** Ciało POST /pokestops (wycinek `NewPokestop` z docs/openapi.yaml). */

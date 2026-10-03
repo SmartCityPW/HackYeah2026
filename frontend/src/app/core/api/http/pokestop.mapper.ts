@@ -1,6 +1,7 @@
+import { Me } from '../account.api';
 import { Pokemon } from '../../pokemon.model';
 import { CharacterId, NewReport, Pokestop, PokestopComment, VoteResult } from '../../pokestop.model';
-import { CommentDto, NewPokestopDto, PokemonDto, PokestopDto, VoteResultDto } from './contract.types';
+import { CommentDto, MeDto, NewPokestopDto, PokemonDto, PokestopDto, VoteResultDto } from './contract.types';
 
 /**
  * Odpowiedź backendu -> model frontendu. Jedyne miejsce, które zna oba kształty:
@@ -77,4 +78,8 @@ export function toNewPokestop(report: NewReport): NewPokestopDto {
     lng: report.lng,
     details: report.details,
   };
+}
+
+export function toMe(dto: MeDto): Me {
+  return { id: dto.id, displayName: dto.displayName, role: dto.role, isGuest: dto.isGuest, organization: dto.organization };
 }

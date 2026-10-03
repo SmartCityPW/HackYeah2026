@@ -1,17 +1,35 @@
 <div class="page">
   <h1>Organizacje</h1>
-  <p class="lead">Tylko zweryfikowane organizacje mogą publikować szczegółowe inicjatywy.</p>
+  <p class="lead">
+    Tylko zweryfikowane organizacje mogą publikować inicjatywy.
+    @if (pendingCount() > 0) { <strong>⏳ Do decyzji: {{ pendingCount() }}.</strong> }
+  </p>
+
+  <div class="chip-row">
+    @for (f of filters; track f.id) {
+      <button [class.on]="filter() === f.id" (click)="filter.set(f.id)">{{ f.label }}</button>
+    }
+  </div>
 
   <div class="list">
-    @for (o of organizations(); track o.name) {
+    @for (o of organizations(); track o.id) {
       <div class="row">
-        <div>
+        <div class="info">
           <strong>{{ o.name }}</strong>
-          <small>{{ o.kind }}</small>
+          <small>{{ kindLabel(o.kind) }}@if (o.krs) { · KRS {{ o.krs }} }</small>
+          @if (contact(o); as line) { <small>{{ line }}</small> }
         </div>
-        <span class="badge" [class.ok]="o.verified">{{ o.verified ? '✔ Zweryfikowana' : 'Oczekuje' }}</span>
-        <button (click)="toggle(o.name)">{{ o.verified ? 'Cofnij' : 'Zweryfikuj' }}</button>
+        <span class="badge" [style.--bg]="meta[o.verificationStatus].bg" [style.--fg]="meta[o.verificationStatus].fg">
+          <span aria-hidden="true">{{ meta[o.verificationStatus].icon }}</span> {{ meta[o.verificationStatus].label }}
+        </span>
+        <div class="buttons">
+          @for (a of actions[o.verificationStatus]; track a.to) {
+            <button [class.danger]="a.danger" [disabled]="busyId() === o.id" (click)="set(o.id, a.to)">{{ a.label }}</button>
+          }
+        </div>
       </div>
+    } @empty {
+      @if (loaded()) { <p class="empty">Brak organizacji w tym widoku.</p> }
     }
   </div>
 </div>

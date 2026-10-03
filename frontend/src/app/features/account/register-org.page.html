@@ -1,0 +1,82 @@
+<div class="page auth">
+  @if (alreadySignedIn()) {
+    <h1>Jesteś zalogowany</h1>
+    <p class="lead">Aby założyć konto organizacji, najpierw <a routerLink="/konto">wyloguj się</a>.</p>
+  } @else {
+    <h1>Konto organizacji</h1>
+    <p class="lead">Dla organizacji pozarządowych i jednostek samorządu. Po założeniu konta administrator zweryfikuje organizację: do tego czasu nie opublikujesz inicjatyw.</p>
+
+    @if (!session.hasAccounts()) {
+      <p class="note">Rejestracja działa po przełączeniu na backend (<code>api.mode.account: http</code> w <code>app-config.yaml</code>).</p>
+    }
+    @if (session.isGuest()) {
+      <p class="note">Konto organizacji jest odrębne od Twojego konta gościa: postęp gościa nie zostanie do niego przeniesiony.</p>
+    }
+
+    <form (submit)="submit($event)" novalidate>
+      <fieldset>
+        <legend>Organizacja</legend>
+        <label class="field" [class.invalid]="errors()['organization.name']">
+          <span class="label">Nazwa <b>*</b></span>
+          <input type="text" maxlength="150" [value]="name()" (input)="name.set(value($event))" />
+          @if (errors()['organization.name']; as message) { <small class="error">{{ message }}</small> }
+        </label>
+        <label class="field" [class.invalid]="errors()['organization.kind']">
+          <span class="label">Rodzaj podmiotu <b>*</b></span>
+          <select (change)="kind.set($any(value($event)))">
+            <option value="" [selected]="!kind()">Wybierz…</option>
+            @for (k of kinds; track k.value) { <option [value]="k.value" [selected]="k.value === kind()">{{ k.label }}</option> }
+          </select>
+          @if (errors()['organization.kind']; as message) { <small class="error">{{ message }}</small> }
+        </label>
+        <label class="field">
+          <span class="label">KRS (opcjonalnie)</span>
+          <input type="text" inputmode="numeric" [value]="krs()" (input)="krs.set(value($event))" />
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Kontakt</legend>
+        <label class="field">
+          <span class="label">Osoba kontaktowa</span>
+          <input type="text" autocomplete="name" [value]="contactPerson()" (input)="contactPerson.set(value($event))" />
+        </label>
+        <label class="field" [class.invalid]="errors()['organization.contactEmail']">
+          <span class="label">E-mail kontaktowy</span>
+          <input type="email" [value]="contactEmail()" (input)="contactEmail.set(value($event))" />
+          @if (errors()['organization.contactEmail']; as message) { <small class="error">{{ message }}</small> }
+        </label>
+        <label class="field">
+          <span class="label">Telefon</span>
+          <input type="tel" autocomplete="tel" [value]="contactPhone()" (input)="contactPhone.set(value($event))" />
+        </label>
+        <small class="hint">Dane kontaktowe widzi tylko administrator i Wasza organizacja, mieszkańcy ich nie widzą.</small>
+      </fieldset>
+
+      <fieldset>
+        <legend>Konto</legend>
+        <label class="field" [class.invalid]="errors()['displayName']">
+          <span class="label">Nazwa wyświetlana (opcjonalnie)</span>
+          <input type="text" maxlength="60" [value]="displayName()" (input)="displayName.set(value($event))" />
+          @if (errors()['displayName']; as message) { <small class="error">{{ message }}</small> }
+        </label>
+        <label class="field" [class.invalid]="errors()['email']">
+          <span class="label">E-mail do logowania <b>*</b></span>
+          <input type="email" autocomplete="username" [value]="email()" (input)="email.set(value($event))" />
+          @if (errors()['email']; as message) { <small class="error">{{ message }}</small> }
+        </label>
+        <label class="field" [class.invalid]="errors()['password']">
+          <span class="label">Hasło <b>*</b></span>
+          <input type="password" autocomplete="new-password" [value]="password()" (input)="password.set(value($event))" />
+          <small class="hint">Co najmniej {{ passwordMinLength }} znaków.</small>
+          @if (errors()['password']; as message) { <small class="error">{{ message }}</small> }
+        </label>
+      </fieldset>
+
+      @if (formError(); as message) { <p class="form-error" role="alert">{{ message }}</p> }
+      <button class="btn primary" type="submit" [disabled]="busy()">{{ busy() ? 'Zakładanie konta…' : 'Załóż konto organizacji' }}</button>
+    </form>
+
+    <p class="alt">Masz już konto? <a routerLink="/logowanie">Zaloguj się</a>.</p>
+  }
+</div>
