@@ -1,5 +1,14 @@
 <div #mapContainer class="map"></div>
 
+<nav class="toolbar">
+  <button class="tool" [class.active]="panel() === 'report'" (click)="openPanel('report')">➕ Zgłoś</button>
+  <button class="tool" [class.active]="panel() === 'collection'" (click)="openPanel('collection')">📖 Kolekcja</button>
+</nav>
+
+@if (panel() === 'report') {
+  <div class="crosshair" aria-hidden="true">📍</div>
+}
+
 @if (reward(); as text) {
   <div class="toast" role="status">🎁 {{ text }}</div>
 }
@@ -25,5 +34,45 @@
         <button class="btn btn-against" (click)="vote(stop, 'against')">Nie zgadzam się</button>
       </div>
     }
+  </section>
+}
+
+@if (panel() === 'report') {
+  <section class="sheet" style="--stop-color: #f59e0b">
+    <button class="sheet-close" (click)="panel.set('none')" aria-label="Zamknij">×</button>
+    <p class="sheet-type">🚧 Nowe zgłoszenie</p>
+    <h2>Przesuń mapę pod pinezkę 📍</h2>
+    <label class="field">Tytuł
+      <input type="text" maxlength="60" placeholder="np. Dziura w chodniku" [value]="draftTitle()" (input)="onInput(draftTitle, $event)" />
+    </label>
+    <label class="field">Opis (opcjonalnie)
+      <textarea rows="2" maxlength="300" [value]="draftDescription()" (input)="onInput(draftDescription, $event)"></textarea>
+    </label>
+    <p class="field-label">Kategoria</p>
+    <div class="chips">
+      @for (id of characterIds; track id) {
+        <button class="chip" [class.on]="draftCharacter() === id" (click)="draftCharacter.set(id)">
+          {{ characterMeta[id].emoji }} {{ characterMeta[id].category }}
+        </button>
+      }
+    </div>
+    <button class="btn btn-for submit" [disabled]="!canSubmit()" (click)="submitReport()">Dodaj zgłoszenie</button>
+  </section>
+}
+
+@if (panel() === 'collection') {
+  <section class="sheet" style="--stop-color: #6366f1">
+    <button class="sheet-close" (click)="panel.set('none')" aria-label="Zamknij">×</button>
+    <p class="sheet-type">📖 Twoja kolekcja</p>
+    <h2>Zdobyte postacie</h2>
+    <div class="dex">
+      @for (id of characterIds; track id) {
+        <div class="dex-card" [class.locked]="collection()[id] === 0">
+          <span class="dex-emoji">{{ collection()[id] > 0 ? characterMeta[id].emoji : '❔' }}</span>
+          <strong>{{ collection()[id] > 0 ? characterMeta[id].label : '???' }}</strong>
+          <small>{{ collection()[id] > 0 ? '×' + collection()[id] : characterMeta[id].category }}</small>
+        </div>
+      }
+    </div>
   </section>
 }

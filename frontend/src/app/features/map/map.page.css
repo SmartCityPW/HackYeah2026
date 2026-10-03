@@ -1,6 +1,22 @@
 :host { display: block; position: relative; height: 100dvh; width: 100%; }
 .map { position: absolute; inset: 0; }
 
+.toolbar { position: absolute; top: 12px; right: 12px; z-index: 15; display: flex; gap: 8px; }
+.tool { background: #fff; border: 0; border-radius: 999px; padding: 10px 16px; font-weight: 700; box-shadow: 0 4px 14px rgb(0 0 0 / .25); cursor: pointer; }
+.tool.active { background: #111827; color: #fff; }
+.crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); font-size: 40px; z-index: 5; pointer-events: none; filter: drop-shadow(0 4px 4px rgb(0 0 0 / .4)); }
+.field { display: block; margin: 8px 0; font-size: .85rem; font-weight: 700; }
+.field input, .field textarea { display: block; width: 100%; box-sizing: border-box; margin-top: 4px; padding: 10px; border: 2px solid #e5e7eb; border-radius: 12px; font: inherit; font-weight: 400; }
+.field-label { margin: 8px 0 4px; font-size: .85rem; font-weight: 700; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.chip { border: 2px solid #e5e7eb; background: #fff; border-radius: 999px; padding: 6px 12px; cursor: pointer; font: inherit; font-size: .85rem; }
+.chip.on { border-color: #f59e0b; background: #fef3c7; font-weight: 700; }
+.submit { width: 100%; }
+.submit:disabled { opacity: .4; cursor: not-allowed; }
+.dex { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; margin-top: 12px; }
+.dex-card { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px 6px; border-radius: 16px; background: #eef2ff; text-align: center; }
+.dex-card.locked { background: #f3f4f6; color: #9ca3af; }
+.dex-emoji { font-size: 2rem; }
 .toast {
   position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
   background: #111827; color: #fff; padding: 10px 18px; border-radius: 999px;

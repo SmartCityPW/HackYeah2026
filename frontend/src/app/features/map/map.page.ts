@@ -1,7 +1,8 @@
-import { Component, ElementRef, OnDestroy, afterNextRender, computed, effect, inject, signal, viewChild } from '@angular/core';
+import { Component, ElementRef, WritableSignal, OnDestroy, afterNextRender, computed, effect, inject, signal, viewChild } from '@angular/core';
 import * as maplibregl from 'maplibre-gl';
-import { POKESTOP_TYPES, Pokestop } from '../../core/pokestop.model';
+import { CHARACTERS, CHARACTER_IDS, CharacterId, POKESTOP_TYPES, Pokestop } from '../../core/pokestop.model';
 import { PokestopService } from '../../core/pokestop.service';
+import { CharactersLayer } from './three/characters-layer';
 
 // Worker serwujemy jako zasób statyczny (angular.json -> assets), bo bundler nie radzi sobie z workerem MapLibre.
 maplibregl.setWorkerUrl('/maplibre/maplibre-gl-worker.mjs');
@@ -22,25 +23,68 @@ export class MapPage implements OnDestroy {
   private watchId?: number;
   private userMarker?: maplibregl.Marker;
   private readonly mapReady = signal(false);
+  private readonly characters = new CharactersLayer();
 
   protected readonly types = POKESTOP_TYPES;
   protected readonly selectedId = signal<number | null>(null);
   protected readonly selected = computed(() => this.service.stops().find((s) => s.id === this.selectedId()) ?? null);
   protected readonly reward = signal<string | null>(null);
 
+  protected readonly characterMeta = CHARACTERS;
+  protected readonly characterIds = CHARACTER_IDS;
+  protected readonly collection = this.service.collection;
+  protected readonly panel = signal<'none' | 'report' | 'collection'>('none');
+  protected readonly draftTitle = signal('');
+  protected readonly draftDescription = signal('');
+  protected readonly draftCharacter = signal<CharacterId>('bin');
+  protected readonly canSubmit = computed(() => this.draftTitle().trim().length >= 3);
+
   constructor() {
     afterNextRender(() => this.initMap());
 
     effect(() => {
       const stops = this.service.stops();
-      if (this.mapReady()) this.syncMarkers(stops);
+      if (this.mapReady()) {
+        this.syncMarkers(stops);
+        void this.characters.setStops(stops);
+      }
     });
   }
 
   protected vote(stop: Pokestop, vote: 'for' | 'against'): void {
-    this.service.vote(stop.id, vote);
-    this.reward.set('Dziękujemy za głos! +1 punkt odkrywcy');
-    setTimeout(() => this.reward.set(null), 2500);
+    const won = this.service.vote(stop.id, vote);
+    if (won) this.showReward(`Dziękujemy za głos! Zdobywasz: ${CHARACTERS[won].emoji} ${CHARACTERS[won].label}`);
+  }
+
+  protected openPanel(panel: 'report' | 'collection'): void {
+    this.selectedId.set(null);
+    this.panel.set(this.panel() === panel ? 'none' : panel);
+  }
+
+  protected submitReport(): void {
+    if (!this.canSubmit() || !this.map) return;
+    const center = this.map.getCenter();
+    const stop = this.service.addReport({
+      title: this.draftTitle().trim(),
+      description: this.draftDescription().trim(),
+      character: this.draftCharacter(),
+      lat: center.lat,
+      lng: center.lng,
+    });
+    this.draftTitle.set('');
+    this.draftDescription.set('');
+    this.panel.set('none');
+    this.selectedId.set(stop.id);
+    this.showReward('Zgłoszenie dodane! Gdy inni je potwierdzą, dostaniesz postać.');
+  }
+
+  protected onInput(target: WritableSignal<string>, event: Event): void {
+    target.set((event.target as HTMLInputElement).value);
+  }
+
+  private showReward(text: string): void {
+    this.reward.set(text);
+    setTimeout(() => this.reward.set(null), 3000);
   }
 
   protected close(): void {
@@ -57,12 +101,15 @@ export class MapPage implements OnDestroy {
       container: this.container().nativeElement,
       style: 'https://tiles.openfreemap.org/styles/liberty',
       center: KRAKOW,
-      zoom: 15.5,
+      zoom: 16.3,
       pitch: 55,
       bearing: -15,
       attributionControl: { compact: true },
     });
-    this.map.on('load', () => this.mapReady.set(true));
+    this.map.on('load', () => {
+      this.map!.addLayer(this.characters);
+      this.mapReady.set(true);
+    });
     this.startGeolocation();
   }
 
@@ -79,7 +126,7 @@ export class MapPage implements OnDestroy {
         this.selectedId.set(stop.id);
         this.map?.easeTo({ center: [stop.lng, stop.lat], duration: 600 });
       });
-      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' }).setLngLat([stop.lng, stop.lat]).addTo(this.map!);
+      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom', offset: [0, -34] }).setLngLat([stop.lng, stop.lat]).addTo(this.map!);
       this.markers.set(stop.id, marker);
     }
   }
