@@ -39,11 +39,11 @@
           <p>Twoja drużyna: <strong>{{ r.pokemonPowerTotal }}</strong> vs <strong>{{ r.enemyPower }}</strong></p>
           <ul class="rewards">
             @for (p of team(); track p.id) {
-              <li>{{ characters[p.character].emoji }} {{ characters[p.character].label }} <strong>+{{ expGained(p.id) }} exp</strong></li>
+              <li>{{ catalog.character(p.character).emoji }} {{ catalog.character(p.character).label }} <strong>+{{ expGained(p.id) }} exp</strong></li>
             }
             <li>⭐ <strong>+{{ r.xpGained }} XP</strong> dla Ciebie</li>
             @if (r.awardedCharacter; as c) {
-              <li class="new">🎁 Nowy Spryciak: {{ characters[c].emoji }} <strong>{{ characters[c].label }}</strong></li>
+              <li class="new">🎁 Nowy Spryciak: {{ catalog.character(c).emoji }} <strong>{{ catalog.character(c).label }}</strong></li>
             }
           </ul>
           <button class="btn go" (click)="closed.emit()">Wróć na mapę</button>
@@ -83,8 +83,8 @@
                 [attr.aria-pressed]="picked"
                 (click)="toggle(p.id)"
               >
-                <span class="p-emoji">{{ characters[p.character].emoji }}</span>
-                <strong>{{ characters[p.character].label }}</strong>
+                <span class="p-emoji">{{ catalog.character(p.character).emoji }}</span>
+                <strong>{{ catalog.character(p.character).label }}</strong>
                 <small>poz. {{ p.level }} · {{ types[p.typeCode].emoji }} · 💪 {{ p.power }}</small>
                 @if (bonus) { <span class="bonus">bonus typu</span> }
               </button>

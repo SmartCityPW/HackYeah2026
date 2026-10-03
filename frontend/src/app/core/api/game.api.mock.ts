@@ -3,9 +3,9 @@ import { AppConfigService } from '../config/app-config.service';
 import { AttackPokemonResult, AttackResult, Encounter, PlayerProgress, Position } from '../game.model';
 import { distanceMeters } from '../geo.utils';
 import { ApiHttpError } from '../http/api-error';
-import { CHARACTER_IDS } from '../pokestop.model';
+import { CatalogService } from '../catalog/catalog.service';
 import { GameApi } from './game.api';
-import { MockPlayerState, OwnedPokemon, SPECIES, XP_PER_PLAYER_LEVEL, toPokemon } from './mock-player.state';
+import { MockPlayerState, OwnedPokemon, XP_PER_PLAYER_LEVEL } from './mock-player.state';
 
 /** Ilu przeciwników najbliższych w kółku zwraca serwer (backend: game.encounters.max_in_response). */
 export const MAX_IN_RESPONSE = 5;
@@ -63,6 +63,7 @@ interface Cell {
 export class MockGameApi extends GameApi {
   private readonly range = inject(AppConfigService).config.game;
   private readonly player = inject(MockPlayerState);
+  private readonly catalog = inject(CatalogService);
 
   /** Źródło losowości (do podmiany w testach). */
   random: () => number = Math.random;
@@ -95,15 +96,17 @@ export class MockGameApi extends GameApi {
 
     const pokemons: AttackPokemonResult[] = team.map((p) => ({
       pokemonId: p.id,
-      powerUsed: toPokemon(p).power,
-      typeMultiplierApplied: SPECIES[p.character].typeCode === target.typeCode ? this.range.typeMultiplier : 1,
+      powerUsed: this.player.toPokemon(p).power,
+      typeMultiplierApplied: this.catalog.character(p.character).typeCode === target.typeCode ? this.range.typeMultiplier : 1,
     }));
     const pokemonPowerTotal = Math.round(pokemons.reduce((sum, p) => sum + p.powerUsed * p.typeMultiplierApplied, 0));
     if (pokemonPowerTotal <= target.power) return { outcome: 'lost', enemyPower: target.power, pokemonPowerTotal, pokemons };
 
     this.encounters = this.encounters.filter((e) => e.id !== id);
     for (const p of team) p.exp += target.xpReward;
-    const awardedCharacter = CHARACTER_IDS[Math.floor(this.random() * CHARACTER_IDS.length)];
+    // Jak serwer: nagroda losowana z postaci poza unikalnymi za wydarzenia.
+    const pool = this.catalog.characters().filter((c) => !c.isEventExclusive);
+    const awardedCharacter = pool[Math.floor(this.random() * pool.length)].code;
     this.player.add(awardedCharacter);
     this.player.xp += target.xpReward;
     return {

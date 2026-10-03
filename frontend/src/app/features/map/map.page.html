@@ -109,7 +109,7 @@
             <select (change)="onPokemonChosen($event)">
               @for (p of pokemons.pokemons(); track p.id) {
                 <option [value]="p.id" [selected]="p.id === pokemons.chosen()?.id">
-                  {{ characters[p.character].emoji }} {{ p.nickname ?? characters[p.character].label }} · poz. {{ p.level }} ({{ p.exp }} exp)
+                  {{ catalog.character(p.character).emoji }} {{ p.nickname ?? catalog.character(p.character).label }} · poz. {{ p.level }} ({{ p.exp }} exp)
                 </option>
               }
             </select>

@@ -2,7 +2,8 @@ import { Position } from './game.model';
 import { Pokemon } from './pokemon.model';
 
 export type PokestopType = 'report' | 'idea' | 'place' | 'ngo' | 'consultation';
-export type CharacterId = 'cyclist' | 'bin' | 'tree' | 'train' | 'lamp';
+/** Kod postaci ze słownika (`CatalogService`). Zestaw postaci to dane, nie kod, więc to zwykły tekst. */
+export type CharacterId = string;
 export type PokestopStatus = 'open' | 'in_progress' | 'resolved' | 'rejected';
 
 export interface PokestopComment {
@@ -110,13 +111,3 @@ export const STATUS_META: Record<PokestopStatus, { label: string; icon: string; 
   resolved: { label: 'Załatwione', icon: '✔', bg: 'var(--color-plum)', fg: 'var(--on-dark)' },
   rejected: { label: 'Odrzucone', icon: '✕', bg: 'var(--accent-strong)', fg: 'var(--on-strong)' },
 };
-
-export const CHARACTERS: Record<CharacterId, { label: string; emoji: string; category: string }> = {
-  cyclist: { label: 'Rowerzysta', emoji: '🚴', category: 'Rowery i ścieżki' },
-  bin: { label: 'Stworek Kosz', emoji: '🗑️', category: 'Czystość i śmieci' },
-  tree: { label: 'Drzewo', emoji: '🌳', category: 'Zieleń' },
-  train: { label: 'Pociąg', emoji: '🚆', category: 'Komunikacja' },
-  lamp: { label: 'Latarnia', emoji: '💡', category: 'Oświetlenie' },
-};
-
-export const CHARACTER_IDS = Object.keys(CHARACTERS) as CharacterId[];

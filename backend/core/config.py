@@ -163,6 +163,8 @@ class ModerationSection:
 class ContractSection:
     openapi_file: str
     schema_sql_file: str
+    seed_reference_sql_file: str
+    frontend_catalog_file: str
 
 
 @dataclass(frozen=True)

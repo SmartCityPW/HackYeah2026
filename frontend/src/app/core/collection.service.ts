@@ -1,16 +1,16 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { PokestopApi } from './api/pokestop.api';
-import { CHARACTER_IDS, CharacterId } from './pokestop.model';
+import { CatalogService } from './catalog/catalog.service';
+import { CharacterId } from './pokestop.model';
 
-const EMPTY = Object.fromEntries(CHARACTER_IDS.map((id) => [id, 0])) as Record<CharacterId, number>;
-
-/** Kolekcja postaci użytkownika ("Moje Spryciaki"). */
+/** Kolekcja postaci użytkownika ("Moje Spryciaki"): liczba posiadanych sztuk każdego gatunku ze słownika. */
 @Injectable({ providedIn: 'root' })
 export class CollectionService {
   private readonly api = inject(PokestopApi);
+  private readonly catalog = inject(CatalogService);
 
-  readonly counts = signal<Record<CharacterId, number>>(EMPTY);
-  readonly unlocked = computed(() => CHARACTER_IDS.filter((id) => this.counts()[id] > 0).length);
+  readonly counts = signal<Record<CharacterId, number>>({});
+  readonly unlocked = computed(() => this.catalog.characters().filter((c) => (this.counts()[c.code] ?? 0) > 0).length);
 
   constructor() {
     void this.refresh();

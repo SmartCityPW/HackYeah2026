@@ -532,7 +532,7 @@ components:
     ScenarioCategory: { type: string, enum: [problem, initiative, place] }
     FieldType: { type: string, enum: [text, textarea, number, select, multiselect, boolean, tags, date, photos, character, choice, rating] }
     VerificationStatus: { type: string, enum: [pending, verified, suspended] }
-    CharacterCode: { type: string, enum: [cyclist, bin, tree, train, lamp, festival], description: 'Kody postaci ze słownika `collection_character` (lista rośnie wraz z grą)' }
+    CharacterCode: { type: string, example: cyclist, description: 'Kod postaci ze słownika `collection_character`. Lista nie jest zamknięta: aktualny zestaw podaje `GET /catalog` (źródło: backend/config/seed/reference.yaml)' }
     TypeCode: { type: string, enum: [transport, clean, green, energy, air, infra], description: 'Typ postaci/przeciwnika do mnożnika w walce (słownik `collection_type`)' }
     Catalog:
       type: object
@@ -542,15 +542,18 @@ components:
         types: { type: array, items: { $ref: '#/components/schemas/CatalogType' } }
     CatalogCharacter:
       type: object
-      required: [code, label, emoji, categoryLabel, typeCode, isStarter]
+      required: [code, label, emoji, categoryLabel, typeCode, modelPath, isStarter, isEventExclusive, basePower, powerGrowth]
       properties:
         code: { $ref: '#/components/schemas/CharacterCode' }
         label: { type: string }
         emoji: { type: string }
         categoryLabel: { type: string }
         typeCode: { $ref: '#/components/schemas/TypeCode' }
-        modelPath: { type: string, nullable: true, description: 'Ścieżka modelu 3D we frontendzie; null = model budowany w kodzie' }
+        modelPath: { type: string, nullable: true, description: 'Ścieżka modelu 3D (glTF) względem katalogu public/ frontendu; null = zastępcza postać' }
         isStarter: { type: boolean, description: Gatunek przyznawany na start konta }
+        isEventExclusive: { type: boolean, description: 'Tylko za udział w wydarzeniu (nie wypada z walk ani ankiet)' }
+        basePower: { type: integer, description: Moc na poziomie 1 }
+        powerGrowth: { type: integer, description: 'Przyrost mocy na poziom (moc = basePower + powerGrowth × (poziom − 1))' }
     CatalogType:
       type: object
       required: [code, name, emoji]

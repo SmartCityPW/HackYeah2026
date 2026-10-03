@@ -15,8 +15,8 @@
             @case ('character') {
               <span class="label">{{ f.label }}</span>
               <div class="chips">
-                @for (c of characters; track c.id) {
-                  <button type="button" class="chip" [class.on]="values()[f.key] === c.id" (click)="set(f.key, c.id)">
+                @for (c of characters(); track c.code) {
+                  <button type="button" class="chip" [class.on]="values()[f.key] === c.code" (click)="set(f.key, c.code)">
                     {{ c.emoji }} {{ c.label }}
                   </button>
                 }

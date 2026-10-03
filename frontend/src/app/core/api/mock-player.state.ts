@@ -1,20 +1,11 @@
-import { Injectable } from '@angular/core';
-import { TypeCode } from '../game.model';
+import { Injectable, inject } from '@angular/core';
+import { CatalogService } from '../catalog/catalog.service';
 import { Pokemon } from '../pokemon.model';
 import { CharacterId } from '../pokestop.model';
 
 /** Wartości jak w backend/config/default.yaml (game.levels): 100 exp na poziom pokemona i 100 xp na poziom gracza. */
 export const EXP_PER_POKEMON_LEVEL = 100;
 export const XP_PER_PLAYER_LEVEL = 100;
-
-/** Słownik postaci jak w `docs/db/seed_reference.sql` (typ, moc na poziomie 1, przyrost na poziom). */
-export const SPECIES: Record<CharacterId, { typeCode: TypeCode; basePower: number; growth: number }> = {
-  cyclist: { typeCode: 'transport', basePower: 20, growth: 4 },
-  bin: { typeCode: 'clean', basePower: 15, growth: 4 },
-  tree: { typeCode: 'green', basePower: 18, growth: 4 },
-  train: { typeCode: 'transport', basePower: 25, growth: 5 },
-  lamp: { typeCode: 'energy', basePower: 12, growth: 3 },
-};
 
 export interface OwnedPokemon {
   id: number;
@@ -23,9 +14,9 @@ export interface OwnedPokemon {
   isStaked: boolean;
 }
 
-/** Poziom i moc z exp, jak wylicza je serwer (poziom = 1 + exp / 100, moc = base_power + growth × (poziom − 1)). */
-export function toPokemon(p: OwnedPokemon): Pokemon {
-  const species = SPECIES[p.character];
+/** Poziom i moc z exp, jak wylicza je serwer (poziom = 1 + exp / 100, moc = basePower + powerGrowth × (poziom − 1)). */
+export function toPokemon(p: OwnedPokemon, catalog: CatalogService): Pokemon {
+  const species = catalog.character(p.character);
   const level = 1 + Math.floor(p.exp / EXP_PER_POKEMON_LEVEL);
   return {
     id: p.id,
@@ -36,7 +27,7 @@ export function toPokemon(p: OwnedPokemon): Pokemon {
     exp: p.exp,
     expIntoLevel: p.exp % EXP_PER_POKEMON_LEVEL,
     expForNextLevel: EXP_PER_POKEMON_LEVEL,
-    power: species.basePower + species.growth * (level - 1),
+    power: species.basePower + species.powerGrowth * (level - 1),
     isStaked: p.isStaked,
   };
 }
@@ -48,21 +39,30 @@ export function toPokemon(p: OwnedPokemon): Pokemon {
  */
 @Injectable({ providedIn: 'root' })
 export class MockPlayerState {
+  private readonly catalog = inject(CatalogService);
   /** XP gracza (poziom gracza liczy się z niego; głosy nie dają xp, tylko exp pokemonowi). */
   xp = 120;
-  readonly pokemons: OwnedPokemon[] = [
-    { id: 1, character: 'cyclist', exp: 150, isStaked: false },
-    { id: 2, character: 'lamp', exp: 40, isStaked: false },
-    { id: 3, character: 'tree', exp: 0, isStaked: false },
-  ];
+  /** Na start: postać startowa i dwie kolejne ze słownika (z różnym exp, żeby było widać poziomy). */
+  readonly pokemons: OwnedPokemon[] = this.starterTeam();
 
   find(id: number): OwnedPokemon | undefined {
     return this.pokemons.find((p) => p.id === id);
+  }
+
+  toPokemon(p: OwnedPokemon): Pokemon {
+    return toPokemon(p, this.catalog);
   }
 
   add(character: CharacterId): OwnedPokemon {
     const pokemon: OwnedPokemon = { id: Math.max(0, ...this.pokemons.map((p) => p.id)) + 1, character, exp: 0, isStaked: false };
     this.pokemons.push(pokemon);
     return pokemon;
+  }
+
+  private starterTeam(): OwnedPokemon[] {
+    const all = this.catalog.characters();
+    const starter = all.find((c) => c.isStarter) ?? all[0];
+    const others = all.filter((c) => c !== starter && !c.isEventExclusive).slice(0, 2);
+    return [starter, ...others].map((c, i) => ({ id: i + 1, character: c.code, exp: [150, 40, 0][i], isStaked: false }));
   }
 }

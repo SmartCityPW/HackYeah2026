@@ -8,7 +8,7 @@ Wymagania źródłowe: [`../opis.md`](../opis.md). Kontrakt API: [`../api-contra
 | Plik | Zawartość |
 |---|---|
 | [`schema.sql`](schema.sql) | Struktura: 26 tabel, 1 widok, 16 typów ENUM, 13 triggerów (niezmienniki), indeksy |
-| [`seed_reference.sql`](seed_reference.sql) | Słowniki: 6 typów, 6 postaci (w tym unikalna za wydarzenia), 4 szablony przeciwników |
+| [`seed_reference.sql`](seed_reference.sql) | Słowniki: typy, postacie, szablony przeciwników (**generowany** z `backend/config/seed/reference.yaml`: `python manage.py export_reference`) |
 | [`seed_scenarios.sql`](seed_scenarios.sql) | Katalog 20 scenariuszy (**generowany** z kodu frontendu) |
 
 Kolejność: `schema.sql` → `seed_reference.sql` → `seed_scenarios.sql`.

@@ -147,6 +147,17 @@ Branch (4 commity, odgałęziony od `53f1653`, czyli sprzed Etapów 1, 3 i 6) do
 2. **Kształt błędu i pozycji.** Branch: `position: {lat, lng, accuracyM}` w ciele i `422 too_far` z `distanceM` i `radiusM`. Backend: `lat`/`lng` obok siebie i `403 too_far` z komunikatem. Zmiana wymaga dotknięcia backendu i testów.
 3. **Zasady przeciwników.** Kwadraty 100 m wspólne dla graczy, 0–6 na kwadrat, najwyżej 5 w kółku, odnowienie po ~60 s (branch) czy komórki 500 m i do 3 na komórkę (backend).
 
+## Etap 9: Spryciaki: jedno źródło prawdy o postaciach (dopisane 2026-10-03)
+
+Problem: postacie były wpisane w kilku miejscach (YAML backendu, `seed_reference.sql`, `enum` w `openapi.yaml`, `CharacterId`/`CHARACTERS` i `SPECIES` we frontendzie, postacie budowane w kodzie Three.js), bo frontend od początku działał na atrapach i nie korzystał z `GET /catalog`.
+
+- [x] 9.1 Źródło: `backend/config/seed/reference.yaml` → baza (`collection_character`; seed wyłącza postacie spoza pliku zamiast je usuwać i przenosi flagę startowej) → `GET /catalog` (rozszerzony o `isEventExclusive`, `basePower`, `powerGrowth`)
+- [x] 9.2 Frontend: `CatalogService` (`api.mode.catalog`: mock = `catalog.mock.json`, http = `GET /catalog` przy starcie). `CharacterId` to `string`, usunięte `CHARACTERS`, `CHARACTER_IDS`, `SPECIES`, `characterLabel`. Modele 3D ładowane z `modelPath`, bez modelu lub przy błędzie wczytania postać zastępcza (usunięty Rowerzysta budowany w kodzie)
+- [x] 9.3 Atrapy z tego samego pliku: `manage.py export_reference` generuje `catalog.mock.json` i `docs/db/seed_reference.sql`; test backendu pilnuje aktualności
+- [x] 9.4 `openapi.yaml`: `CharacterCode` bez zamkniętej listy, `CatalogCharacter` z nowymi polami. Testy: backend 121 ✔ (1 ✘ jak wcześniej, Windows), frontend 159 ✔, `ng build` ✔. Niesprawdzone w przeglądarce
+- [ ] 9.5 Wymiana zestawu na Spryciaki (po dostarczeniu modeli i katalogu): `reference.yaml`, przepięcie postaci w `scenarios.yaml` i `scenario.catalog.ts` (+ `npm run db:seed-scenarios`), atrapy pinezek, `export_reference`, skala i orientacja modeli na mapie
+- [ ] 9.6 Zostało zdublowane: szablony przeciwników w `game.api.mock.ts` (kopia `enemy_types`) i typy w `TYPES` (`game.model.ts`). Do przeniesienia do katalogu przy okazji
+
 ## Etap 4: brakujące operacje backendu (`501`) i ich ekrany
 - [ ] `POST /photos`
 - [x] walka: `GET /encounters`, `POST /encounters/{id}/attack` (Etap 8.8)

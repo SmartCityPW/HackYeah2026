@@ -1,8 +1,9 @@
 import { Component, computed, inject, input, linkedSignal, output, signal } from '@angular/core';
+import { CatalogService } from '../../../core/catalog/catalog.service';
 import { RESIDENT_CATEGORIES, scenariosFor, scenariosInCategory } from '../../../core/scenario.catalog';
 import { FieldValues, Scenario, ScenarioCategory } from '../../../core/scenario.model';
 import { toReport } from '../../../core/scenario.utils';
-import { CHARACTERS, NewReport } from '../../../core/pokestop.model';
+import { NewReport } from '../../../core/pokestop.model';
 import { PokemonService } from '../../../core/pokemon.service';
 import { ToastService } from '../../../core/toast.service';
 import { SessionService } from '../../../core/session.service';
@@ -32,7 +33,7 @@ export class ReportPanel {
   /** Wybrana kategoria (mieszkaniec); organizacja pomija ten krok. */
   protected readonly category = signal<ScenarioCategory | null>(null);
   protected readonly chosen = signal<Scenario | null>(null);
-  protected readonly characters = CHARACTERS;
+  protected readonly characterCatalog = inject(CatalogService);
   protected readonly available = this.pokemons.available;
   /** Zgłoszenie problemu i pomysł mieszkańca wymagają zostawienia na nim własnego pokemona (dostaje go z powrotem po poparciu). */
   protected readonly needsStake = computed(() => {

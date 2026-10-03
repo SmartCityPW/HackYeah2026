@@ -4,10 +4,11 @@ import { Position } from '../game.model';
 import { distanceMeters } from '../geo.utils';
 import { ApiHttpError, TooFarError } from '../http/api-error';
 import { Pokemon } from '../pokemon.model';
-import { Bbox, CHARACTER_IDS, CharacterId, CommentPage, NewReport, Pokestop, PokestopComment, PokestopStatus, VoteContext, VoteResult } from '../pokestop.model';
+import { CatalogService } from '../catalog/catalog.service';
+import { Bbox, CharacterId, CommentPage, NewReport, Pokestop, PokestopComment, PokestopStatus, VoteContext, VoteResult } from '../pokestop.model';
 import { hasInteraction } from '../pokestop.utils';
 import { PokestopApi } from './pokestop.api';
-import { MockPlayerState, toPokemon } from './mock-player.state';
+import { MockPlayerState } from './mock-player.state';
 import { MOCK_STOPS } from './pokestop.mock-data';
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
@@ -23,6 +24,7 @@ const EXP_PER_VOTE = 10;
 export class MockPokestopApi extends PokestopApi {
   private readonly range = inject(AppConfigService).config.game.interactionRangeM;
   private readonly player = inject(MockPlayerState);
+  private readonly catalog = inject(CatalogService);
   private stops: Pokestop[] = clone(MOCK_STOPS);
 
   async list(area?: Bbox, status?: PokestopStatus): Promise<Pokestop[]> {
@@ -51,7 +53,7 @@ export class MockPokestopApi extends PokestopApi {
     if (vote === 'for') stop.votesFor++;
     else stop.votesAgainst++;
     pokemon.exp += EXP_PER_VOTE;
-    return { stop: clone(stop), pokemon: toPokemon(pokemon) };
+    return { stop: clone(stop), pokemon: this.player.toPokemon(pokemon) };
   }
 
   async listComments(id: number, page: number, pageSize: number): Promise<CommentPage> {
@@ -108,13 +110,13 @@ export class MockPokestopApi extends PokestopApi {
   }
 
   async listCollection(): Promise<Record<CharacterId, number>> {
-    const counts = Object.fromEntries(CHARACTER_IDS.map((c) => [c, 0])) as Record<CharacterId, number>;
-    for (const p of this.player.pokemons) counts[p.character]++;
+    const counts: Record<CharacterId, number> = Object.fromEntries(this.catalog.characters().map((c) => [c.code, 0]));
+    for (const p of this.player.pokemons) counts[p.character] = (counts[p.character] ?? 0) + 1;
     return counts;
   }
 
   async listPokemons(availableOnly = false): Promise<Pokemon[]> {
-    return this.player.pokemons.filter((p) => !availableOnly || !p.isStaked).map(toPokemon);
+    return this.player.pokemons.filter((p) => !availableOnly || !p.isStaked).map((p) => this.player.toPokemon(p));
   }
 
   /** Jak serwer: głos i nowa pinezka tylko w kółku interakcji gracza (inaczej 422 `too_far` z odległością i promieniem). */

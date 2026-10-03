@@ -3,6 +3,7 @@ from rest_framework import serializers
 from apps.collection.models import Character, Pokemon, PokemonType
 from django.conf import settings
 
+from apps.collection.catalog import catalog_character
 from apps.collection.services import level_for, power_for
 from core.serializers import CamelSerializer
 
@@ -33,16 +34,6 @@ class PokemonSerializer(CamelSerializer):
         return power_for(obj.character, obj.exp)
 
 
-class CatalogCharacterSerializer(CamelSerializer):
-    code = serializers.CharField()
-    label = serializers.CharField()
-    emoji = serializers.CharField()
-    category_label = serializers.CharField()
-    type_code = serializers.CharField(source='type.code')
-    model_path = serializers.CharField(allow_null=True)
-    is_starter = serializers.BooleanField()
-
-
 class CatalogTypeSerializer(CamelSerializer):
     code = serializers.CharField()
     name = serializers.CharField()
@@ -52,6 +43,10 @@ class CatalogTypeSerializer(CamelSerializer):
 def catalog_payload() -> dict:
     characters = Character.objects.filter(is_active=True).select_related('type').order_by('id')
     return {
-        'characters': CatalogCharacterSerializer(characters, many=True).data,
+        'characters': [
+            catalog_character(c.code, c.label, c.emoji, c.category_label, c.type.code, c.model_path, c.is_starter, c.is_event_exclusive,
+                              c.base_power, c.power_growth)
+            for c in characters
+        ],
         'types': CatalogTypeSerializer(PokemonType.objects.order_by('id'), many=True).data,
     }

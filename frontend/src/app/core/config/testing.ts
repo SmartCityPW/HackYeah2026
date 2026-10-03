@@ -4,7 +4,7 @@ import { AppConfigService } from './app-config.service';
 
 /** Konfiguracja do testów jednostkowych (te same klucze co w public/config/app-config.yaml). */
 export const TEST_CONFIG: AppConfig = {
-  api: { baseUrl: 'http://api.test/api/v1', mode: { pokestops: 'mock', game: 'mock', account: 'mock', scenarios: 'mock' } },
+  api: { baseUrl: 'http://api.test/api/v1', mode: { pokestops: 'mock', game: 'mock', account: 'mock', scenarios: 'mock', catalog: 'mock' } },
   auth: { storageKeyPrefix: 'test', autoGuest: true, passwordMinLength: 8 },
   map: { styleUrl: 'http://tiles.test/style', workerUrl: '/worker.mjs', center: { lat: 50.0617, lng: 19.9373 }, zoom: 16, pitch: 50, bearing: 0 },
   game: {

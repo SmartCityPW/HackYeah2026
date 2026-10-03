@@ -1,4 +1,4 @@
-import { CharacterId, NewReport, CHARACTERS } from './pokestop.model';
+import { CharacterId, NewReport } from './pokestop.model';
 import { BASE_KEYS, FieldDef, FieldValues, Scenario } from './scenario.model';
 
 export function allFields(scenario: Scenario): FieldDef[] {
@@ -91,8 +91,4 @@ export function describeDetails(scenario: Scenario, details: Record<string, unkn
     rows.push({ label: f.label, text });
   }
   return rows;
-}
-
-export function characterLabel(id: CharacterId): string {
-  return `${CHARACTERS[id].emoji} ${CHARACTERS[id].label}`;
 }

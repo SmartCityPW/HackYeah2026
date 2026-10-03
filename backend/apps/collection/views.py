@@ -23,7 +23,7 @@ class MyCollectionView(APIView):
         counts = dict(
             Pokemon.objects.filter(user=request.user).values_list('character__code').annotate(n=Count('id'))
         )
-        return Response({code: counts.get(code, 0) for code in Character.objects.order_by('id').values_list('code', flat=True)})
+        return Response({code: counts.get(code, 0) for code in Character.objects.filter(is_active=True).order_by('id').values_list('code', flat=True)})
 
 
 class MyPokemonsView(APIView):

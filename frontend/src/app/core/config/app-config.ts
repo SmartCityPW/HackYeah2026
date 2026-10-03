@@ -7,7 +7,7 @@ export interface LatLng {
 }
 
 export interface AppConfig {
-  api: { baseUrl: string; mode: { pokestops: ApiMode; game: ApiMode; account: ApiMode; scenarios: ApiMode } };
+  api: { baseUrl: string; mode: { pokestops: ApiMode; game: ApiMode; account: ApiMode; scenarios: ApiMode; catalog: ApiMode } };
   auth: { storageKeyPrefix: string; autoGuest: boolean; passwordMinLength: number };
   map: { styleUrl: string; workerUrl: string; center: LatLng; zoom: number; pitch: number; bearing: number };
   game: {
@@ -90,6 +90,7 @@ export function parseAppConfig(raw: unknown): AppConfig {
         game: mode(apiMode, 'game', 'api.mode.game'),
         account: mode(apiMode, 'account', 'api.mode.account'),
         scenarios: mode(apiMode, 'scenarios', 'api.mode.scenarios'),
+        catalog: mode(apiMode, 'catalog', 'api.mode.catalog'),
       },
     },
     auth: {

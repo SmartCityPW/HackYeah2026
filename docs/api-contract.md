@@ -146,7 +146,7 @@ Decyzje dodatkowe, wynikające z przeglądu:
 | 13 | Zastaw na odrzuconym lub martwym zgłoszeniu | Zwrot przy progu głosów i przy `resolved` (z +50 exp) oraz przy `rejected` i wycofaniu (bez premii). Nowy endpoint `POST /pokestops/{id}/withdraw`. |
 | 14 | Głos na własną pinezkę | **Zabroniony** (`403`, `own_pokestop`). Inaczej autor sam odblokowywałby swojego pokemona. |
 | 15 | Konta gościa a oszustwa | **Ryzyko zaakceptowane.** Gość głosuje i liczy się do progu, bo wymuszona rejestracja zabija wejście. Ograniczenie: limit zakładania kont gościa na adres IP (5/h). Pełna ochrona przed wieloma kontami wykracza poza MVP. |
-| 16 | Wzór poziomu pokemona | **100 exp na poziom** (jak u gracza), moc `base_power + power_growth × (poziom − 1)`, przeliczana przez serwer. Placeholdery mocy w `seed_reference.sql` do strojenia po pierwszych testach. |
+| 16 | Wzór poziomu pokemona | **100 exp na poziom** (jak u gracza), moc `base_power + power_growth × (poziom − 1)`, przeliczana przez serwer. Placeholdery mocy w `backend/config/seed/reference.yaml` do strojenia po pierwszych testach. |
 
 Decyzje wynikające z `opis.md` (funkcja 5, ankiety, głosowanie z bliska):
 

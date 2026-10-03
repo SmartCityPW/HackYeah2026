@@ -1,10 +1,10 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { CatalogService } from '../../core/catalog/catalog.service';
 import { CollectionService } from '../../core/collection.service';
 import { AppConfigService } from '../../core/config/app-config.service';
 import { TYPES } from '../../core/game.model';
 import { describeError } from '../../core/http/api-error';
 import { PokemonService } from '../../core/pokemon.service';
-import { CHARACTERS, CHARACTER_IDS } from '../../core/pokestop.model';
 import { ProgressService } from '../../core/progress.service';
 import { ToastService } from '../../core/toast.service';
 
@@ -26,8 +26,7 @@ export class SpryciakiPage {
   private readonly pokemonService = inject(PokemonService);
   protected readonly collection = inject(CollectionService);
   protected readonly progress = inject(ProgressService).progress;
-  protected readonly characters = CHARACTERS;
-  protected readonly species = CHARACTER_IDS.map((id) => ({ id, ...CHARACTERS[id] }));
+  protected readonly catalog = inject(CatalogService);
   protected readonly types = TYPES;
   protected readonly filters = FILTERS;
   protected readonly maxTeam = inject(AppConfigService).config.game.maxTeamSize;

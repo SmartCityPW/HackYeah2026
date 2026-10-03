@@ -8,8 +8,6 @@ pytestmark = pytest.mark.django_db
 def test_catalog_is_public_and_complete(anon):
     r = anon.get('/api/v1/catalog')
     assert r.status_code == 200
-    codes = {c['code'] for c in r.data['characters']}
-    assert {'cyclist', 'bin', 'tree', 'train', 'lamp', 'festival'} == codes
     assert sum(c['isStarter'] for c in r.data['characters']) == 1
     assert {t['code'] for t in r.data['types']} == {'transport', 'clean', 'green', 'energy', 'air', 'infra'}
 

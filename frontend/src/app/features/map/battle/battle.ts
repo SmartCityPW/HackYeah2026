@@ -1,11 +1,11 @@
 import { Component, DestroyRef, computed, inject, input, output, signal } from '@angular/core';
 import { teamPower } from '../../../core/battle.utils';
+import { CatalogService } from '../../../core/catalog/catalog.service';
 import { AppConfigService } from '../../../core/config/app-config.service';
 import { EncounterService } from '../../../core/encounter.service';
 import { AttackResult, Encounter, TYPES } from '../../../core/game.model';
 import { describeError } from '../../../core/http/api-error';
 import { PokemonService } from '../../../core/pokemon.service';
-import { CHARACTERS } from '../../../core/pokestop.model';
 
 /** Kroki walki: akcja na miejscu -> wybór drużyny -> starcie -> wynik. */
 export type BattlePhase = 'action' | 'team' | 'fighting' | 'result';
@@ -37,7 +37,7 @@ export class Battle {
   readonly failed = output<string>();
 
   protected readonly types = TYPES;
-  protected readonly characters = CHARACTERS;
+  protected readonly catalog = inject(CatalogService);
   protected readonly maxTeam = this.game.maxTeamSize;
   protected readonly dwellTotal = this.game.actionDwellSeconds;
   protected readonly graceTotal = this.game.leaveGraceSeconds;

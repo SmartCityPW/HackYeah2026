@@ -14,7 +14,15 @@ api:
     pokestops: mock     # mock | http   (pinezki, głosy, komentarze, kolekcja, pokemony)
     game: mock          # mock | http   (postęp, przeciwnicy, walka)
     account: mock       # mock | http   (rola i profil z GET /me; z http przełącznik ról jest ukryty)
+    catalog: mock       # mock | http   (słownik postaci: catalog.mock.json albo GET /catalog)
 ```
+
+**Postacie (Spryciaki) nie są wpisane w kodzie.** Jedynym źródłem jest `backend/config/seed/reference.yaml` (kod, nazwa, typ, moc,
+postać startowa, model 3D glTF w `modelPath` względem `frontend/public/`). Backend ładuje go do bazy (`manage.py bootstrap`) i zwraca
+przez `GET /catalog`; dla atrap `python manage.py export_reference` generuje `frontend/src/app/core/catalog/catalog.mock.json`
+(oraz `docs/db/seed_reference.sql`). Frontend czyta postacie wyłącznie przez `CatalogService`. Wymiana zestawu: edycja YAML-a,
+modele do `frontend/public/models/`, `export_reference`, a testy (`test_reference_catalog.py`, `catalog.service.spec.ts`) wskażą
+nieaktualne pliki i scenariusze albo atrapy pinezek wskazujące usunięte postacie.
 
 Zmiana wartości nie wymaga przebudowy kodu (plik jest ładowany przy starcie). Przy `http` (w którymkolwiek obszarze) aplikacja sama zakłada konto gościa
 (`auth.autoGuest`) i dokleja token do wywołań. Wszystkie pozostałe wartości zmienne (adres mapy, domyślny widok, zasięg, limity zdjęć,
@@ -84,7 +92,7 @@ przez dwóch użytkowników-gości i zapisz odpowiedzi `GET /pokestops`, `/me/co
 
 ## Znane ograniczenia
 
-- **Postać `festival`** (unikalna za wydarzenia) jest w odpowiedziach backendu, ale frontend zna 5 postaci (`CharacterId`). Kolekcja ją ignoruje, a potrzebuje modelu 3D lub wersji z kodu.
+- **Postać `festival`** (unikalna za wydarzenia) jest już w słowniku frontendu (z `GET /catalog`), ale nie ma modelu 3D: na mapie rysuje się postać zastępcza.
 - **Tryb `http` dla `pokestops` i `account` jest kompletny dla pętli gry** (głos, zgłoszenie, komentarze). Walka (`game: http`) i zdjęcia czekają na backend, więc `game` zostaje na `mock`.
 - **Tryb `http` wymaga działającego backendu już przy starcie** (zakłada konto gościa i pobiera `/me`). Gdy backend nie odpowiada, aplikacja się nie uruchomi (biały ekran). Ekran błędu startu to zadanie na etap wdrożeniowy.
 - Narzędzia deweloperskie (przełącznik ról, symulator GPS) wyłącza `dev.tools: false`. W produkcji koniecznie.

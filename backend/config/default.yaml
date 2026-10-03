@@ -96,3 +96,6 @@ moderation:
 contract:               # dokumentacja, z którą kod jest porównywany w testach i w `manage.py contract_status`
   openapi_file: ../docs/openapi.yaml
   schema_sql_file: ../docs/db/schema.sql
+  # Pliki generowane z config/seed/reference.yaml (`manage.py export_reference`); testy pilnują, że są aktualne
+  seed_reference_sql_file: ../docs/db/seed_reference.sql
+  frontend_catalog_file: ../frontend/src/app/core/catalog/catalog.mock.json

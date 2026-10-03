@@ -1,4 +1,5 @@
 import { Injectable, OnDestroy, inject, signal } from '@angular/core';
+import { CatalogService } from '../../core/catalog/catalog.service';
 import { AppConfigService } from '../../core/config/app-config.service';
 import * as maplibregl from 'maplibre-gl';
 import { Encounter } from '../../core/game.model';
@@ -33,7 +34,8 @@ export class MapController implements OnDestroy {
   readonly centerPosition = signal<{ lat: number; lng: number } | null>(null);
 
   private map?: maplibregl.Map;
-  private readonly characters = new CharactersLayer();
+  private readonly catalog = inject(CatalogService);
+  private readonly characters = new CharactersLayer((code) => this.catalog.character(code).modelPath);
   private readonly markers = new Map<number, maplibregl.Marker>();
   private readonly enemyMarkers = new Map<number, maplibregl.Marker>();
   private userMarker?: maplibregl.Marker;

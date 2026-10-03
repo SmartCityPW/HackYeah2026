@@ -19,7 +19,7 @@ function setup() {
     providers: [
       provideHttpClient(withInterceptors([authInterceptor])),
       provideHttpClientTesting(),
-      provideTestConfig({ api: { ...TEST_CONFIG.api, mode: { pokestops: 'mock', game: 'mock', account: 'http', scenarios: 'mock' } } }),
+      provideTestConfig({ api: { ...TEST_CONFIG.api, mode: { pokestops: 'mock', game: 'mock', account: 'http', scenarios: 'mock', catalog: 'mock' } } }),
       ...API_PROVIDERS,
     ],
   });

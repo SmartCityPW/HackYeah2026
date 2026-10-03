@@ -1,23 +1,23 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-import { CharacterId } from '../../../core/pokestop.model';
 
 /** Wysokość postaci na mapie w metrach (przesadnie duża, żeby były widoczne z lotu ptaka). */
 const CHARACTER_HEIGHT_M = 36;
 
-const MODEL_FILES: Partial<Record<CharacterId, string>> = {
-  tree: 'models/kenney-mini-forest/tree.glb',
-  train: 'models/kenney-train-kit/train-electric-city-a.glb',
-  lamp: 'models/kenney-city-kit-roads/light-curved.glb',
-};
-
 const gltfLoader = new GLTFLoader();
 
-/** Zwraca postać z podstawą na y=0, wyśrodkowaną w poziomie, o wysokości CHARACTER_HEIGHT_M. */
-export async function createCharacter(id: CharacterId): Promise<THREE.Object3D> {
-  const file = MODEL_FILES[id];
-  const raw = file ? (await gltfLoader.loadAsync(file)).scene : id === 'cyclist' ? buildCyclist() : buildBinCreature();
-  return normalize(raw);
+/**
+ * Zwraca postać z podstawą na y=0, wyśrodkowaną w poziomie, o wysokości CHARACTER_HEIGHT_M.
+ * `modelPath` (glTF, względem public/) pochodzi ze słownika postaci; bez modelu albo gdy plik się nie wczyta, rysujemy postać zastępczą.
+ */
+export async function createCharacter(modelPath: string | null): Promise<THREE.Object3D> {
+  if (!modelPath) return normalize(buildPlaceholder());
+  try {
+    return normalize((await gltfLoader.loadAsync(modelPath)).scene);
+  } catch (error) {
+    console.warn(`Nie udało się wczytać modelu postaci "${modelPath}", używam zastępczej`, error);
+    return normalize(buildPlaceholder());
+  }
 }
 
 function normalize(object: THREE.Object3D): THREE.Object3D {
@@ -37,8 +37,8 @@ function normalize(object: THREE.Object3D): THREE.Object3D {
 
 const mat = (color: number) => new THREE.MeshStandardMaterial({ color, flatShading: true, roughness: 0.8 });
 
-/** Stworek Kosz: low-poly kosz z oczami i rączkami (własna postać, bez zewnętrznych assetów). */
-function buildBinCreature(): THREE.Group {
+/** Postać zastępcza dla gatunku bez modelu 3D: low-poly stworek z oczami i rączkami (bez zewnętrznych assetów). */
+function buildPlaceholder(): THREE.Group {
   const g = new THREE.Group();
   const body = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.45, 1.3, 8), mat(0x2f9e6e));
   body.position.y = 0.85;
@@ -64,33 +64,5 @@ function buildBinCreature(): THREE.Group {
   const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.08, 0.05), mat(0x111111));
   mouth.position.set(0, 0.7, 0.5);
   g.add(mouth);
-  return g;
-}
-
-/** Rowerzysta: low-poly rower z zawodnikiem w kasku (własna postać). */
-function buildCyclist(): THREE.Group {
-  const g = new THREE.Group();
-  const wheel = (x: number) => {
-    const w = new THREE.Mesh(new THREE.TorusGeometry(0.45, 0.06, 5, 12), mat(0x222222));
-    w.position.set(x, 0.5, 0);
-    return w;
-  };
-  g.add(wheel(-0.75), wheel(0.75));
-  const bar = (from: [number, number], to: [number, number], color = 0xef4444) => {
-    const dx = to[0] - from[0], dy = to[1] - from[1];
-    const m = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, Math.hypot(dx, dy), 5), mat(color));
-    m.position.set((from[0] + to[0]) / 2, (from[1] + to[1]) / 2, 0);
-    m.rotation.z = Math.atan2(dy, dx) - Math.PI / 2;
-    return m;
-  };
-  g.add(bar([-0.75, 0.5], [-0.1, 0.55]), bar([-0.1, 0.55], [0.55, 0.95]), bar([-0.1, 0.55], [-0.2, 1.0]), bar([0.55, 0.95], [0.75, 0.5]), bar([-0.2, 1.0], [0.55, 0.95]));
-  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 0.55, 3, 6), mat(0x3b82f6));
-  torso.position.set(0.05, 1.55, 0);
-  torso.rotation.z = -0.5;
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 7, 6), mat(0xf5c9a0));
-  head.position.set(0.4, 2.05, 0);
-  const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.23, 7, 5, 0, Math.PI * 2, 0, Math.PI / 2), mat(0xfacc15));
-  helmet.position.set(0.4, 2.1, 0);
-  g.add(torso, head, helmet, bar([0.0, 1.35], [-0.1, 0.65], 0x1e3a8a), bar([0.3, 1.7], [0.6, 1.0], 0x3b82f6));
   return g;
 }

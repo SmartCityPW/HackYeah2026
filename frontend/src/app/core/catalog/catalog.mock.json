@@ -1,0 +1,108 @@
+{
+  "characters": [
+    {
+      "code": "cyclist",
+      "label": "Rowerzysta",
+      "emoji": "🚴",
+      "categoryLabel": "Rowery i ścieżki",
+      "typeCode": "transport",
+      "modelPath": null,
+      "isStarter": true,
+      "isEventExclusive": false,
+      "basePower": 20,
+      "powerGrowth": 4
+    },
+    {
+      "code": "bin",
+      "label": "Stworek Kosz",
+      "emoji": "🗑️",
+      "categoryLabel": "Czystość i śmieci",
+      "typeCode": "clean",
+      "modelPath": null,
+      "isStarter": false,
+      "isEventExclusive": false,
+      "basePower": 15,
+      "powerGrowth": 4
+    },
+    {
+      "code": "tree",
+      "label": "Drzewo",
+      "emoji": "🌳",
+      "categoryLabel": "Zieleń",
+      "typeCode": "green",
+      "modelPath": "models/kenney-mini-forest/tree.glb",
+      "isStarter": false,
+      "isEventExclusive": false,
+      "basePower": 18,
+      "powerGrowth": 4
+    },
+    {
+      "code": "train",
+      "label": "Pociąg",
+      "emoji": "🚆",
+      "categoryLabel": "Komunikacja",
+      "typeCode": "transport",
+      "modelPath": "models/kenney-train-kit/train-electric-city-a.glb",
+      "isStarter": false,
+      "isEventExclusive": false,
+      "basePower": 25,
+      "powerGrowth": 5
+    },
+    {
+      "code": "lamp",
+      "label": "Latarnia",
+      "emoji": "💡",
+      "categoryLabel": "Oświetlenie",
+      "typeCode": "energy",
+      "modelPath": "models/kenney-city-kit-roads/light-curved.glb",
+      "isStarter": false,
+      "isEventExclusive": false,
+      "basePower": 12,
+      "powerGrowth": 3
+    },
+    {
+      "code": "festival",
+      "label": "Maskotka Festiwalu",
+      "emoji": "🎪",
+      "categoryLabel": "Wydarzenia",
+      "typeCode": "infra",
+      "modelPath": null,
+      "isStarter": false,
+      "isEventExclusive": true,
+      "basePower": 22,
+      "powerGrowth": 5
+    }
+  ],
+  "types": [
+    {
+      "code": "transport",
+      "name": "Transport",
+      "emoji": "🚦"
+    },
+    {
+      "code": "clean",
+      "name": "Czystość",
+      "emoji": "🧹"
+    },
+    {
+      "code": "green",
+      "name": "Zieleń",
+      "emoji": "🌿"
+    },
+    {
+      "code": "energy",
+      "name": "Energia",
+      "emoji": "💡"
+    },
+    {
+      "code": "air",
+      "name": "Powietrze",
+      "emoji": "🌫️"
+    },
+    {
+      "code": "infra",
+      "name": "Infrastruktura",
+      "emoji": "🧱"
+    }
+  ]
+}

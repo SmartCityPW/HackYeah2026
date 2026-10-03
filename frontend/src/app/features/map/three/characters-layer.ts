@@ -22,6 +22,9 @@ export class CharactersLayer implements maplibregl.CustomLayerInterface {
   private readonly placed = new Map<number, Placed>();
   private readonly cache = new Map<CharacterId, Promise<THREE.Object3D>>();
 
+  /** @param modelPathOf ścieżka modelu 3D dla kodu postaci (ze słownika postaci). */
+  constructor(private readonly modelPathOf: (character: CharacterId) => string | null) {}
+
   onAdd(map: maplibregl.Map, gl: WebGL2RenderingContext): void {
     this.map = map;
     this.renderer = new THREE.WebGLRenderer({ canvas: map.getCanvas(), context: gl, antialias: true });
@@ -48,7 +51,7 @@ export class CharactersLayer implements maplibregl.CustomLayerInterface {
       stops
         .filter((s) => !this.placed.has(s.id))
         .map(async (stop) => {
-          if (!this.cache.has(stop.character)) this.cache.set(stop.character, createCharacter(stop.character));
+          if (!this.cache.has(stop.character)) this.cache.set(stop.character, createCharacter(this.modelPathOf(stop.character)));
           const template = await this.cache.get(stop.character)!;
           const object = template.clone(true);
           object.visible = false;

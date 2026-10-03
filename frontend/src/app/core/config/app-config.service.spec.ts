@@ -3,7 +3,7 @@ import { AppConfigError } from './app-config';
 import { APP_CONFIG_URL, AppConfigService } from './app-config.service';
 
 const YAML = `
-api: { baseUrl: "http://x/api", mode: { pokestops: http, game: mock, account: mock, scenarios: mock } }
+api: { baseUrl: "http://x/api", mode: { pokestops: http, game: mock, account: mock, scenarios: mock, catalog: mock } }
 auth: { storageKeyPrefix: t, autoGuest: false, passwordMinLength: 8 }
 map: { styleUrl: s, workerUrl: w, center: { lat: 1, lng: 2 }, zoom: 3, pitch: 4, bearing: 5 }
 game: { interactionRangeM: 50, simulatedGps: { lat: 1, lng: 2 }, maxTeamSize: 3, typeMultiplier: 1.2, actionDwellSeconds: 20, leaveGraceSeconds: 5, encounterRefreshMeters: 10, encounterRefreshSeconds: 30, battleClashMs: 1600 }

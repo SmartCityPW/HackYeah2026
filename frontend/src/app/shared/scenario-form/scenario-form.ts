@@ -1,6 +1,6 @@
 import { Component, computed, inject, input, linkedSignal, output, signal } from '@angular/core';
 import { AppConfigService } from '../../core/config/app-config.service';
-import { CHARACTERS, CHARACTER_IDS } from '../../core/pokestop.model';
+import { CatalogService } from '../../core/catalog/catalog.service';
 import { FieldDef, FieldValues, Scenario } from '../../core/scenario.model';
 import { initialValues, isVisible, parseTags, validate } from '../../core/scenario.utils';
 
@@ -27,7 +27,9 @@ export class ScenarioForm {
   protected readonly errors = computed(() => validate(this.scenario(), this.values()));
 
   protected readonly stars = [1, 2, 3, 4, 5];
-  protected readonly characters = CHARACTER_IDS.map((id) => ({ id, ...CHARACTERS[id] }));
+  /** Do wyboru w polu typu `character`: postacie ze słownika poza unikalnymi za wydarzenia. */
+  private readonly catalog = inject(CatalogService);
+  protected readonly characters = computed(() => this.catalog.characters().filter((c) => !c.isEventExclusive));
 
   protected visible(field: FieldDef): boolean {
     return isVisible(field, this.values());

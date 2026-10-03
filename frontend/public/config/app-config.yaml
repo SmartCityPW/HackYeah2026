@@ -11,6 +11,7 @@ api:
     game: mock
     account: mock      # konto, logowanie, organizacje (mock = rola wybierana ręcznie przełącznikiem deweloperskim)
     scenarios: mock    # katalog scenariuszy zgłoszeń (mock = zaszyty w kodzie, http = GET /scenarios)
+    catalog: mock      # słownik postaci (mock = catalog.mock.json wygenerowany z backend/config/seed/reference.yaml, http = GET /catalog)
 
 auth:
   storageKeyPrefix: scgo                  # klucze w localStorage: <prefix>.role, <prefix>.access, <prefix>.refresh

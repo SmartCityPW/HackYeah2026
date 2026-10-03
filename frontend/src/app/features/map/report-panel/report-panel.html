@@ -15,7 +15,7 @@
           <select (change)="onStakedChosen($event)">
             @for (p of available(); track p.id) {
               <option [value]="p.id" [selected]="p.id === stakedId()">
-                {{ characters[p.character].emoji }} {{ p.nickname ?? characters[p.character].label }} · poz. {{ p.level }}
+                {{ characterCatalog.character(p.character).emoji }} {{ p.nickname ?? characterCatalog.character(p.character).label }} · poz. {{ p.level }}
               </option>
             }
           </select>

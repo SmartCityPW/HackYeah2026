@@ -1,11 +1,12 @@
 import { RouterLink } from '@angular/router';
 import { Component, ElementRef, computed, effect, inject, input, signal, untracked, viewChild, afterNextRender, DestroyRef } from '@angular/core';
+import { CatalogService } from '../../core/catalog/catalog.service';
 import { EncounterService } from '../../core/encounter.service';
 import { AppConfigService } from '../../core/config/app-config.service';
 import { Encounter, Position, TYPES } from '../../core/game.model';
 import { distanceMeters } from '../../core/geo.utils';
 import { describeError } from '../../core/http/api-error';
-import { CHARACTERS, POKESTOP_TYPES, Pokestop } from '../../core/pokestop.model';
+import { POKESTOP_TYPES, Pokestop } from '../../core/pokestop.model';
 import { PokemonService } from '../../core/pokemon.service';
 import { GeolocationService } from '../../core/geolocation.service';
 import { PokestopService } from '../../core/pokestop.service';
@@ -49,7 +50,7 @@ export class MapPage {
   readonly stop = input<string>();
 
   protected readonly types = POKESTOP_TYPES;
-  protected readonly characters = CHARACTERS;
+  protected readonly catalog = inject(CatalogService);
   protected readonly selectedId = signal<number | null>(null);
   protected readonly selected = computed(() => this.pokestops.stops().find((s) => s.id === this.selectedId()) ?? null);
   protected readonly selectedEncounterId = signal<number | null>(null);
@@ -255,7 +256,7 @@ export class MapPage {
     }
     const rewarded = await this.run(() => this.pokestops.vote(id, vote, { pokemonId: pokemon.id, position }));
     if (rewarded) {
-      const character = CHARACTERS[rewarded.character];
+      const character = this.catalog.character(rewarded.character);
       this.toast.show(`Dziękujemy za głos! ${character.emoji} ${character.label} ma teraz ${rewarded.exp} exp (poziom ${rewarded.level})`, '🎁');
     }
   }
