@@ -1,0 +1,29 @@
+<div #mapContainer class="map"></div>
+
+@if (reward(); as text) {
+  <div class="toast" role="status">🎁 {{ text }}</div>
+}
+
+@if (selected(); as stop) {
+  <section class="sheet" [style.--stop-color]="types[stop.type].color">
+    <button class="sheet-close" (click)="close()" aria-label="Zamknij">×</button>
+    <p class="sheet-type">{{ types[stop.type].emoji }} {{ types[stop.type].label }}</p>
+    <h2>{{ stop.title }}</h2>
+    <p class="sheet-desc">{{ stop.description }}</p>
+    <p class="sheet-author">Dodał(a): {{ stop.author }}</p>
+
+    <div class="votes">
+      <span>👍 {{ stop.votesFor }}</span>
+      <span>👎 {{ stop.votesAgainst }}</span>
+    </div>
+
+    @if (stop.myVote) {
+      <p class="voted">Twój głos został zapisany ✔</p>
+    } @else {
+      <div class="actions">
+        <button class="btn btn-for" (click)="vote(stop, 'for')">Potwierdzam</button>
+        <button class="btn btn-against" (click)="vote(stop, 'against')">Nie zgadzam się</button>
+      </div>
+    }
+  </section>
+}
