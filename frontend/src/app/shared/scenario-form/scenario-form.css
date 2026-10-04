@@ -6,7 +6,7 @@ legend { font-weight: 800; font-size: .8rem; text-transform: uppercase; letter-s
 .label b { color: var(--accent-strong); }
 .label i { font-weight: 400; color: var(--text-muted); }
 input[type='text'], input[type='number'], input[type='date'], textarea, select {
-  width: 100%; box-sizing: border-box; padding: 10px; border: 2px solid var(--border); border-radius: 12px; font: inherit; background: var(--surface);
+  width: 100%; box-sizing: border-box; padding: 10px; border: 2px solid var(--border); border-radius: var(--radius-s); font: inherit; background: var(--surface);
 }
 .invalid input, .invalid textarea, .invalid select { border-color: var(--accent-strong); }
 .check { display: flex; align-items: center; gap: 10px; font-weight: 600; }
@@ -15,15 +15,15 @@ input[type='text'], input[type='number'], input[type='date'], textarea, select {
 .error { color: var(--accent-strong); font-size: .78rem; font-weight: 600; }
 .error::before { content: '⚠ '; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip { border: 2px solid var(--border); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font: inherit; font-size: .85rem; }
+.chip { border: 2px solid var(--border); background: var(--surface); border-radius: var(--radius-s); padding: 6px 12px; cursor: pointer; font: inherit; font-size: .85rem; }
 .chip.on { border-color: var(--brand); background: var(--tint); font-weight: 700; }
 .photos { display: flex; gap: 8px; flex-wrap: wrap; }
-.photo { position: relative; width: 72px; height: 72px; border-radius: 12px; overflow: hidden; background: var(--tint); }
+.photo { position: relative; width: 72px; height: 72px; border-radius: var(--radius-s); overflow: hidden; background: var(--tint); }
 .photo img { width: 100%; height: 100%; object-fit: cover; }
-.photo button { position: absolute; top: 2px; right: 2px; width: 22px; height: 22px; border: 0; border-radius: 50%; background: color-mix(in srgb, var(--color-plum) 70%, transparent); color: var(--surface); cursor: pointer; line-height: 1; }
+.photo button { position: absolute; top: 2px; right: 2px; width: 22px; height: 22px; border: 0; border-radius: var(--radius-s); background: color-mix(in srgb, var(--color-plum) 70%, transparent); color: var(--surface); cursor: pointer; line-height: 1; }
 .photo.add { display: grid; place-items: center; font-size: 1.6rem; cursor: pointer; border: 2px dashed var(--border); }
 .actions { display: flex; gap: 10px; position: sticky; bottom: 0; background: var(--surface); padding: 10px 0 2px; }
-.btn { flex: 1; padding: 12px; border: 0; border-radius: 14px; font-weight: 700; cursor: pointer; font: inherit; font-weight: 700; }
+.btn { flex: 1; padding: 12px; border: 0; border-radius: var(--radius-m); font-weight: 700; cursor: pointer; font: inherit; font-weight: 700; }
 .btn.primary { background: var(--brand-strong); color: var(--surface); }
 .btn.ghost { background: var(--tint); flex: 0 0 auto; padding: 12px 18px; }
 .stars { display: flex; gap: 4px; }

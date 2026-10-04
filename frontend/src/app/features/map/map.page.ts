@@ -119,6 +119,9 @@ export class MapPage {
   });
   /** Bez pozycji nie ma kółka ani przeciwników, więc mówimy graczowi, co zrobić. */
   protected readonly needsLocation = computed(() => this.mapCtl.ready() && this.geo.position() === null);
+  /** Gracz zamknął komunikat o braku pozycji. Wraca, gdy sam poprosi o lokalizację (przycisk GPS) albo gdy pozycję uda się ustalić i znów zniknie. */
+  private readonly locationPromptDismissed = signal(false);
+  protected readonly showLocationPrompt = computed(() => this.needsLocation() && !this.locationPromptDismissed());
   /** Konkretny powód braku pozycji (odmowa, błąd przeglądarki, brak HTTPS), żeby nie zgadywać, co poprawić. */
   protected readonly locationHint = computed(() => {
     const detail = this.geo.locationDetail();
@@ -196,6 +199,7 @@ export class MapPage {
     effect(() => {
       const position = this.geo.position();
       if (position && this.mapCtl.ready()) this.mapCtl.showUser(position, this.buddyModel());
+      if (position) untracked(() => this.locationPromptDismissed.set(false));
     });
     effect(() => {
       const id = Number(this.stop());
@@ -209,6 +213,7 @@ export class MapPage {
 
   /** Przycisk lokalizacji: prosi przeglądarkę o prawdziwą pozycję (kończy też symulację z `?gps=`) i pokazuje powód, gdy się nie uda. */
   protected async locate(): Promise<void> {
+    this.locationPromptDismissed.set(false);
     const problem = await this.geo.request();
     const position = this.geo.latLng();
     if (!problem && position) {
@@ -217,6 +222,10 @@ export class MapPage {
       return;
     }
     this.toast.show('Nie udało się ustalić pozycji. Powód jest w komunikacie na górze mapy.', '📍');  // szczegóły (locationHint) pokazuje już baner
+  }
+
+  protected dismissLocationPrompt(): void {
+    this.locationPromptDismissed.set(true);
   }
 
   private distanceTo(target: Position | null): number | null {

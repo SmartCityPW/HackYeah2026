@@ -1,19 +1,19 @@
 :host { display: block; }
-.manager { display: grid; gap: 18px; padding: 12px; border-radius: 12px; background: var(--tint); }
+.manager { display: grid; gap: 18px; padding: 12px; border-radius: var(--radius-s); background: var(--tint); }
 h3 { margin: 0; font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); }
 h4 { margin: 0 0 6px; font-size: 1rem; }
 section { display: grid; gap: 8px; }
 form { display: grid; gap: 8px; }
 .hint { margin: 0; font-size: .85rem; color: var(--text-muted); }
 .field { display: grid; gap: 4px; font-size: .85rem; font-weight: 600; }
-input, textarea { width: 100%; box-sizing: border-box; padding: 9px; border: 2px solid var(--border); border-radius: 10px; font: inherit; font-weight: 400; color: var(--text); background: var(--surface); }
+input, textarea { width: 100%; box-sizing: border-box; padding: 9px; border: 2px solid var(--border); border-radius: var(--radius-s); font: inherit; font-weight: 400; color: var(--text); background: var(--surface); }
 textarea { resize: vertical; }
 .invalid input, .invalid textarea { border-color: var(--accent); }
 .error { color: var(--accent-ink); font-size: .8rem; font-weight: 600; }
 .error::before { content: '⚠ '; }
 .counter { justify-self: end; font-weight: 400; color: var(--text-muted); }
 .status-row { display: flex; flex-wrap: wrap; gap: 6px; }
-button { border: 0; border-radius: 10px; padding: 8px 12px; font: inherit; font-size: .85rem; font-weight: 700; cursor: pointer; background: var(--surface); color: var(--text); box-shadow: 0 1px 2px var(--shadow); }
+button { border: 0; border-radius: var(--radius-s); padding: 8px 12px; font: inherit; font-size: .85rem; font-weight: 700; cursor: pointer; background: var(--surface); color: var(--text); box-shadow: 0 1px 2px var(--shadow); }
 button:disabled { opacity: .5; cursor: not-allowed; }
 button.on { background: var(--brand-strong); color: var(--on-strong); }
 button.primary { background: var(--brand-strong); color: var(--on-strong); }
@@ -22,12 +22,12 @@ button.danger { background: var(--accent-strong); color: var(--on-strong); }
 .pair { display: grid; grid-template-columns: 1fr 1.4fr auto; gap: 6px; align-items: center; }
 .pair .error { grid-column: 1 / -1; }
 .icon-btn { padding: 6px 12px; font-size: 1.1rem; line-height: 1; }
-.confirm { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: var(--accent-tint); color: var(--accent-ink); font-weight: 600; }
+.confirm { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 10px; border-radius: var(--radius-s); background: var(--accent-tint); color: var(--accent-ink); font-weight: 600; }
 
-.result { display: grid; gap: 4px; padding: 10px; border-radius: 10px; background: var(--surface); }
+.result { display: grid; gap: 4px; padding: 10px; border-radius: var(--radius-s); background: var(--surface); }
 .result small { color: var(--text-muted); }
 .bar-row { display: grid; grid-template-columns: minmax(80px, 1fr) 2fr auto; gap: 8px; align-items: center; font-size: .85rem; }
-.bar { height: 8px; border-radius: 99px; background: var(--tint); overflow: hidden; }
+.bar { height: 8px; border-radius: var(--radius-s); background: var(--tint); overflow: hidden; }
 .bar div { height: 100%; background: var(--brand-strong); }
 .avg { margin: 0; font-size: .9rem; }
 .texts { margin: 0; padding-left: 18px; font-size: .85rem; display: grid; gap: 2px; }

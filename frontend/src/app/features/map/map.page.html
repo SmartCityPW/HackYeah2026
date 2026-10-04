@@ -27,12 +27,15 @@
   }
 }
 
-@if (needsLocation()) {
-  <p class="locate" role="status">
-    Nie znamy Twojej pozycji, więc nie widać kółka interakcji ani przeciwników.
-    @if (locationHint(); as hint) { {{ hint }} } @else { Zezwól przeglądarce na dostęp do lokalizacji. }
-    Spróbuj przycisku lokalizacji w prawym dolnym rogu.@if (devTools) { Do testów możesz dopisać do adresu <code>?gps=50.0676,19.9917</code>. }
-  </p>
+@if (showLocationPrompt()) {
+  <div class="locate" role="status">
+    <p>
+      Nie znamy Twojej pozycji, więc nie widać kółka interakcji ani przeciwników.
+      @if (locationHint(); as hint) { {{ hint }} } @else { Zezwól przeglądarce na dostęp do lokalizacji. }
+      Spróbuj przycisku lokalizacji w prawym dolnym rogu.@if (devTools) { Do testów możesz dopisać do adresu <code>?gps=50.0676,19.9917</code>. }
+    </p>
+    <button type="button" class="locate-close" (click)="dismissLocationPrompt()" aria-label="Zamknij komunikat o lokalizacji"><app-icon name="close" /></button>
+  </div>
 }
 
 @if (selectedEncounter(); as enc) {

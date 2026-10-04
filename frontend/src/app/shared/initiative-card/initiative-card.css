@@ -1,21 +1,21 @@
 :host { display: block; }
-article { background: var(--surface); border-radius: 14px; padding: 12px; box-shadow: 0 1px 4px var(--shadow); }
+article { background: var(--surface); border-radius: var(--radius-m); padding: 12px; box-shadow: 0 1px 4px var(--shadow); }
 .head { display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: 0; padding: 0; text-align: left; font: inherit; cursor: pointer; }
 .icon { font-size: 1.8rem; }
 .text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .text small { color: var(--text-muted); }
 .support { margin-top: 10px; }
 .support small { color: var(--text-muted); }
-.bar { height: 6px; background: var(--accent-tint); border-radius: 99px; overflow: hidden; margin-bottom: 4px; }
+.bar { height: 6px; background: var(--accent-tint); border-radius: var(--radius-s); overflow: hidden; margin-bottom: 4px; }
 .fill { height: 100%; background: var(--brand-strong); }
 .mine { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; font-size: .75rem; }
-.mine span { background: var(--tint); color: var(--brand-strong); padding: 2px 8px; border-radius: 99px; font-weight: 600; }
+.mine span { background: var(--tint); color: var(--brand-strong); padding: 2px 8px; border-radius: var(--radius-s); font-weight: 600; }
 .head .chevron { flex: none; transition: transform .15s; transform: rotate(90deg); color: var(--text-muted); }
 .head .chevron.up { transform: rotate(-90deg); }
 .details { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); display: grid; gap: 12px; }
 .details h3 { margin: 0; font-size: .85rem; text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted); }
 .meaning, .description { margin: 0; font-size: .9rem; }
-.meaning { padding: 8px 10px; border-radius: 10px; background: var(--tint); }
+.meaning { padding: 8px 10px; border-radius: var(--radius-s); background: var(--tint); }
 .fields { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 0; font-size: .9rem; }
 .fields dt { color: var(--text-muted); }
 .fields dd { margin: 0; font-weight: 600; }

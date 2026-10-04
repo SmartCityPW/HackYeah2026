@@ -1,34 +1,41 @@
 /*
  * Znaczniki na mapie. Tworzy je MapController (poza szablonami Angulara), więc style są globalne, a nie w komponencie.
  * Kolory wyłącznie z tokenów palety (styles.css).
+ * Kształt to romb. Rysuje go ::before, bo MapLibre ustawia własny `transform` na samym przycisku (pozycja na mapie) i obrót z CSS by zginął.
  */
-.stop-marker {
-  width: 46px; height: 46px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
-  border: 3px solid var(--surface); background: var(--stop-color); cursor: pointer;
-  box-shadow: 0 4px 10px var(--shadow-strong); padding: 0; display: grid; place-items: center;
+.stop-marker, .enemy-marker { display: grid; place-items: center; padding: 0; border: 0; background: none; cursor: pointer; }
+.stop-marker::before, .enemy-marker::before { content: ''; position: absolute; inset: 0; box-sizing: border-box; transform: rotate(45deg); border-radius: var(--radius-s); }
+.stop-marker span, .enemy-marker span { position: relative; line-height: 1; }
+
+.stop-marker { width: 36px; height: 36px; }
+.stop-marker::before {
+  border: 3px solid var(--surface); background: var(--stop-color); outline: 2px solid var(--color-plum);
+  box-shadow: 0 4px 10px var(--shadow-strong);
 }
-.stop-marker span { display: block; transform: rotate(45deg); font-size: 22px; line-height: 1; }
-.enemy-marker {
-  width: 54px; height: 54px; border-radius: 50%; border: 3px solid var(--accent); background: var(--color-plum); cursor: pointer; padding: 0;
-  display: grid; place-items: center; box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 65%, transparent); animation: enemy-pulse 1.8s infinite;
+.stop-marker span { font-size: 20px; }
+
+.enemy-marker { width: 42px; height: 42px; }
+.enemy-marker::before {
+  border: 3px solid var(--accent); background: var(--color-plum);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 65%, transparent); animation: enemy-pulse 1.8s infinite;
 }
-.enemy-marker span { font-size: 28px; line-height: 1; }
+.enemy-marker span { font-size: 24px; }
 @keyframes enemy-pulse { 70% { box-shadow: 0 0 0 16px color-mix(in srgb, var(--accent) 0%, transparent); } 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 0%, transparent); } }
+
 /* Pinezki różnią się nie tylko kolorem (dwa typy dzielą fiolet): zawsze ikona, a konsultacje także podwójnym obramowaniem. */
-.stop-marker { outline: 2px solid var(--color-plum); }
-.stop-marker[data-type='consultation'] { border-style: double; border-width: 7px; }
+.stop-marker[data-type='consultation']::before { border-style: double; border-width: 6px; }
 /* Zaufane podmioty (ngo, konsultacje): wykrzyknik na różowym tle zamiast ikony kategorii. */
 .stop-marker[data-trusted] { --stop-color: var(--color-pink); }
-.stop-marker[data-trusted] span { font-size: 28px; font-weight: 900; color: var(--surface); }
+.stop-marker[data-trusted] span { font-size: 24px; font-weight: 900; color: var(--surface); }
 
-/* Wydarzenia: pinezka na jasnym tle z podwójną, przerywaną obwódką; trwające teraz (data-active) dodatkowo pulsują. */
-.stop-marker.event-marker { --stop-color: var(--color-lavender); outline: 3px dashed var(--color-pink); outline-offset: 2px; }
-.stop-marker.event-marker span { font-size: 24px; }
-.stop-marker.event-marker[data-active='true'] { animation: event-pulse 1.8s infinite; }
+/* Wydarzenia: pinezka na jasnym tle z przerywaną obwódką; trwające teraz (data-active) dodatkowo pulsują. */
+.stop-marker.event-marker { --stop-color: var(--color-lavender); }
+.stop-marker.event-marker::before { outline: 3px dashed var(--color-pink); outline-offset: 2px; }
+.stop-marker.event-marker span { font-size: 22px; }
+.stop-marker.event-marker[data-active='true']::before { animation: event-pulse 1.8s infinite; }
 .stop-marker.event-marker[data-active='false'] { filter: saturate(.55); }
 @keyframes event-pulse { 70% { box-shadow: 0 0 0 14px color-mix(in srgb, var(--color-pink) 0%, transparent); } 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-pink) 60%, transparent); } }
 
 /* Cele poza kółkiem interakcji: widoczne, ale przygaszone, bo trzeba do nich podejść. */
 .stop-marker.out-of-range, .enemy-marker.out-of-range { opacity: .45; filter: grayscale(.6); }
-.stop-marker.event-marker.out-of-range { animation: none; }
-.enemy-marker.out-of-range { animation: none; }
+.stop-marker.event-marker.out-of-range::before, .enemy-marker.out-of-range::before { animation: none; }

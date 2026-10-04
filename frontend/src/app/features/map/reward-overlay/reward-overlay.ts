@@ -18,7 +18,7 @@ import { Reward } from '../../../shared/reward/reward';
     }
     .sheet {
       width: 100%; max-width: 560px; max-height: 90dvh; overflow-y: auto; box-sizing: border-box; padding: 18px 18px 24px;
-      background: var(--surface); border-radius: 24px 24px 0 0; border-top: 6px solid var(--accent); box-shadow: 0 -8px 30px var(--shadow-strong);
+      background: var(--surface); border-radius: 0; clip-path: var(--cut-tl); border-top: 6px solid var(--accent); box-shadow: 0 -8px 30px var(--shadow-strong);
     }
   `,
 })

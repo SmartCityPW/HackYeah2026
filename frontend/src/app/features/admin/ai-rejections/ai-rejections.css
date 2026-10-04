@@ -2,13 +2,13 @@
 .info { margin: 0 0 12px; font-size: .9rem; color: var(--text-muted); }
 .chip-row { margin-bottom: 12px; }
 .list { display: grid; gap: 10px; }
-article { display: grid; gap: 6px; padding: 12px; border-radius: 14px; background: var(--surface); box-shadow: 0 1px 4px var(--shadow); border-left: 5px solid var(--border); }
+article { display: grid; gap: 6px; padding: 12px; border-radius: var(--radius-m); background: var(--surface); box-shadow: 0 1px 4px var(--shadow); border-left: 5px solid var(--border); }
 article[data-verdict='rejected'] { border-left-color: var(--accent); }
 header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: .8rem; }
 header time { margin-left: auto; color: var(--text-muted); }
-.verdict { padding: 2px 10px; border-radius: 999px; background: var(--tint); color: var(--brand-strong); font-weight: 800; }
+.verdict { padding: 2px 10px; border-radius: var(--radius-s); background: var(--tint); color: var(--brand-strong); font-weight: 800; }
 article[data-verdict='rejected'] .verdict { background: var(--accent-tint); color: var(--accent-ink); }
-.new { padding: 2px 8px; border-radius: 999px; background: var(--accent-strong); color: var(--on-strong); font-weight: 800; }
+.new { padding: 2px 8px; border-radius: var(--radius-s); background: var(--accent-strong); color: var(--on-strong); font-weight: 800; }
 h3 { margin: 0; font-size: 1rem; overflow-wrap: anywhere; }
 .description { margin: 0; white-space: pre-line; font-size: .9rem; overflow-wrap: anywhere; }
 dl { display: grid; grid-template-columns: max-content 1fr; gap: 2px 10px; margin: 0; font-size: .8rem; }
@@ -16,7 +16,7 @@ dt { color: var(--text-muted); }
 dd { margin: 0; }
 footer { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .78rem; color: var(--text-muted); }
 .id { margin-left: auto; }
-.empty { text-align: center; color: var(--text-muted); padding: 32px 12px; background: var(--surface); border-radius: 14px; }
-.tip { margin-top: 16px; padding: 10px 12px; border-radius: 12px; background: var(--tint); font-size: .85rem; }
+.empty { text-align: center; color: var(--text-muted); padding: 32px 12px; background: var(--surface); border-radius: var(--radius-m); }
+.tip { margin-top: 16px; padding: 10px 12px; border-radius: var(--radius-s); background: var(--tint); font-size: .85rem; }
 .tip summary { cursor: pointer; font-weight: 700; color: var(--brand-strong); }
-.tip pre { margin: 6px 0; padding: 8px 10px; border-radius: 8px; background: var(--surface); overflow-x: auto; }
+.tip pre { margin: 6px 0; padding: 8px 10px; border-radius: var(--radius-s); background: var(--surface); overflow-x: auto; }

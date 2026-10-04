@@ -18,10 +18,10 @@ type Filter = PokestopStatus | 'all';
   imports: [InitiativeCard, AiRejections],
   templateUrl: './moderation.page.html',
   styles: `
-    .tabs { display: flex; gap: 6px; margin: 0 0 14px; padding: 3px; border-radius: 12px; background: var(--tint); }
-    .tabs button { flex: 1; border: 0; border-radius: 10px; padding: 9px 10px; background: transparent; font: inherit; color: var(--text); cursor: pointer; }
+    .tabs { display: flex; gap: 6px; margin: 0 0 14px; padding: 3px; border-radius: var(--radius-s); background: var(--tint); }
+    .tabs button { flex: 1; border: 0; border-radius: var(--radius-s); padding: 9px 10px; background: transparent; font: inherit; color: var(--text); cursor: pointer; }
     .tabs button.on { background: var(--surface); font-weight: 700; box-shadow: 0 1px 3px var(--shadow); }
-    .tabs .count { margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: var(--accent-strong); color: var(--on-strong); font-size: .75rem; font-weight: 800; }
+    .tabs .count { margin-left: 6px; padding: 1px 7px; border-radius: var(--radius-s); background: var(--accent-strong); color: var(--on-strong); font-size: .75rem; font-weight: 800; }
   `,
 })
 export class ModerationPage {
