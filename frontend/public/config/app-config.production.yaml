@@ -4,7 +4,7 @@
 # Do pokazu bez GPS (przełącznik ról, symulator pozycji) uruchom z FRONTEND_CONFIG=app-config.yaml.
 api:
   baseUrl: /api/v1                         # względny adres: ten sam host co aplikacja (nginx -> backend)
-  # Źródło danych per obszar. Sposób przechodzenia z atrap na backend: docs/frontend-adaptation.md
+  # Źródło danych per obszar: mock = dane w pamięci, http = prawdziwy backend; zmiana tylko tutaj, bez zmian w komponentach.
   #   mock = dane w pamięci (src/app/core/api/*.mock.ts), http = prawdziwy backend
   mode:
     pokestops: http

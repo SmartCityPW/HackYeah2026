@@ -1,5 +1,5 @@
 {
-  "_comment": "Prawdziwe odpowiedzi backendu (manage.py runserver, dane testowe, 2026-10-03). Odtwórz: patrz docs/frontend-adaptation.md",
+  "_comment": "Prawdziwe odpowiedzi backendu (manage.py runserver, dane testowe, 2026-10-03). Odtwórz: uruchom backend (README, krok 2) i wywołaj odpowiednie GET-y",
   "pokestopsPage": {
     "count": 1,
     "results": [

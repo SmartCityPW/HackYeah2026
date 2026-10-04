@@ -1,6 +1,6 @@
 # Kontrakt frontend ↔ backend
 
-Źródłem prawdy jest **[`openapi.yaml`](openapi.yaml)** (OpenAPI 3.0.3, 36 operacji, 51 schematów). Ten dokument je omawia.
+Źródłem prawdy jest **[`openapi.yaml`](openapi.yaml)** (OpenAPI 3.0.3, 41 operacji, 60 schematów). Ten dokument je omawia.
 Wymagania: [`opis.md`](opis.md). Kształt bazy danych: [`db/README.md`](db/README.md).
 
 ## Założenia
@@ -91,32 +91,9 @@ i do wyboru 3 pokemonów do walki.
   administratora nie można publikować inicjatyw, ankiet ani wydarzeń.
 - **Moderacja administratora:** zmiana statusu zapisuje wpis w historii (`pokestops_status_change`). Odrzucona pinezka znika z mapy mieszkańców.
 
-## Co musi zmienić frontend, żeby się spiąć z tym kontraktem
+## Co zostało po stronie frontendu
 
-Dzisiejsze atrapy (`core/api/*.mock.ts`) działają inaczej w kilku miejscach. To lista do zrobienia przy podmianie na HTTP:
-
-1. **Zdjęcia:** najpierw `POST /photos` (multipart), potem `photoIds` w `POST /pokestops`. Dziś frontend trzyma zdjęcia jako data URL w pamięci.
-2. **Lista vs szczegóły:** lista ma tylko `commentCount`, komentarze przychodzą w `GET /pokestops/{id}` przy otwarciu pinezki.
-3. **Nazwy i odpowiedzi:** `scenarioId` → `scenarioCode`. Odpowiedź na głos to `{stop, pokemon}` (pokemon po doliczeniu exp), a nie `{stop, awarded}` jak w dzisiejszej atrapie.
-4. **Pobieranie pinezek:** wg widocznego fragmentu mapy (`bbox`) i ze stronicowaniem, a nie "wszystkie naraz".
-5. **Interakcje i kolekcja:** z `/me/interactions` i `/me/collection`, a nie wyliczane po stronie klienta.
-6. **Katalog scenariuszy:** z `GET /scenarios` zamiast `scenario.catalog.ts` (ten plik zostaje źródłem seedu: `npm run db:seed-scenarios`).
-7. **Rola i organizacja:** z `GET /me` i `/me/organization`, a tryb deweloperski (przełącznik ról, symulowany GPS) ma zniknąć lub zostać tylko w buildzie deweloperskim.
-8. **Tokeny:** interceptor HTTP z JWT i odświeżaniem.
-9. **Wybór pokemona przy głosowaniu i zgłaszaniu:** ekran głosu musi dać wybrać `pokemonId` z `/me/pokemons` (nie wysyłać samego `vote`), a formularz zgłoszenia problemu/pomysłu — `stakedPokemonId` (i pokazać, że ten pokemon jest "zablokowany" do zwrotu progu głosów).
-10. **Ekran walki:** ✔ zrobione (`features/map/battle`). Kliknięcie przeciwnika w kółku → tryb walki (kamera najeżdża na
-    przeciwnika) → akcja na miejscu (czas z `app-config.yaml`) → wybór 1–3 pokemonów z `/me/pokemons` z podglądem mocy
-    i mnożnika → `POST /encounters/{id}/attack` → wynik `won` (exp dla drużyny, nowa postać, XP) albo `lost` (ponowna
-    próba innym składem). Wyjście z kółka przed starciem przerywa walkę po krótkim czasie łaski.
-11. **Słownik z API:** postacie i typy z `GET /catalog` zamiast stałych `CHARACTERS` w kodzie (modele 3D zostają we frontendzie, wiązane po `code`).
-12. **Zgłoszenie z pokemonem:** postać na pinezce `report`/`idea` to gatunek zastawionego pokemona, a nie pole scenariusza. Wymaga to kroku wyboru pokemona w formularzu i przycisku "Wycofaj zgłoszenie".
-13. **Odrzucenie przez moderację:** błąd `moderation_rejected` pokazać użytkownikowi (komunikat ogólny, bez powodu) bez utraty wpisanych danych, a `moderation_unavailable` jako "spróbuj ponownie".
-14. **Pozycja w akcjach na pinezkach:** ✔ zrobione. `POST .../vote` i `POST /pokestops` wysyłają `position`, a `422 too_far` jest zamieniane na `TooFarError` (komunikat „Za daleko: 112 m. Podejdź na mniej niż 50 m”). Przycisk głosu i dodawania pinezki jest nieaktywny poza kółkiem.
-15. **Ankiety:** wyświetlenie `questions` na karcie pinezki `ngo`/`consultation`, formularz odpowiedzi (z nagrodą-pokemonem) oraz po stronie organizacji kreator pytań i widok wyników.
-16. **Wydarzenia:** nowy rodzaj pinezki na mapie, szczegóły, przycisk zameldowania i panel organizacji do tworzenia wydarzeń.
-17. **Komentarze:** `GET .../comments` ze stronicowaniem i odpowiedziami zamiast pełnej listy w szczegółach pinezki (dziś `comments` siedzą w obiekcie pinezki).
-18. **Rejestracja organizacji:** formularz zakładania konta organizacji i widok "oczekuje na weryfikację".
-19. **Postać `festival`** (unikalna za wydarzenia) dochodzi do słownika postaci frontendu: potrzebuje modelu 3D albo wersji z kodu.
+**Zdjęcia:** najpierw `POST /photos` (multipart, dziś `501`), potem `photoIds` w `POST /pokestops`. Do tego czasu pola zdjęć są wyłączone w konfiguracji produkcyjnej (`upload.enabled: false`). Pozostałe punkty przejścia z atrap na HTTP (lista vs szczegóły, `bbox`, tokeny JWT, wybór pokemona, ekran walki, słownik z `/catalog`) są wykonane.
 
 ## Decyzje
 
@@ -167,7 +144,7 @@ Decyzje wdrożeniowe backendu (Django):
 | 25 | Współrzędne | **Bez GeoDjango:** `lat`/`lng`, odległość liczona w Pythonie (haversine), widok mapy jako prostokąt. Bez GDAL w obrazie. `schema.sql` zachowuje `geography` na przyszłość, a różnica jest jawna i pilnowana testem. |
 | 26 | Źródło prawdy dla bazy | **Migracje Django wykonują schemat, `docs/db/schema.sql` jest wzorcem**, a test porównuje tabele i kolumny (dozwolone tylko trzy opisane rodzaje różnic). Rozjazd oblewa testy. |
 | 27 | Wdrażanie kontraktu | **Kontrakt najpierw:** każda operacja z `openapi.yaml` ma trasę, a niezaimplementowane odpowiadają `501 not_implemented` w kształcie błędu z kontraktu (nigdy 404). `manage.py contract_status` pokazuje postęp. |
-| 28 | Przejście frontendu z atrap na dane | **Przełącznik `api.mode` per obszar** w konfiguracji (mock \| http), bez zmian w komponentach. Szczegóły: [`frontend-adaptation.md`](frontend-adaptation.md). |
+| 28 | Przejście frontendu z atrap na dane | **Przełącznik `api.mode` per obszar** w konfiguracji (mock \| http), bez zmian w komponentach. Wartości i obszary opisuje komentarz w `frontend/public/config/app-config.yaml`. |
 | 29 | Losy inicjatywy | **Oś czasu = wpisy organizatora + automatyczny ślad zmian statusu.** Wpis (`pokestops_update`: tytuł do 120 znaków, treść do 1000) dodaje, edytuje i usuwa organizator (zweryfikowana organizacja, która opublikowała inicjatywę) lub administrator. Zmiany statusu (`pokestops_status_change`, już w bazie) wchodzą na oś czasu z notatką. Mieszkaniec widzi jedną listę (`GET /pokestops/{id}/timeline`). `Załatwione` (`resolved`) znaczy: sprawę zamknięto (organizator lub administrator), a opis tego, co się stało, jest we wpisie. Nie dodajemy własnych statusów: "statusami" w rozumieniu organizatora ("Dziś rada miasta spotkała się w sprawie ...") są wpisy osi czasu, a cztery statusy formalne zostają dla filtrów i moderacji. |
 | 30 | Pola własne inicjatywy | **`customFields`: lista par etykieta-wartość** (do 10, etykieta do 40 znaków, wartość do 300, etykiety unikalne), zastępowana w całości przez `PATCH /pokestops/{id}`. Tylko dla inicjatyw organizacji; edytuje je wyłącznie organizacja-autor (administrator nie zmienia cudzej treści). Limity w YAML (`pokestops.timeline`). |
 | 31 | Kto odrzuca | **Odrzucić inicjatywę może tylko administrator**, organizacja ustawia `open`/`in_progress`/`resolved`. Administrator nie edytuje treści zgłoszeń mieszkańców i organizacji (może dopisać wpis na osi czasu, podpisany "Administrator"). |

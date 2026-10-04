@@ -6,7 +6,7 @@ baza: [`../docs/db/README.md`](../docs/db/README.md).
 ## Stan
 
 `python manage.py contract_status` pokazuje, które operacje z kontraktu są gotowe. Dziś: **27 z 36 zaimplementowanych**, reszta
-to jawne `501 not_implemented` (ankiety, zdjęcia, wydarzenia, edycja scenariusza). Nic z kontraktu nie zwraca 404.
+to jawne `501 not_implemented` (zdjęcia, edycja scenariusza). Nic z kontraktu nie zwraca 404.
 
 | Gotowe | Atrapy (501), kolejne wycinki do zrobienia |
 |---|---|
@@ -48,7 +48,7 @@ Konto administratora IT zakłada `bootstrap` (a ręcznie `manage.py ensure_admin
 Dane demo (23 konta + 100 głosujących, dwie zweryfikowane organizacje i 42 zmyślone pinezki rozsiane po Krakowie i okolicy; tylko tryb debug, hasło z `DEMO_PASSWORD`):
 `DEMO_PASSWORD=... .venv/bin/python manage.py seed_demo`. Seed jest idempotentny i niczego nie kasuje, więc po zmianie `config/seed/demo.yaml` użyj `manage.py seed_demo --reset`: usuwa wszystkie pinezki (z głosami, komentarzami i ankietami), zdejmuje zastawy i ładuje listę od nowa (konta i wydarzenia zostają). Głosy (`votes: [za, przeciw]`), odpowiedzi ankiet (`survey_responses`), komentarze i statusy powstają **prawdziwymi funkcjami gry** (konta z puli `voters`, exp za głos, zwrot zastawu po progu, walidacja odpowiedzi), więc liczniki zgadzają się z wierszami w bazie, a suma głosów na pinezce nie przekroczy wielkości puli. **Zgłoszenia mieszkańców przechodzą moderację** skonfigurowanym agentem (reguły i AI, wpis w logu jak w grze), więc do seeda potrzebny jest `AI_API_KEY` (np. w `config/local.env`); odrzucone zgłoszenie nie powstaje i seed wypisuje jego tytuł (do poprawy w `demo.yaml`), a bez dostępnej moderacji kończy się czytelnym błędem. `--skip-moderation` pomija ją (praca bez klucza, testy). Pominięte jest tylko sprawdzanie GPS (`verify_location=False`), a daty zgłoszeń są postarzane (`days_ago`). Test "z zewnątrz" na działającym serwerze: `.venv/bin/python scripts/api_walkthrough.py`.
 
-Testy: `.venv/bin/python -m pytest` (117 testów, SQLite w pamięci, bez zewnętrznych usług).
+Testy: `.venv/bin/python -m pytest` (300 testów, SQLite w pamięci, bez zewnętrznych usług).
 
 > Dockerfile i `docker-compose.yml` zostały napisane, ale **nie uruchamiane** (na maszynie, na której powstały, nie było Dockera).
 > Pierwsze `docker compose up --build` to ich pierwszy test. Spójność compose z konfiguracją sprawdza `tests/test_deployment_files.py`.

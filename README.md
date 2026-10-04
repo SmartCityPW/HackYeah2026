@@ -34,21 +34,22 @@ narzędzie do konsultacji, ankiet i wydarzeń. Wymagania źródłowe: [`docs/opi
 
 ## Stan projektu
 
-| Część | Co działa | Co jest atrapą lub brakuje |
+| Część | Co działa | Czego brakuje |
 |---|---|---|
-| **Backend** (`backend/`) | **25 z 36 operacji** kontraktu: konta, gość, organizacje, katalog, scenariusze, pinezki (tworzenie, głos, wycofanie, status, komentarze), kolekcja, postęp. 79 testów | 11 operacji odpowiada jawnym `501`: zdjęcia, ankiety, wydarzenia, walka, edycja scenariusza |
-| **Frontend** (`frontend/`) | Aplikacja na **atrapach** (mapa 3D, trzy widoki, zgłaszanie, głosowanie, walka) albo, per obszar, na prawdziwym backendzie. 70 testów | **Pętla gry działa na backendzie** (pinezki wg obszaru mapy, głos z wyborem pokemona i pozycją, zgłoszenie z zastawem i moderacją, komentarze z odpowiedziami, rola z `/me`). Walka, zdjęcia, ankiety, wydarzenia i logowanie jeszcze nie ([`docs/frontend-adaptation.md`](docs/frontend-adaptation.md)) |
-| **Kontrakt i baza** (`docs/`) | `openapi.yaml` (36 operacji), schemat 26 tabel, seedy | Schemat nie był wykonany na żywym PostgreSQL (testy lecą na SQLite) |
+| **Backend** (`backend/`) | **39 z 41 operacji** kontraktu: konta i logowanie, gość, organizacje, katalog i scenariusze, pinezki (tworzenie, głos z bliska, wycofanie, status, komentarze, oś czasu, pola własne), ankiety, wydarzenia, kolekcja, walka z przeciwnikami, moderacja warstwowa (reguły + AI). 300 testów | 2 operacje odpowiadają jawnym `501`: wgrywanie zdjęć (`POST /photos`) i edycja scenariusza (`PUT /admin/scenarios/{code}`) |
+| **Frontend** (`frontend/`) | Aplikacja PWA (Angular 22, mapa 3D) w trzech widokach według roli; wszystkie obszary na prawdziwym backendzie (`api.mode: http`), atrapy zostają do pracy bez backendu. 281 testów | Zdjęcia (czekają na backend), edycja scenariuszy z poziomu administratora |
+| **Kontrakt i baza** (`docs/`) | `openapi.yaml` (41 operacji), schemat bazy, seedy; migracje działają na PostgreSQL w Dockerze, a testy lecą na SQLite | Polityka prywatności i zgoda rodziców dla osób poniżej 16 lat |
 
 ## Wymagania
 
-- **Node.js LTS** (frontend), **Python 3.12 lub nowszy** (backend; Django 6.1 nie zainstaluje się na starszym). Docker jest opcjonalny (uruchamia całość: `docker compose up --build`).
+- **Node.js LTS** (frontend), **Python 3.12 lub nowszy** (backend; Django 6.1 nie zainstaluje się na starszym). Docker jest opcjonalny (uruchamia całość: `docker compose up --build`; na macOS wystarczy Colima, bez Docker Desktop: `brew install colima docker docker-compose && colima start`).
 - Sprawdź wersję: `python3 --version`. Systemowy Python na macOS bywa 3.9, wtedy zainstaluj nowszy: `brew install python@3.13` i **w poleceniach poniżej wpisuj `python3.13` zamiast `python3`** (dotyczy tylko tworzenia środowiska `venv`).
-- Przeglądarka z WebGL (mapa 3D). Lokalizacja przeglądarki jest opcjonalna (jest symulator GPS).
+- Przeglądarka z WebGL (mapa 3D). Lokalizacja przeglądarki jest opcjonalna (do testów jest `?gps=lat,lng`).
+- Do testów **na telefonie** (prawdziwy GPS wymaga HTTPS): `cloudflared` (`brew install cloudflared`), zob. krok 6a.
 
 ## Przetestuj całość po kolei
 
-Każdy krok działa samodzielnie. Zacznij od 1 i 2 (automatyczne), a krok 5 to przegląd ręczny w przeglądarce.
+Każdy krok działa samodzielnie. Zacznij od 1 i 2 (automatyczne), a krok 5 to przegląd ręczny w przeglądarce. **Test na telefonie** (aplikacja pod publicznym adresem HTTPS przez Cloudflare Tunnel, z prawdziwym GPS): krok 6a.
 
 ### 1. Testy backendu (bez serwera)
 
@@ -56,7 +57,7 @@ Każdy krok działa samodzielnie. Zacznij od 1 i 2 (automatyczne), a krok 5 to p
 cd backend
 python3 --version                   # musi być 3.12 lub nowszy (inaczej: brew install python@3.13 i użyj python3.13)
 python3 -m venv .venv && .venv/bin/pip install -r requirements/dev.txt
-.venv/bin/python -m pytest          # oczekiwane: 79 passed
+.venv/bin/python -m pytest          # oczekiwane: 300 passed
 ```
 
 ### 2. Backend na żywo + dane demo + automatyczne przejście przez API
@@ -95,7 +96,7 @@ Ręcznie, jeśli wolisz: `curl -X POST http://localhost:8000/api/v1/auth/guest`,
 ```bash
 cd frontend
 npm install
-npm test -- --watch=false          # oczekiwane: 47 passed
+npm test -- --watch=false          # oczekiwane: 281 passed
 npm run build
 ```
 
@@ -172,6 +173,8 @@ Otwórz wypisany adres na telefonie i kliknij przycisk 📍 w prawym dolnym rogu
 - Dla stałego adresu i dla graczy służy wdrożenie z kroku 7a (Caddy, certyfikat Let's Encrypt).
 
 ### 7. Docker (cała aplikacja jedną komendą)
+
+Na macOS używamy Colimy zamiast Docker Desktop: `brew install colima docker docker-compose`, `colima start`, a kontekstem Dockera ma być `colima` (`docker context use colima`; `docker context ls` pokazuje aktywny). Docker Desktop zajmuje te same porty i nadpisuje kontekst, więc nie uruchamiaj ich obu naraz.
 
 ```bash
 cp .env.example .env               # uzupełnij DJANGO_SECRET_KEY, DB_PASSWORD, ADMIN_PASSWORD (i ewentualnie DEMO_PASSWORD, AI_API_KEY)
@@ -267,11 +270,11 @@ Kod nie zawiera wartości zmiennych na stałe, a testy pilnują, że w plikach Y
 │   ├── config/           YAML: konfiguracja, seedy (słowniki, scenariusze, demo), prompt agenta moderującego
 │   ├── core/             konfiguracja, błędy, uprawnienia, geografia, porównanie z kontraktem
 │   ├── scripts/          api_walkthrough.py (test całego API z zewnątrz)
-│   └── tests/            79 testów
+│   └── tests/            300 testów
 ├── frontend/             Angular 22, PWA
 │   ├── public/config/    app-config.yaml (konfiguracja ładowana przy starcie)
 │   └── src/app/          core (modele, serwisy, API: mock i http), features (mapa, widoki ról), shared
-├── docs/                 kontrakt API, baza danych, wymagania, przewodnik adaptacji frontendu, licencje assetów
+├── docs/                 kontrakt API, baza danych, wymagania, licencje assetów, materiały prezentacji
 ├── docker-compose.yml    PostgreSQL + backend + frontend (nginx)
 └── .env.example          wzór pliku z sekretami
 ```
@@ -281,18 +284,19 @@ Kod nie zawiera wartości zmiennych na stałe, a testy pilnują, że w plikach Y
 | Plik | O czym |
 |---|---|
 | [`docs/opis.md`](docs/opis.md) | wymagania (źródło prawdy przy rozbieżnościach) |
-| [`docs/api-contract.md`](docs/api-contract.md) | reguły backendu, **28 podjętych decyzji**, lista zmian we frontendzie, pytania otwarte |
-| [`docs/openapi.yaml`](docs/openapi.yaml) | kontrakt API (36 operacji) |
+| [`docs/api-contract.md`](docs/api-contract.md) | reguły backendu, podjęte decyzje, pytania otwarte |
+| [`docs/openapi.yaml`](docs/openapi.yaml) | kontrakt API (41 operacji) |
 | [`docs/db/README.md`](docs/db/README.md) | model bazy, diagram, decyzje projektowe, relacja do Django |
-| [`docs/frontend-adaptation.md`](docs/frontend-adaptation.md) | jak przejść z atrap na backend krok po kroku |
 | [`backend/README.md`](backend/README.md) | struktura backendu, jak dodać endpoint |
 | [`docs/ASSETS.md`](docs/ASSETS.md) | licencje modeli 3D i bibliotek |
+| [`docs/prezentacja/`](docs/prezentacja/) | materiały prezentacji HackYeah (PDF, grafiki, skrypt `build_deck.py`) |
+| [`docs/paleta-hackyeah.pdf`](docs/paleta-hackyeah.pdf) | paleta barw konkursu |
 
-## Dalszy plan
+## Co dalej
 
-1. **Walka** po stronie backendu (generowanie przeciwników, rozstrzyganie) i ekran wyboru drużyny we frontendzie.
-2. **Zdjęcia** (odblokowują zgłoszenia ze zdjęciem).
-3. Logowanie i rejestracja w interfejsie (dziś rolą jest gość, a organizację lub administratora ustawia wklejony token), moderacja AI z prawdziwym agentem ([`docs/plan.md`](docs/plan.md)).
+1. **Zdjęcia** (`POST /photos`): odblokowują zgłoszenia ze zdjęciem (dziś pola zdjęć są wyłączone w konfiguracji produkcyjnej).
+2. **Edycja scenariuszy** przez administratora (`PUT /admin/scenarios/{code}`).
+3. Polityka prywatności i zgoda rodziców dla osób poniżej 16 lat przed publicznym udostępnieniem.
 
 ## Rozwiązywanie problemów
 
@@ -305,5 +309,7 @@ Kod nie zawiera wartości zmiennych na stałe, a testy pilnują, że w plikach Y
 | Mapa pusta w trybie `http` | Brak danych: lokalnie `manage.py seed_demo`; w Dockerze w `.env` ustaw `APP_CONFIG_OVERRIDE=config/demo.example.yaml` i `DEMO_PASSWORD`, a potem `docker compose up --build`. |
 | Nie ma jak wejść do widoku administratora | Konto administratora IT zakłada `bootstrap` z adresu `admin.email` (`backend/config/default.yaml`) i hasła `ADMIN_PASSWORD` z `.env`. Zaloguj się na ten adres na ekranie `/logowanie`. |
 | `Dane demo można ładować tylko w trybie debug` | Użyj `config/local.yaml` (krok 2) albo `config/demo.example.yaml` w Dockerze. |
+| Telefon nie udostępnia lokalizacji (Safari/Chrome na `http://<IP>:4200`) | Przeglądarki dają lokalizację tylko przez HTTPS. Użyj tunelu Cloudflare (krok 6a) albo wdrożenia z krokiem 7a. |
+| `Cannot connect to the Docker daemon` / `Docker Desktop is unable to start` (macOS) | Używamy Colimy: `colima start`, `docker context use colima`. Docker Desktop (jeśli jest zainstalowany) odinstaluj lub zamknij: konfliktuje z Colimą o kontekst i porty. |
 | Port 4200 lub 8000 zajęty | Zatrzymaj poprzedni proces (`ng serve` / `runserver`) albo zmień port (`server.port` w YAML-u backendu). |
 | `Konfiguracja: brak sekcji ...` w przeglądarce | Błąd w `app-config.yaml`: komunikat wskazuje dokładny klucz. |

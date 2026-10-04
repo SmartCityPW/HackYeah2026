@@ -39,7 +39,7 @@ export function toApiError(error: unknown): ApiHttpError {
   return new ApiHttpError(0, 'unknown_error', error instanceof Error ? error.message : String(error));
 }
 
-/** Operacja, której frontend jeszcze nie dopasował do kontraktu (patrz docs/frontend-adaptation.md). */
+/** Operacja, której frontend jeszcze nie dopasował do kontraktu (zob. docs/api-contract.md). */
 export class NotAdaptedYet extends Error {
   constructor(operation: string, todo: string) {
     super(`Tryb "http": ${operation} nie jest jeszcze dopasowane do kontraktu. ${todo}`);
