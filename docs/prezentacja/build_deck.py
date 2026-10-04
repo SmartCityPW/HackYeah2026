@@ -573,13 +573,13 @@ def slide5(c):
         text(c, title, nx, Y(ttop + 16), "Sans-Bold", 16.5, INK, "c")
         para(c, body, nx - 100, ttop + 24, 200, size=13, color=MUTED, leading=17.5, align=1)
 
-    # przykład z gry (dane demo: skwer przy ul. Lema, ankieta fundacji, nagroda: Drzewo)
+    # przykład z gry (dane demo: konsultacje Rady Dzielnicy Czyżyny przy TAURON Arenie, nagroda za ankietę: Rower)
     top, h = 484, 150
     gradient(c, 60, Y(top, h), 1160, h, PLUM, PLUM_DK, "h", r=28)
-    c.drawImage(str(trimmed(ASSETS / "spryciaki" / "tree.png")), 88, Y(top + 22, 106), 110, 106, mask="auto", preserveAspectRatio=True, anchor="c")
+    c.drawImage(str(trimmed(ASSETS / "spryciaki" / "bicycle.png")), 88, Y(top + 22, 106), 110, 106, mask="auto", preserveAspectRatio=True, anchor="c")
     pill(c, "PRZYKŁAD Z GRY", 236, top + 26, PINK, white, 11.5, h=26, padx=12)
-    para(c, "Zosia wchodzi na skwer przy ulicy Lema, głosuje za szpalerem lip i wypełnia ankietę fundacji. "
-            "W nagrodę dostaje Spryciaka drzewa, który będzie zdobywać exp przy jej kolejnych głosach i walkach.",
+    para(c, "Zosia wchodzi na plac przed TAURON Areną, głosuje w konsultacjach Rady Dzielnicy o parkowaniu w dni wydarzeń i wypełnia ankietę. "
+            "W nagrodę dostaje Spryciaka roweru, który będzie zdobywać exp przy jej kolejnych głosach i walkach.",
          236, top + 64, 900, size=16.5, color=white, leading=24)
     chrome(c, 5)
 
@@ -617,7 +617,7 @@ def slide6(c):
             p.close()
             c.drawPath(p, stroke=0, fill=1)
     picture(c, ASSETS / "ngo-card.png", 772, 96, h=540, r=28)
-    pill(c, "Inicjatywa NGO w aplikacji", 788, 80, PINK, white, 13)
+    pill(c, "Konsultacje w aplikacji", 788, 80, PINK, white, 13)
     chrome(c, 6)
 
 
@@ -630,14 +630,14 @@ def slide7(c):
     para(c, "Możesz zgłosić <b>problem miejski</b> (np. dziurę w chodniku), <b>ciekawe miejsce</b> (np. kawiarnię dla Gen Z) "
             "albo <b>pomysł na zmianę</b> (np. uruchomienie buspasu).", 640, 190, 580, size=17, color=INK, leading=25)
     text(c, "Droga zgłoszenia", 640, Y(298), "Sans-Bold", 14.5, PLUM)
-    flow = ["Zgłaszasz", "Moderator AI", "Inni oceniają na miejscu", "Level up Spryciaka"]
+    flow = ["Zgłaszasz", "Moderator AI", "Inni oceniają na miejscu", "Spryciak wraca z exp"]
     x = 640
     for i, lab in enumerate(flow):
         x += pill(c, lab, x, 312, PINK if i == 3 else INDIGO if i == 1 else PLUM, white, 13.5, "Sans-SemiBold", h=36, padx=12)
         if i < 3:
             text(c, "›", x + 7, Y(312 + 26), "Sans-Bold", 20, PINK, "c")
             x += 14
-    para(c, "Gdy zgłoszenie zbierze dużo poparcia innych mieszkańców, autor leveluje Spryciaka.", 640, 360, 580, size=14, color=MUTED, leading=20)
+    para(c, "Na czas zgłoszenia zostawiasz na nim swojego Spryciaka. Gdy zbierze 10 głosów poparcia innych mieszkańców, wraca do Ciebie z premią exp.", 640, 360, 580, size=14, color=MUTED, leading=20)
 
     # moderator AI: kluczowa funkcja, więc dostaje własną, wyraźną kartę
     top, h = 404, 222
@@ -654,7 +654,7 @@ def slide7(c):
     label = "KLUCZOWA FUNKCJA"
     pill(c, label, 640 + 580 - 24 - pdfmetrics.stringWidth(label, "Sans-Bold", 11.5) - 24, top + 22, white, PLUM, 11.5, h=26, padx=12)
     para(c, "<b>Każde zgłoszenie najpierw sprawdza agent AI, zanim trafi na mapę.</b>", 640 + 28, top + 104, 524, size=18, color=white, leading=25)
-    para(c, "Odrzuca wulgaryzmy, spam, dane osobowe i treści niezwiązane z miastem, a także próby manipulowania samym modelem. "
+    para(c, "Dwie warstwy: najpierw reguły (wulgaryzmy, spam, dane osobowe, groźby), potem agent AI ocenia, czy treść dotyczy miasta, i odpiera próby manipulowania modelem. "
             "Administrator widzi każde odrzucenie.", 640 + 28, top + 162, 524, size=13.5, color=LAV, leading=19)
     chrome(c, 7)
 

@@ -289,7 +289,7 @@ Kod nie zawiera wartości zmiennych na stałe, a testy pilnują, że w plikach Y
 | [`docs/db/README.md`](docs/db/README.md) | model bazy, diagram, decyzje projektowe, relacja do Django |
 | [`backend/README.md`](backend/README.md) | struktura backendu, jak dodać endpoint |
 | [`docs/ASSETS.md`](docs/ASSETS.md) | licencje modeli 3D i bibliotek |
-| [`docs/prezentacja/`](docs/prezentacja/) | materiały prezentacji HackYeah (PDF, grafiki, skrypt `build_deck.py`) |
+| [`docs/prezentacja/`](docs/prezentacja/) | materiały prezentacji HackYeah (PDF, grafiki, `build_deck.py` buduje slajdy, `capture_screens.py` robi zrzuty ekranu działającej aplikacji) |
 | [`docs/paleta-hackyeah.pdf`](docs/paleta-hackyeah.pdf) | paleta barw konkursu |
 
 ## Co dalej
