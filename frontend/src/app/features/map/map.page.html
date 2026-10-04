@@ -8,12 +8,6 @@
   </span>
 </a>
 
-@if (canParticipate() && nearestEnemy() && !battleEncounter()) {
-  <button class="fight-now" (click)="startBattle(nearestEnemy()!)" title="Walcz z najbliższym przeciwnikiem w kółku">
-    <app-icon name="swords" /> Walcz: {{ nearestEnemy()!.name }}
-  </button>
-}
-
 <button class="gps" [class.on]="gpsActive()" (click)="locate()" aria-label="Pokaż moją lokalizację"
   title="Moja lokalizacja: poprosi przeglądarkę o dostęp do pozycji (z `?gps=` w adresie w trybie deweloperskim pozycja jest symulowana)">
   <app-icon name="locate" />
