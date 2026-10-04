@@ -11,7 +11,6 @@
 .fab.muted { background: var(--surface); color: var(--text-muted); }
 .gps { position: absolute; bottom: 24px; right: 14px; z-index: 15; display: grid; place-items: center; width: 46px; height: 46px; border: 0; border-radius: var(--radius-s); font-size: 1.2rem; background: var(--surface); color: var(--text); box-shadow: 0 2px 10px var(--shadow); cursor: pointer; }
 .gps.on { background: var(--brand-strong); color: var(--on-strong); }
-.crosshair { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -100%); font-size: 40px; z-index: 5; pointer-events: none; filter: drop-shadow(0 4px 4px var(--shadow-strong)); }
 
 .sheet {
   position: absolute; left: 0; right: 0; bottom: 0; z-index: 10;
@@ -20,6 +19,8 @@
   max-width: 560px; margin: 0 auto;
 }
 .sheet.tall { max-height: 80dvh; overflow-y: auto; }
+/* Panel nowej pinezki: niższy, żeby zostawał kawałek mapy do dotknięcia (widok mapy jest odsuwany o jego wysokość). */
+.sheet.placing { max-height: 58dvh; }
 .stop-photos { display: flex; gap: 8px; overflow-x: auto; margin: 8px 0; }
 .stop-photos img { height: 110px; border-radius: var(--radius-s); }
 .details { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 10px 0; font-size: .85rem; }
@@ -65,7 +66,6 @@
 .fight { width: 100%; margin-top: 6px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .fight:disabled { opacity: .4; cursor: not-allowed; }
 
-.crosshair.out-of-range { opacity: .45; filter: grayscale(1) drop-shadow(0 4px 4px var(--shadow-strong)); }
 .locate { position: absolute; top: 70px; left: 16px; right: 16px; z-index: 15; max-width: 520px; margin: 0 auto; padding: 10px 10px 10px 14px; border-radius: var(--radius-m); background: var(--surface); font-size: .85rem; box-shadow: 0 2px 10px var(--shadow); display: flex; align-items: flex-start; gap: 10px; }
 .locate p { margin: 0; flex: 1; }
 .locate-close { flex: none; display: grid; place-items: center; width: 32px; height: 32px; margin: -4px 0; border: 0; border-radius: var(--radius-s); background: var(--tint); color: var(--text); cursor: pointer; }

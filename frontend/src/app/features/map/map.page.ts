@@ -49,6 +49,7 @@ export class MapPage {
   private readonly reloadDebounceMs = inject(AppConfigService).config.ui.mapReloadDebounceMs;
   private reloadTimer?: ReturnType<typeof setTimeout>;
   private readonly reportPanel = viewChild(ReportPanel);
+  private readonly panelSheet = viewChild<ElementRef<HTMLElement>>('panelSheet');
   protected readonly session = inject(SessionService);
   protected readonly progress = inject(ProgressService).progress;
   /** Promień kółka interakcji wokół gracza (z konfiguracji; decyzję o zasięgu i tak podejmuje backend). */
@@ -59,13 +60,6 @@ export class MapPage {
   protected readonly gpsActive = computed(() => this.geo.position() !== null);
   /** Przycisk poziomu prowadzi do profilu gracza. */
   protected readonly profilePath = computed(() => PROFILE_PATH[this.session.role()]);
-  /** Na mapie gracza reprezentuje jego najsilniejszy Spryciak (jak towarzysz w Pokémon GO), a nie kropka. */
-  private readonly buddyModel = computed(() => {
-    const best = [...this.pokemons.pokemons()].sort((a, b) => b.power - a.power)[0];
-    const code = best?.character ?? this.catalog.characters().find((c) => c.isStarter)?.code;
-    return code ? this.catalog.character(code).modelPath : null;
-  });
-
   /** Z parametru adresu `?stop=ID`, np. przy przejściu z listy inicjatyw. */
   readonly stop = input<string>();
   /** Z parametru adresu `?event=ID`, np. przy przejściu z listy wydarzeń organizacji. */
@@ -100,9 +94,9 @@ export class MapPage {
     const d = this.stopDistance();
     return d !== null && d <= this.interactionRadius;
   });
-  /** Zgłoszenie można postawić tylko w kółku: celownik (środek mapy) musi być w zasięgu gracza. */
+  /** Zgłoszenie można postawić tylko w kółku: pinezka wskazana na mapie musi być w zasięgu gracza. */
   protected readonly pinInRange = computed(() => {
-    const d = this.distanceTo(this.mapCtl.centerPosition());
+    const d = this.distanceTo(this.mapCtl.pin());
     return d !== null && d <= this.interactionRadius;
   });
   private readonly stopsInRange = computed(() => this.idsInRange(this.pokestops.visibleStops()));
@@ -186,9 +180,35 @@ export class MapPage {
     // Czy nagrodę z wydarzenia można już odebrać, zmienia się z czasem (start, godziny dzienne), więc odświeżamy je co jakiś czas.
     const eventTimer = setInterval(() => void this.run(() => this.eventService.refresh()), this.eventRefreshMs);
     inject(DestroyRef).onDestroy(() => clearInterval(eventTimer));
+    // Panel zgłoszenia otwarty: na mapie jest pinezka, którą ustawia się dotknięciem mapy (na start stoi na graczu, w jego kółku).
+    effect((onCleanup) => {
+      if (!this.panelOpen() || !this.mapCtl.ready()) return;
+      untracked(() => {
+        const me = this.encounterService.userPosition();
+        this.mapCtl.startPinPlacement(me);
+        if (me) this.mapCtl.focus(me.lat, me.lng);
+      });
+      onCleanup(() => this.mapCtl.stopPinPlacement());
+    });
+    // Panel zasłania dół mapy: odsuwamy widok o jego wysokość (na bieżąco, bo zmienia się z krokami formularza), żeby pinezka była widoczna.
+    effect((onCleanup) => {
+      const sheet = this.panelSheet()?.nativeElement;
+      if (!sheet || !this.mapCtl.ready() || typeof ResizeObserver !== 'function') return;
+      let first = true;
+      const observer = new ResizeObserver(() => {
+        this.mapCtl.setBottomInset(sheet.offsetHeight, first ? this.encounterService.userPosition() : null);
+        first = false;
+      });
+      observer.observe(sheet);
+      onCleanup(() => {
+        observer.disconnect();
+        this.mapCtl.setBottomInset(0);
+      });
+    });
+    effect(() => this.mapCtl.markPinInRange(this.pinInRange()));
     effect(() => {
       const position = this.geo.position();
-      if (position && this.mapCtl.ready()) this.mapCtl.showUser(position, this.buddyModel());
+      if (position && this.mapCtl.ready()) this.mapCtl.showUser(position);
       if (position) untracked(() => this.locationPromptDismissed.set(false));
     });
     effect(() => {
@@ -333,7 +353,7 @@ export class MapPage {
     this.battleEncounter.set(null);
     this.mapCtl.exitBattle();
     if (message) this.toast.show(message, '⚠️');
-    // Celownik startuje na graczu, czyli w środku kółka.
+    // Pinezka startuje na graczu, czyli w środku kółka.
     const me = this.encounterService.userPosition();
     if (this.panelOpen() && me) this.mapCtl.focus(me.lat, me.lng);
   }
@@ -406,8 +426,8 @@ export class MapPage {
     this.commentDraft.set((event.target as HTMLInputElement).value);
   }
 
-  /** Środek mapy: tam stawiamy wydarzenie organizacji. */
-  protected readonly centerPosition = this.mapCtl.centerPosition;
+  /** Miejsce wskazane na mapie (dotknięcie albo przeciągnięta pinezka): tu powstaje zgłoszenie, inicjatywa albo wydarzenie. */
+  protected readonly pinPosition = this.mapCtl.pin;
 
   /** Wydarzenie opublikowane: zamykamy panel i pokazujemy jego kartę. */
   protected onEventCreated(event: GameEvent): void {
@@ -419,14 +439,14 @@ export class MapPage {
 
   /** Przy błędzie (np. moderacja odrzuciła treść) panel zostaje otwarty z wypełnionym formularzem, żeby można było poprawić i spróbować ponownie. */
   protected async onReportDrafted(draft: ReportDraft): Promise<void> {
-    const center = this.mapCtl.centerPosition();
-    if (!center) return;
+    const place = this.mapCtl.pin();
+    if (!place) return;
     const position = await this.encounterService.freshPosition();
     if (!position) {
       this.toast.show('Włącz lokalizację, żeby dodać pinezkę. Możesz ją postawić tylko w swoim kółku.', '🚶');
       return;
     }
-    const stop = await this.run(() => this.pokestops.addReport({ ...draft, lat: center.lat, lng: center.lng }, position));
+    const stop = await this.run(() => this.pokestops.addReport({ ...draft, lat: place.lat, lng: place.lng }, position));
     if (!stop) return;
     this.reportPanel()?.reset();
     this.panelOpen.set(false);

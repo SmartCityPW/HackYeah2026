@@ -89,10 +89,9 @@
 }
 
 @if (panelOpen()) {
-  <div class="crosshair" [class.out-of-range]="!pinInRange()" aria-hidden="true">📍</div>
-  <section class="sheet tall" style="--stop-color: var(--color-indigo)">
+  <section #panelSheet class="sheet tall placing" style="--stop-color: var(--color-indigo)">
     <button class="sheet-close" (click)="panelOpen.set(false)" aria-label="Zamknij"><app-icon name="close" /></button>
-    <app-report-panel [pinInRange]="pinInRange()" [center]="centerPosition()" (drafted)="onReportDrafted($event)" (eventCreated)="onEventCreated($event)" />
+    <app-report-panel [pinInRange]="pinInRange()" [location]="pinPosition()" (drafted)="onReportDrafted($event)" (eventCreated)="onEventCreated($event)" />
   </section>
 }
 
