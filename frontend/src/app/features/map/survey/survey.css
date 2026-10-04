@@ -4,31 +4,31 @@
 }
 .survey {
   position: relative; width: 100%; max-width: 560px; max-height: 90dvh; overflow-y: auto; box-sizing: border-box;
-  background: var(--surface); border-radius: 24px 24px 0 0; padding: 18px 18px 24px; border-top: 6px solid var(--brand);
+  background: var(--surface); border-radius: 0; clip-path: var(--cut-tl); padding: 18px 18px 24px; border-top: 6px solid var(--brand);
   box-shadow: 0 -8px 30px var(--shadow-strong);
 }
-.close { position: absolute; top: 12px; right: 12px; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--tint); color: var(--text); border: 0; cursor: pointer; }
+.close { position: absolute; top: 12px; right: 12px; display: grid; place-items: center; width: 34px; height: 34px; border-radius: var(--radius-s); background: var(--tint); color: var(--text); border: 0; cursor: pointer; }
 header { display: flex; gap: 12px; align-items: center; padding-right: 40px; }
-.mystery { flex: none; width: 56px; height: 56px; display: grid; place-items: center; border-radius: 50%; background: var(--accent); color: var(--surface); font-size: 2rem; font-weight: 900; box-shadow: 0 0 0 4px var(--accent-tint); }
+.mystery { flex: none; width: 56px; height: 56px; display: grid; place-items: center; border-radius: var(--radius-s); background: var(--accent); color: var(--surface); font-size: 2rem; font-weight: 900; box-shadow: 0 0 0 4px var(--accent-tint); }
 .kicker { margin: 0; font-size: .8rem; font-weight: 700; color: var(--brand-strong); }
 h2 { margin: 2px 0 6px; font-size: 1.25rem; }
 h3 { margin: 4px 0; font-size: 1.15rem; }
-.prize { margin: 10px 0 14px; padding: 8px 12px; border-radius: 12px; background: var(--tint); font-size: .9rem; }
+.prize { margin: 10px 0 14px; padding: 8px 12px; border-radius: var(--radius-s); background: var(--tint); font-size: .9rem; }
 form { display: grid; gap: 14px; }
 .question { border: 0; margin: 0; padding: 0; display: grid; gap: 8px; }
 .question legend { padding: 0; margin-bottom: 6px; font-weight: 700; }
 .question legend b { color: var(--accent-strong); }
 .choices { display: flex; flex-wrap: wrap; gap: 8px; }
-.choices button { border: 2px solid var(--border); background: var(--surface); color: var(--text); border-radius: 12px; padding: 8px 18px; font: inherit; font-weight: 700; cursor: pointer; }
-.choices button.round { width: 44px; height: 44px; padding: 0; border-radius: 50%; }
+.choices button { border: 2px solid var(--border); background: var(--surface); color: var(--text); border-radius: var(--radius-s); padding: 8px 18px; font: inherit; font-weight: 700; cursor: pointer; }
+.choices button.round { width: 44px; height: 44px; padding: 0; border-radius: var(--radius-s); }
 .choices button.on { border-color: var(--brand-strong); background: var(--brand-strong); color: var(--on-strong); }
 .options { display: grid; gap: 6px; }
-.option { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 2px solid var(--border); border-radius: 12px; cursor: pointer; }
-input[type='text'], input[type='number'], textarea { width: 100%; box-sizing: border-box; padding: 10px; border: 2px solid var(--border); border-radius: 12px; font: inherit; color: var(--text); background: var(--surface); }
+.option { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 2px solid var(--border); border-radius: var(--radius-s); cursor: pointer; }
+input[type='text'], input[type='number'], textarea { width: 100%; box-sizing: border-box; padding: 10px; border: 2px solid var(--border); border-radius: var(--radius-s); font: inherit; color: var(--text); background: var(--surface); }
 .invalid input[type='text'], .invalid input[type='number'], .invalid textarea, .invalid .option { border-color: var(--accent); }
 .error { color: var(--accent-ink); font-size: .8rem; font-weight: 600; }
 .error::before { content: '⚠ '; }
-.form-error { margin: 0; padding: 10px 12px; border-radius: 12px; background: var(--accent-tint); color: var(--accent-ink); font-weight: 600; }
-.btn { display: inline-block; box-sizing: border-box; border: 0; border-radius: 14px; padding: 12px 18px; font: inherit; font-weight: 700; text-align: center; text-decoration: none; cursor: pointer; background: var(--tint); color: var(--text); }
+.form-error { margin: 0; padding: 10px 12px; border-radius: var(--radius-s); background: var(--accent-tint); color: var(--accent-ink); font-weight: 600; }
+.btn { display: inline-block; box-sizing: border-box; border: 0; border-radius: var(--radius-m); padding: 12px 18px; font: inherit; font-weight: 700; text-align: center; text-decoration: none; cursor: pointer; background: var(--tint); color: var(--text); }
 .btn.primary { background: var(--brand-strong); color: var(--on-strong); }
 .btn:disabled { opacity: .5; cursor: wait; }

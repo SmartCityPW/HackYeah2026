@@ -1,6 +1,6 @@
 import { Component, computed, input } from '@angular/core';
 
-/** Ikony liniowe 24×24 (kreska w kolorze tekstu). Zamiast emoji w nawigacji i przyciskach. */
+/** Ikony liniowe 24×24 (kreska w kolorze tekstu, ostre zakończenia i załamania). Zamiast emoji w nawigacji i przyciskach. */
 const PATHS = {
   map: 'M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14',
   spryciaki: 'M12 12.5c-3 0-5.5 3-5.5 5.2 0 1.8 1.5 2.3 3 2 .9-.2 1.6-.5 2.5-.5s1.6.3 2.5.5c1.5.3 3-.2 3-2 0-2.2-2.5-5.2-5.5-5.2zM3.5 11a1.5 2 0 1 0 3 0 1.5 2 0 1 0-3 0zM7.5 6.5a1.5 2 0 1 0 3 0 1.5 2 0 1 0-3 0zM13.5 6.5a1.5 2 0 1 0 3 0 1.5 2 0 1 0-3 0zM17.5 11a1.5 2 0 1 0 3 0 1.5 2 0 1 0-3 0z',  // łapka
@@ -23,7 +23,7 @@ export type IconName = keyof typeof PATHS;
   selector: 'app-icon',
   host: { 'aria-hidden': 'true' },
   styles: `:host { display: inline-flex; width: 1.25em; height: 1.25em; flex: none; } svg { width: 100%; height: 100%; }`,
-  template: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path [attr.d]="d()" /></svg>`,
+  template: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square" stroke-linejoin="miter"><path [attr.d]="d()" /></svg>`,
 })
 export class Icon {
   readonly name = input.required<IconName>();

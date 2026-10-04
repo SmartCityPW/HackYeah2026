@@ -1,5 +1,5 @@
 h2 { font-size: 1.05rem; margin: 18px 0 8px; }
-details { background: var(--surface); border-radius: 18px; padding: 12px; box-shadow: 0 1px 4px var(--shadow); }
+details { background: var(--surface); border-radius: var(--radius-m); padding: 12px; box-shadow: 0 1px 4px var(--shadow); }
 summary { cursor: pointer; }
 small { color: var(--text-muted); }
 .section { margin: 10px 0 2px; font-weight: 700; font-size: .8rem; text-transform: uppercase; color: var(--text-muted); }

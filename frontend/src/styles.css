@@ -32,6 +32,18 @@
   --on-dark: var(--color-mist);
   --shadow: color-mix(in srgb, var(--color-plum) 22%, transparent);
   --shadow-strong: color-mix(in srgb, var(--color-plum) 45%, transparent);
+
+  /*
+   * Kształt: kanciasty. Promienie tylko z tych dwóch tokenów, nigdy wpisane na stałe (pigułek i kółek nie ma).
+   * Charakter dają ścięte narożniki (clip-path), tylko na wyróżnionych elementach: pasek poziomu, przyciski akcji, aktywna zakładka, arkusze.
+   * Uwaga: clip-path ucina też cień, więc elementy ze ściętym rogiem mają twardą dolną krawędź (--edge) zamiast cienia.
+   */
+  --radius-s: 2px;                                                       /* przyciski, pola, chipy, paski */
+  --radius-m: 4px;                                                       /* karty i panele */
+  --edge: color-mix(in srgb, var(--color-plum) 35%, transparent);
+  --cut-both: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 10px 100%, 0 calc(100% - 10px));   /* przeciwległe rogi */
+  --cut-tl: polygon(18px 0, 100% 0, 100% 100%, 0 100%, 0 18px);                                          /* lewy górny róg (arkusze) */
+  --cut-br: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);                  /* prawy dolny róg (małe przyciski) */
 }
 
 :focus-visible { outline: 3px solid var(--brand); outline-offset: 2px; }
@@ -43,15 +55,15 @@ html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; color:
 .page h1 { margin: 0 0 4px; font-size: 1.5rem; }
 .page .lead { margin: 0 0 16px; color: var(--text-muted); }
 .page .list { display: grid; gap: 10px; }
-.page .empty { text-align: center; color: var(--text-muted); padding: 32px 12px; background: var(--surface); border-radius: 14px; }
+.page .empty { text-align: center; color: var(--text-muted); padding: 32px 12px; background: var(--surface); border-radius: var(--radius-m); }
 .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
-.chip-row button { border: 2px solid var(--border); background: var(--surface); border-radius: 999px; padding: 6px 12px; cursor: pointer; font: inherit; font-size: .85rem; }
+.chip-row button { border: 2px solid var(--border); background: var(--surface); border-radius: var(--radius-s); padding: 6px 12px; cursor: pointer; font: inherit; font-size: .85rem; }
 .chip-row button.on { border-color: var(--brand); background: var(--tint); font-weight: 700; }
 .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 16px; }
-.stat { background: var(--surface); border-radius: 14px; padding: 14px; box-shadow: 0 1px 4px var(--shadow); }
+.stat { background: var(--surface); border-radius: var(--radius-m); padding: 14px; box-shadow: 0 1px 4px var(--shadow); }
 .stat strong { display: block; font-size: 1.6rem; }
 .stat span { color: var(--text-muted); font-size: .8rem; }
 .card-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
-.card-actions button { border: 0; border-radius: 10px; padding: 6px 12px; font: inherit; font-size: .8rem; font-weight: 700; cursor: pointer; background: var(--tint); }
+.card-actions button { border: 0; border-radius: var(--radius-s); padding: 6px 12px; font: inherit; font-size: .8rem; font-weight: 700; cursor: pointer; background: var(--tint); }
 .card-actions button.danger { background: var(--accent-tint); color: var(--accent-ink); }
 .card-actions button.good { background: var(--tint); color: var(--brand-strong); }

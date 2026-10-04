@@ -2,32 +2,32 @@
 h2 { margin: 28px 0 4px; font-size: 1rem; }
 .sub { margin: 0 0 12px; color: var(--text-muted); font-size: .85rem; }
 
-.summary { display: grid; grid-template-columns: repeat(4, 1fr); margin-bottom: 18px; border-radius: 14px; background: var(--surface); box-shadow: 0 1px 4px var(--shadow); }
+.summary { display: grid; grid-template-columns: repeat(4, 1fr); margin-bottom: 18px; border-radius: var(--radius-m); background: var(--surface); box-shadow: 0 1px 4px var(--shadow); }
 .summary > div { display: grid; gap: 2px; padding: 12px; text-align: center; }
 .summary > div + div { border-left: 1px solid var(--tint); }
 .summary strong { font-size: 1.25rem; }
 .summary span { color: var(--text-muted); font-size: .72rem; }
 
-.tabs { display: inline-flex; gap: 2px; padding: 3px; margin-bottom: 14px; border-radius: 10px; background: var(--tint); }
-.tabs button { border: 0; background: transparent; border-radius: 8px; padding: 7px 12px; font: inherit; font-size: .85rem; color: var(--text); cursor: pointer; }
+.tabs { display: inline-flex; gap: 2px; padding: 3px; margin-bottom: 14px; border-radius: var(--radius-s); background: var(--tint); }
+.tabs button { border: 0; background: transparent; border-radius: var(--radius-s); padding: 7px 12px; font: inherit; font-size: .85rem; color: var(--text); cursor: pointer; }
 .tabs button.on { background: var(--surface); font-weight: 700; box-shadow: 0 1px 3px var(--shadow); }
 
 .roster { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
-.mon { display: grid; border-radius: 14px; background: var(--surface); box-shadow: 0 1px 4px var(--shadow); overflow: hidden; }
+.mon { display: grid; border-radius: var(--radius-m); background: var(--surface); box-shadow: 0 1px 4px var(--shadow); overflow: hidden; }
 .mon.staked { opacity: .7; }
 .stage { position: relative; background: var(--tint); }
 .stage app-spryciak-model { width: 100%; }
-.lvl { position: absolute; top: 8px; left: 8px; padding: 2px 8px; border-radius: 8px; background: var(--brand-strong); color: var(--on-strong); font-size: .75rem; font-weight: 800; }
+.lvl { position: absolute; top: 8px; left: 8px; padding: 2px 8px; border-radius: var(--radius-s); background: var(--brand-strong); color: var(--on-strong); font-size: .75rem; font-weight: 800; }
 .mon-body { display: grid; gap: 4px; padding: 10px 12px 12px; }
 .meta { margin: 0; color: var(--text-muted); font-size: .78rem; }
-.exp { height: 5px; background: var(--tint); border-radius: 99px; overflow: hidden; }
+.exp { height: 5px; background: var(--tint); border-radius: var(--radius-s); overflow: hidden; }
 .exp > span { display: block; height: 100%; background: var(--brand-strong); }
 .mon-body small { color: var(--text-muted); font-size: .72rem; }
-.tag { justify-self: start; padding: 1px 8px; border-radius: 6px; background: var(--tint); color: var(--text) !important; font-weight: 600; }
+.tag { justify-self: start; padding: 1px 8px; border-radius: var(--radius-s); background: var(--tint); color: var(--text) !important; font-weight: 600; }
 .tag.strong { color: var(--brand-strong) !important; }
 
 .dex { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; }
-.card { display: grid; justify-items: center; gap: 2px; padding: 8px 6px 10px; border-radius: 12px; background: var(--surface); text-align: center; box-shadow: 0 1px 4px var(--shadow); }
+.card { display: grid; justify-items: center; gap: 2px; padding: 8px 6px 10px; border-radius: var(--radius-s); background: var(--surface); text-align: center; box-shadow: 0 1px 4px var(--shadow); }
 .card app-spryciak-model { width: 100%; max-width: 96px; }
 .card strong { font-size: .8rem; }
 .card small { color: var(--text-muted); font-size: .7rem; }
