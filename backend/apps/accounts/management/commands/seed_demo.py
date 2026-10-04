@@ -1,4 +1,5 @@
 import random
+import time
 from datetime import datetime, timedelta
 
 import yaml
@@ -24,6 +25,10 @@ from core.secrets import secret
 VOTER_FIRST_NAMES = ['Anna', 'Piotr', 'Kasia', 'Marek', 'Ewa', 'Tomasz', 'Magda', 'Jan', 'Ola', 'Paweł', 'Basia', 'Michał', 'Agata', 'Krzysztof', 'Julia',
                      'Adam', 'Zofia', 'Łukasz', 'Marta', 'Grzegorz', 'Natalia', 'Rafał', 'Iga', 'Bartek', 'Dorota']
 VOTER_INITIALS = ['K.', 'W.', 'N.', 'Z.', 'S.', 'M.', 'L.', 'P.', 'D.', 'B.', 'G.', 'J.', 'R.', 'T.', 'C.', 'H.']
+# Agent AI ma limit zapytań na minutę (HTTP 429 przy darmowym kluczu), więc między zgłoszeniami robimy przerwę, a chwilową niedostępność ponawiamy.
+MODERATION_DELAY_S = 5.0
+MODERATION_RETRIES = 3
+MODERATION_RETRY_WAIT_S = 30.0
 QUESTION_FIELDS = ('key', 'label', 'type', 'required', 'options', 'min', 'max')  # reszta kluczy pytania w pliku steruje losowaniem odpowiedzi
 
 
@@ -34,6 +39,9 @@ class Command(BaseCommand):
         parser.add_argument('--reset', action='store_true',
                             help='Najpierw usuwa WSZYSTKIE pinezki (z głosami, komentarzami i ankietami) i zdejmuje zastawy pokemonów. Konta i wydarzenia zostają.')
 
+        parser.add_argument('--moderation-delay', type=float, default=None,
+                            help=f'Przerwa (s) po każdym zgłoszeniu wysłanym do agenta AI, żeby nie przekroczyć jego limitu zapytań (domyślnie {MODERATION_DELAY_S:g} s '
+                                 'dla agentów sieciowych, 0 dla reguł i atrapy).')
         parser.add_argument('--skip-moderation', action='store_true',
                             help='Pomija moderację AI zgłoszeń mieszkańców (tylko do testów i pracy bez klucza AI_API_KEY): domyślnie każde zgłoszenie przechodzi '
                                  'przez skonfigurowanego agenta (reguły i AI), tak jak w grze, a odrzucone nie powstają.')
@@ -50,6 +58,9 @@ class Command(BaseCommand):
         admin = next((u for u in users.values() if u.role == 'admin'), None)
         voters = self._voters(data.get('voters', {}).get('count', 0))
         moderate = not options['skip_moderation']
+        delay = options['moderation_delay']
+        if delay is None:
+            delay = 0.0 if settings.APP.moderation.provider in ('stub', 'rules') else MODERATION_DELAY_S
         created, rejected = 0, []
         for row in data['pokestops']:
             author = users[row['author']]
@@ -69,18 +80,11 @@ class Command(BaseCommand):
                     self.stdout.write(f'Pominięto "{row["title"]}": autor nie ma wolnego pokemona do zastawu')
                     continue
                 payload['staked_pokemon_id'] = stake.id
-            try:
-                stop = create_pokestop(author, payload, verify_location=False, moderate=moderate)
-            except ApiError as exc:
-                if row.get('character') and stake is not None:
-                    stake.delete()  # Spryciak nadany tylko pod ten zastaw
-                if exc.code == 'moderation_rejected':  # tak jak w grze: odrzucone zgłoszenie nie powstaje
-                    rejected.append(row['title'])
-                    self.stderr.write(f'ODRZUCONE przez moderację: "{row["title"]}"')
-                    continue
-                if exc.code == 'moderation_unavailable':
-                    raise CommandError(f'Moderacja niedostępna ({exc.message}). Ustaw AI_API_KEY (np. w config/local.env) albo uruchom z --skip-moderation.') from exc
-                raise
+            stop = self._create_moderated(author, payload, row, stake, moderate, rejected)
+            if stop is None:
+                continue
+            if moderate and delay and row['scenario'].startswith(('res-', 'idea-', 'place-')):
+                time.sleep(delay)
             self._finish(stop, row, author, users, admin, voters)
             created += 1
         events = self._events(data.get('events', []))
@@ -101,6 +105,27 @@ class Command(BaseCommand):
         Pokemon.objects.filter(pk__in=granted).delete()
         voters, _ = User.objects.filter(email__startswith='mieszkaniec', email__endswith='@demo.smartcity.example').delete()
         self.stdout.write(f'Usunięto pinezki: {removed}, zastawione Spryciaki: {len(granted)}, rekordy głosujących: {voters}')
+
+    def _create_moderated(self, author: User, payload: dict, row: dict, stake: Pokemon | None, moderate: bool, rejected: list[str]) -> Pokestop | None:
+        """Tworzy pinezkę przez moderację. Chwilowa niedostępność agenta (np. limit zapytań) jest ponawiana, odrzucenie pomija pinezkę (jak w grze)."""
+        for attempt in range(1, MODERATION_RETRIES + 2):
+            try:
+                return create_pokestop(author, payload, verify_location=False, moderate=moderate)
+            except ApiError as exc:
+                if exc.code == 'moderation_unavailable' and attempt <= MODERATION_RETRIES:
+                    self.stderr.write(f'Moderacja chwilowo niedostępna ({exc.message}), ponawiam za {MODERATION_RETRY_WAIT_S:g} s ({attempt}/{MODERATION_RETRIES})')
+                    time.sleep(MODERATION_RETRY_WAIT_S)
+                    continue
+                if row.get('character') and stake is not None:
+                    stake.delete()  # Spryciak nadany tylko pod ten zastaw
+                if exc.code == 'moderation_rejected':  # tak jak w grze: odrzucone zgłoszenie nie powstaje
+                    rejected.append(row['title'])
+                    self.stderr.write(f'ODRZUCONE przez moderację: "{row["title"]}"')
+                    return None
+                if exc.code == 'moderation_unavailable':
+                    raise CommandError(f'Moderacja niedostępna ({exc.message}). Ustaw AI_API_KEY (np. w config/local.env) albo uruchom z --skip-moderation.') from exc
+                raise
+        return None
 
     def _stake(self, author: User, row: dict) -> Pokemon | None:
         """Pokemon do zastawu. Z kluczem `character` autor dostaje nowego Spryciaka tego gatunku (postać pinezki to gatunek zastawionego

@@ -179,7 +179,53 @@ def test_unavailable_moderation_stops_the_seed_with_a_clear_message(monkeypatch)
         def review(self, submission):
             raise ModerationUnavailable('AI_API_KEY nie jest ustawiony')
 
+    sleeps = []
     monkeypatch.setattr(services, 'get_agent', lambda: Down())
+    monkeypatch.setattr('apps.accounts.management.commands.seed_demo.time.sleep', sleeps.append)
     monkeypatch.setenv('DEMO_PASSWORD', 'demo-haslo-1234')
     with pytest.raises(CommandError, match='AI_API_KEY'):
         call_command('seed_demo')
+    assert len(sleeps) == 3  # trzy ponowienia, potem czytelny błąd
+
+
+def test_a_rate_limited_agent_is_retried_and_the_pin_is_created(monkeypatch):
+    from apps.moderation.agent import ModerationUnavailable, Review
+    from apps.pokestops import services
+
+    class Flaky:
+        calls = 0
+
+        def review(self, submission):
+            Flaky.calls += 1
+            if Flaky.calls == 3:  # jedno zapytanie dostaje "429", kolejne próby przechodzą
+                raise ModerationUnavailable('Agent odpowiedział błędem HTTP 429')
+            return Review(approved=True, model='test')
+
+    sleeps = []
+    monkeypatch.setattr(services, 'get_agent', lambda: Flaky())
+    monkeypatch.setattr('apps.accounts.management.commands.seed_demo.time.sleep', sleeps.append)
+    monkeypatch.setenv('DEMO_PASSWORD', 'demo-haslo-1234')
+    call_command('seed_demo')
+    assert Pokestop.objects.count() == 42 and sleeps.count(30.0) == 1
+
+
+def test_network_agents_get_a_pause_between_requests_and_the_stub_does_not(monkeypatch):
+    from dataclasses import replace
+
+    from apps.moderation.agent import Review
+    from apps.pokestops import services
+
+    class Ok:
+        def review(self, submission):
+            return Review(approved=True, model='test')
+
+    sleeps = []
+    monkeypatch.setattr(services, 'get_agent', lambda: Ok())
+    monkeypatch.setattr('apps.accounts.management.commands.seed_demo.time.sleep', sleeps.append)
+    monkeypatch.setenv('DEMO_PASSWORD', 'demo-haslo-1234')
+    call_command('seed_demo')  # conftest ustawia provider stub: bez przerw
+    assert sleeps == []
+    Pokestop.objects.all().delete()
+    monkeypatch.setattr(settings, 'APP', replace(settings.APP, moderation=replace(settings.APP.moderation, provider='gemini')))
+    call_command('seed_demo')
+    assert len(sleeps) == 39 and set(sleeps) == {5.0}  # po każdym zgłoszeniu mieszkańca
