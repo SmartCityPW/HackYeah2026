@@ -195,6 +195,36 @@ docker compose --profile tls up -d --build                        # PostgreSQL +
 
 **Czego prototyp nie ma:** zdjęć (`POST /photos` → 501), polityki prywatności i zgody rodziców dla osób poniżej 16 lat (do dopisania przed publicznym udostępnieniem), unieważniania tokenów po wylogowaniu, pewności co do lokalizacji (pozycję podaje telefon; serwer odrzuca złą dokładność, stare odczyty i teleportację, ale jej nie dowodzi).
 
+### Windows (i inne systemy niż macOS)
+
+Najprościej przez Dockera: zainstaluj **Docker Desktop** (z WSL2) i **Git**, a potem w PowerShell:
+
+```powershell
+git clone git@github.com:SmartCityPW/HackYeah2026.git
+cd HackYeah2026
+copy .env.example .env          # uzupełnij DJANGO_SECRET_KEY, DB_PASSWORD, ADMIN_PASSWORD (AI_API_KEY opcjonalnie)
+docker compose up --build
+```
+
+Aplikacja: http://localhost:4200. Repozytorium ma `.gitattributes` wymuszające końce linii LF; jeśli sklonowałeś je **przed** tą zmianą i kontener backendu wywala
+`exec docker/entrypoint.sh: no such file or directory`, to pliki mają CRLF. Napraw: `git add --renormalize .` albo sklonuj repozytorium od nowa (`git config --global core.autocrlf input`).
+
+Bez Dockera (backend na SQLite, frontend `npm start`) w PowerShell, w `backend`:
+
+```powershell
+py -3.13 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements\dev.txt
+copy config\local.example.yaml config\local.yaml
+$env:DJANGO_SECRET_KEY = "dowolny-dlugi-ciag"
+$env:APP_CONFIG_OVERRIDE = "config/local.yaml"
+$env:DEMO_PASSWORD = "demo-haslo-1234"
+python manage.py bootstrap; python manage.py seed_demo; python manage.py runserver
+```
+
+(zmienne ustawiasz w każdym oknie PowerShell; odpowiednik `source config/local.env`). Testy: `python -m pytest`. Kopię bazy w Dockerze zrobisz
+`docker compose exec -T db pg_dump -U smartcity smartcity > backup.sql` (zamiast `scripts/backup_db.sh`). Frontend: `cd frontend; npm ci; npm start`.
+
 ### 8. Kontrola dokumentacji względem kodu
 
 Wykonuje się w kroku 1: każda operacja z `docs/openapi.yaml` ma trasę, tabele i kolumny zgadzają się ze `docs/db/schema.sql`, a `.env.example` zawiera dokładnie te sekrety, które czyta kod.

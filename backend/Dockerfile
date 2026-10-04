@@ -11,7 +11,9 @@ COPY requirements/ requirements/
 RUN pip install --no-cache-dir -r requirements/prod.txt
 
 COPY . .
-RUN chmod +x docker/entrypoint.sh \
+# sed zdejmuje ewentualne CR (checkout na Windows z core.autocrlf=true), inaczej powłoka nie znajdzie interpretera skryptu
+RUN sed -i 's/\r$//' docker/entrypoint.sh \
+    && chmod +x docker/entrypoint.sh \
     && useradd --system --uid 10001 app \
     && mkdir -p data \
     && chown -R app /app
