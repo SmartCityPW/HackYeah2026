@@ -1,19 +1,35 @@
+import random
+import time
 from datetime import datetime, timedelta
 
 import yaml
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
-from django.db.models import F
 from django.utils import timezone
 
 from apps.accounts.models import MemberRole, Organization, OrganizationMember, User, VerificationStatus
 from apps.collection.models import Character, Pokemon, PokemonOrigin
 from apps.collection.services import grant_pokemon, grant_starter
 from apps.events.models import Event
+from apps.game.location import Fix
 from apps.game.models import PlayerProgress
-from apps.pokestops.models import Comment, Pokestop, Update, Vote
-from apps.pokestops.services import create_pokestop, release_stake, set_status
+from apps.pokestops import survey
+from apps.pokestops.models import Pokestop, Update
+from apps.pokestops.services import add_comment, create_pokestop, set_status, vote
+from core.errors import ApiError
 from core.secrets import secret
+
+
+# Pula głosujących mieszkańców: ich głosy i odpowiedzi w ankietach przechodzą przez te same funkcje co w grze, więc poparcie pinezek
+# wynika z wierszy w bazie, a nie z wpisanych liczników.
+VOTER_FIRST_NAMES = ['Anna', 'Piotr', 'Kasia', 'Marek', 'Ewa', 'Tomasz', 'Magda', 'Jan', 'Ola', 'Paweł', 'Basia', 'Michał', 'Agata', 'Krzysztof', 'Julia',
+                     'Adam', 'Zofia', 'Łukasz', 'Marta', 'Grzegorz', 'Natalia', 'Rafał', 'Iga', 'Bartek', 'Dorota']
+VOTER_INITIALS = ['K.', 'W.', 'N.', 'Z.', 'S.', 'M.', 'L.', 'P.', 'D.', 'B.', 'G.', 'J.', 'R.', 'T.', 'C.', 'H.']
+# Agent AI ma limit zapytań na minutę (HTTP 429 przy darmowym kluczu), więc między zgłoszeniami robimy przerwę, a chwilową niedostępność ponawiamy.
+MODERATION_DELAY_S = 5.0
+MODERATION_RETRIES = 3
+MODERATION_RETRY_WAIT_S = 30.0
+QUESTION_FIELDS = ('key', 'label', 'type', 'required', 'options', 'min', 'max')  # reszta kluczy pytania w pliku steruje losowaniem odpowiedzi
 
 
 class Command(BaseCommand):
@@ -22,6 +38,13 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         parser.add_argument('--reset', action='store_true',
                             help='Najpierw usuwa WSZYSTKIE pinezki (z głosami, komentarzami i ankietami) i zdejmuje zastawy pokemonów. Konta i wydarzenia zostają.')
+
+        parser.add_argument('--moderation-delay', type=float, default=None,
+                            help=f'Przerwa (s) po każdym zgłoszeniu wysłanym do agenta AI, żeby nie przekroczyć jego limitu zapytań (domyślnie {MODERATION_DELAY_S:g} s '
+                                 'dla agentów sieciowych, 0 dla reguł i atrapy).')
+        parser.add_argument('--skip-moderation', action='store_true',
+                            help='Pomija moderację AI zgłoszeń mieszkańców (tylko do testów i pracy bez klucza AI_API_KEY): domyślnie każde zgłoszenie przechodzi '
+                                 'przez skonfigurowanego agenta (reguły i AI), tak jak w grze, a odrzucone nie powstają.')
 
     def handle(self, *args, **options):
         if not settings.APP.app.debug:
@@ -33,7 +56,12 @@ class Command(BaseCommand):
 
         users = {row['email']: self._user(row, password) for row in data['users']}
         admin = next((u for u in users.values() if u.role == 'admin'), None)
-        created = 0
+        voters = self._voters(data.get('voters', {}).get('count', 0))
+        moderate = not options['skip_moderation']
+        delay = options['moderation_delay']
+        if delay is None:
+            delay = 0.0 if settings.APP.moderation.provider in ('stub', 'rules') else MODERATION_DELAY_S
+        created, rejected = 0, []
         for row in data['pokestops']:
             author = users[row['author']]
             if Pokestop.objects.filter(author=author, title=row['title']).exists():
@@ -44,25 +72,60 @@ class Command(BaseCommand):
                 'position': {'lat': row['lat'], 'lng': row['lng']},  # dane demo powstają "na miejscu", w kółku autora
             }
             if row.get('questions'):
-                payload['questions'] = row['questions']
+                payload['questions'] = [{k: v for k, v in q.items() if k in QUESTION_FIELDS} for q in row['questions']]
+            stake = None
             if row['scenario'].startswith(('res-', 'idea-')):
                 stake = self._stake(author, row)
                 if stake is None:  # np. stara baza lokalna, w której autor zastawił już wszystkie pokemony
                     self.stdout.write(f'Pominięto "{row["title"]}": autor nie ma wolnego pokemona do zastawu')
                     continue
                 payload['staked_pokemon_id'] = stake.id
-            stop = create_pokestop(author, payload, verify_location=False, moderate=False)
-            self._finish(stop, row, author, users, admin)
+            stop = self._create_moderated(author, payload, row, stake, moderate, rejected)
+            if stop is None:
+                continue
+            if moderate and delay and row['scenario'].startswith(('res-', 'idea-', 'place-')):
+                time.sleep(delay)
+            self._finish(stop, row, author, users, admin, voters)
             created += 1
         events = self._events(data.get('events', []))
         self.stdout.write(f'Konta demo: {len(users)}, nowe pinezki: {created}, nowe wydarzenia: {events} (hasło kont z DEMO_PASSWORD)')
+        if rejected:
+            self.stdout.write(f'Odrzucone przez moderację ({len(rejected)}): ' + '; '.join(rejected) + '. Zmień ich treść w demo.yaml i uruchom seed_demo ponownie.')
 
     def _reset(self) -> None:
-        """Czyści pinezki demo: zastawy wracają do właścicieli, reszta (głosy, komentarze, ankiety) znika kaskadowo."""
+        """Czyści dane pinezek demo: pinezki (głosy, komentarze i ankiety znikają kaskadowo), konta głosujących i Spryciaki, które konta demo
+        dostały tylko po to, żeby je zastawić. Prawdziwe konta i ich Spryciaki zostają."""
+        demo = User.objects.filter(email__endswith='@demo.smartcity.example')
+        granted = list(Pokemon.objects.filter(
+            user__in=demo, origin=PokemonOrigin.ENCOUNTER, pk__in=Pokestop.objects.exclude(staked_pokemon=None).values('staked_pokemon_id'),
+        ).values_list('pk', flat=True))
         removed = Pokestop.objects.count()
         Pokemon.objects.filter(is_staked=True).update(is_staked=False)
         Pokestop.objects.all().delete()
-        self.stdout.write(f'Usunięto pinezki: {removed}')
+        Pokemon.objects.filter(pk__in=granted).delete()
+        voters, _ = User.objects.filter(email__startswith='mieszkaniec', email__endswith='@demo.smartcity.example').delete()
+        self.stdout.write(f'Usunięto pinezki: {removed}, zastawione Spryciaki: {len(granted)}, rekordy głosujących: {voters}')
+
+    def _create_moderated(self, author: User, payload: dict, row: dict, stake: Pokemon | None, moderate: bool, rejected: list[str]) -> Pokestop | None:
+        """Tworzy pinezkę przez moderację. Chwilowa niedostępność agenta (np. limit zapytań) jest ponawiana, odrzucenie pomija pinezkę (jak w grze)."""
+        for attempt in range(1, MODERATION_RETRIES + 2):
+            try:
+                return create_pokestop(author, payload, verify_location=False, moderate=moderate)
+            except ApiError as exc:
+                if exc.code == 'moderation_unavailable' and attempt <= MODERATION_RETRIES:
+                    self.stderr.write(f'Moderacja chwilowo niedostępna ({exc.message}), ponawiam za {MODERATION_RETRY_WAIT_S:g} s ({attempt}/{MODERATION_RETRIES})')
+                    time.sleep(MODERATION_RETRY_WAIT_S)
+                    continue
+                if row.get('character') and stake is not None:
+                    stake.delete()  # Spryciak nadany tylko pod ten zastaw
+                if exc.code == 'moderation_rejected':  # tak jak w grze: odrzucone zgłoszenie nie powstaje
+                    rejected.append(row['title'])
+                    self.stderr.write(f'ODRZUCONE przez moderację: "{row["title"]}"')
+                    return None
+                if exc.code == 'moderation_unavailable':
+                    raise CommandError(f'Moderacja niedostępna ({exc.message}). Ustaw AI_API_KEY (np. w config/local.env) albo uruchom z --skip-moderation.') from exc
+                raise
+        return None
 
     def _stake(self, author: User, row: dict) -> Pokemon | None:
         """Pokemon do zastawu. Z kluczem `character` autor dostaje nowego Spryciaka tego gatunku (postać pinezki to gatunek zastawionego
@@ -75,32 +138,82 @@ class Command(BaseCommand):
             return pokemon
         return author.pokemons.filter(is_staked=False).first()
 
-    def _finish(self, stop: Pokestop, row: dict, author: User, users: dict[str, User], admin: User | None) -> None:
-        """Dopełnia pinezkę danymi z wiersza: pola własne, oś czasu, wiek, głosy, komentarze i status."""
+    def _voters(self, count: int) -> list[User]:
+        """Pula głosujących (konta bez hasła, każde z Spryciakiem startowym). Idempotentna: istniejące konta są używane ponownie."""
+        voters = []
+        for n in range(1, count + 1):
+            email = f'mieszkaniec{n:03d}@demo.smartcity.example'
+            user = User.objects.filter(email=email).first()
+            if user is None:
+                name = f'{VOTER_FIRST_NAMES[n % len(VOTER_FIRST_NAMES)]} {VOTER_INITIALS[(n * 7) % len(VOTER_INITIALS)]}'
+                user = User.objects.create_user(email, None, name, role='resident')  # hasło None = konto bez możliwości logowania
+                grant_starter(user)
+            voters.append(user)
+        return voters
+
+    def _finish(self, stop: Pokestop, row: dict, author: User, users: dict[str, User], admin: User | None, voters: list[User]) -> None:
+        """Dopełnia pinezkę: pola własne, oś czasu, wiek, głosy, odpowiedzi ankiety, komentarze i status (głosy, ankiety, komentarze i status
+        przechodzą przez te same funkcje co w grze: exp za głos, zwrot zastawu po progu, walidacja odpowiedzi, reguły komentarzy)."""
         if row.get('custom_fields'):
             stop.custom_fields = row['custom_fields']
             stop.save(update_fields=['custom_fields', 'updated_at'])
         for update in row.get('updates', []):
             Update.objects.create(pokestop=stop, author=author, title=update['title'], body=update.get('body', ''))
-        if row.get('days_ago'):
+        if row.get('days_ago'):  # jedyny skrót: nie da się utworzyć pinezki w przeszłości, więc postarzamy ją
             Pokestop.objects.filter(pk=stop.pk).update(created_at=timezone.now() - timedelta(days=row['days_ago']))
-        # Liczniki głosów to dane demo ("zmyślone" poparcie); prawdziwe głosy konkretnych kont (`votes_by`) dochodzą do nich.
-        votes_for, votes_against = row.get('votes', (0, 0))
-        Pokestop.objects.filter(pk=stop.pk).update(votes_for=votes_for, votes_against=votes_against)
-        for email, value in (row.get('votes_by') or {}).items():
-            voter = users[email]
-            pokemon = voter.pokemons.first()
-            Vote.objects.create(pokestop=stop, user=voter, vote=value, rewarded_pokemon=pokemon, exp_granted=0, lat=stop.lat, lng=stop.lng, distance_m=10)
-            Pokestop.objects.filter(pk=stop.pk).update(**{'votes_for' if value == 'for' else 'votes_against': F('votes_for' if value == 'for' else 'votes_against') + 1})
-        stop.refresh_from_db()
-        if stop.staked_pokemon_id and stop.votes_for >= stop.votes_required:  # próg poparcia osiągnięty: zastaw wraca z premią
-            release_stake(stop, settings.APP.game.exp.stake_release_bonus)
+        self._cast_votes(stop, row, users, voters)
+        self._answer_surveys(stop, row, voters)
         for item in row.get('comments', []):
-            parent = Comment.objects.create(pokestop=stop, author=users[item['author']], body=item['text'])
+            parent = add_comment(users[item['author']], stop.pk, item['text'], None)
             for reply in item.get('replies', []):
-                Comment.objects.create(pokestop=stop, author=users[reply['author']], parent=parent, body=reply['text'])
+                add_comment(users[reply['author']], stop.pk, reply['text'], parent.pk)
         if row.get('status') and admin is not None:
             set_status(admin, stop.pk, row['status'], row.get('status_note'))
+
+    def _cast_votes(self, stop: Pokestop, row: dict, users: dict[str, User], voters: list[User]) -> None:
+        """`votes_by` to głosy wskazanych kont, `votes: [za, przeciw]` to docelowa liczba głosów łącznie (resztę dokładają losowi głosujący z puli,
+        deterministycznie: ten sam plik daje ten sam wynik)."""
+        explicit = {users[email]: value for email, value in (row.get('votes_by') or {}).items()}
+        want_for, want_against = row.get('votes', (0, 0))
+        need = {'for': want_for - sum(v == 'for' for v in explicit.values()), 'against': want_against - sum(v == 'against' for v in explicit.values())}
+        pool = [v for v in voters if v.pk != stop.author_id and v not in explicit]
+        random.Random(f'votes:{row["title"]}').shuffle(pool)
+        if max(need['for'], 0) + max(need['against'], 0) > len(pool):
+            raise CommandError(f'Pinezka "{row["title"]}" chce {want_for + want_against} głosów, a pula ma {len(pool)} głosujących (voters.count w demo.yaml)')
+        queue = list(explicit.items()) + [(v, 'for') for v in pool[:max(need['for'], 0)]] + [(v, 'against') for v in pool[max(need['for'], 0):max(need['for'], 0) + max(need['against'], 0)]]
+        for voter, value in queue:
+            pokemon = voter.pokemons.first()
+            vote(user=voter, pokestop_id=stop.pk, value=value, pokemon_id=pokemon.pk, fix=Fix(lat=stop.lat, lng=stop.lng), verify_location=False)
+
+    def _answer_surveys(self, stop: Pokestop, row: dict, voters: list[User]) -> None:
+        """`survey_responses: N`: N losowych mieszkańców wypełnia ankietę (odpowiedzi losowane wg `weights`, `yes`, `samples` z pytań w pliku)."""
+        count = row.get('survey_responses', 0)
+        if not count:
+            return
+        rng = random.Random(f'survey:{row["title"]}')
+        respondents = rng.sample(voters, count)
+        for voter in respondents:
+            answers = {}
+            for q in row['questions']:
+                if not q.get('required', True) and rng.random() < 0.5:
+                    continue
+                answers[q['key']] = self._answer(q, rng)
+            survey.answer_survey(user=voter, pokestop_id=stop.pk, fix=Fix(lat=stop.lat, lng=stop.lng), answers=answers, verify_location=False)
+
+    @staticmethod
+    def _answer(q: dict, rng: random.Random):
+        kind, values = q['type'], [o['value'] for o in q.get('options', [])]
+        if kind == 'boolean':
+            return rng.random() < q.get('yes', 0.6)
+        if kind in ('choice', 'select'):
+            return rng.choices(values, weights=q.get('weights'))[0]
+        if kind == 'multiselect':
+            return [v for v in values if rng.random() < 0.45] or [values[0]]
+        if kind == 'rating':
+            return rng.randint(int(q.get('min') or 1), int(q.get('max') or 5))
+        if kind == 'number':
+            return rng.randint(int(q.get('min') or 0), int(q.get('max') or 10))
+        return rng.choice(q.get('samples') or ['Bez uwag.'])
 
     def _events(self, rows: list[dict]) -> int:
         """Wydarzenia fundacji; czasy względem chwili ładowania (starts_in_hours), więc demo zawsze ma wydarzenie trwające i zapowiedziane."""

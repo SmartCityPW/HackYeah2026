@@ -74,7 +74,7 @@ Terminal 1, serwer:
 
 ```bash
 .venv/bin/python manage.py bootstrap     # migracje + słowniki + 20 scenariuszy
-.venv/bin/python manage.py seed_demo     # 23 konta, 2 zweryfikowane organizacje, 42 pinezki w Krakowie (świeże dane: seed_demo --reset)
+.venv/bin/python manage.py seed_demo     # 23 konta + 100 głosujących, 2 organizacje, 42 pinezki w Krakowie z prawdziwymi głosami (świeże dane: seed_demo --reset)
 .venv/bin/python manage.py runserver     # http://localhost:8000/api/v1/
 ```
 

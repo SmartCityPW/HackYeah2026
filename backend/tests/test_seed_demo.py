@@ -23,7 +23,7 @@ def test_demo_data_is_created_once_and_has_a_verified_org(monkeypatch):
     assert User.objects.get(email='admin@demo.smartcity.example').check_password('demo-haslo-1234')
     tester = User.objects.get(email='tester@demo.smartcity.example')  # konto "w połowie gry" do pokazu
     assert tester.pokemons.count() == 12 + tester.pokestops.count()  # + pokemony zastawione pod jej własne zgłoszenia
-    assert tester.progress.xp == 640 and tester.pokemons.order_by('-exp').first().exp == 620
+    assert tester.progress.xp == 640 and tester.pokemons.order_by('-exp').first().exp == 620 + 10 * tester.votes.count()  # + exp za jej głosy
 
 
 def test_demo_password_comes_from_the_environment_only(monkeypatch):
@@ -58,15 +58,51 @@ def test_demo_pins_are_spread_over_krakow_with_varied_characters(monkeypatch):
     assert len({s.author_id for s in stops}) >= 15
 
 
-def test_demo_votes_levels_and_balance_are_varied(monkeypatch):
+def test_demo_support_comes_from_real_votes_not_counters(monkeypatch):
+    from django.db import models
+    from django.db.models import Count, Q
+
+    from apps.pokestops.models import Vote
+
     monkeypatch.setenv('DEMO_PASSWORD', 'demo-haslo-1234')
     call_command('seed_demo')
-    stops = Pokestop.objects.all()
-    assert any(s.votes_against > s.votes_for for s in stops) and any(s.votes_for >= 100 for s in stops)
-    assert len({s.staked_pokemon.exp // 100 for s in stops if s.staked_pokemon_id} | {0}) >= 4  # różne poziomy zastawionych Spryciaków
+    stops = Pokestop.objects.annotate(
+        real_for=Count('votes', filter=Q(votes__vote='for')), real_against=Count('votes', filter=Q(votes__vote='against')),
+    )
+    assert all((s.votes_for, s.votes_against) == (s.real_for, s.real_against) for s in stops)  # liczniki = wiersze głosów
+    assert Vote.objects.count() == sum(s.votes_for + s.votes_against for s in stops) > 1000
+    assert all(v.rewarded_pokemon.user_id == v.user_id and v.exp_granted == 10 for v in Vote.objects.select_related('rewarded_pokemon')[:50])
+    assert any(s.votes_against > s.votes_for for s in stops) and any(s.votes_for >= 50 for s in stops)
+    own = Vote.objects.filter(user=models.F('pokestop__author'))
+    assert not own.exists()  # nikt nie głosuje na własną pinezkę
+    assert len({s.staked_pokemon.exp // 100 for s in stops if s.staked_pokemon_id} | {0}) >= 3  # różne poziomy zastawionych Spryciaków
     assert Pokestop.objects.filter(status__in=['in_progress', 'resolved']).count() >= 3
     plan = Pokestop.objects.get(title__startswith='Zmiana Planu Adaptacji')
     assert (plan.votes_for, plan.votes_against) == (1, 0) and plan.status == 'resolved'
+
+
+def test_demo_consultations_have_real_survey_answers(monkeypatch):
+    from apps.pokestops.models import SurveyAnswer, SurveyResponse
+
+    monkeypatch.setenv('DEMO_PASSWORD', 'demo-haslo-1234')
+    call_command('seed_demo')
+    counts = {s.title[:20]: s.survey_responses.count() for s in Pokestop.objects.filter(type='consultation')}
+    assert sorted(counts.values()) == [1, 30, 40]  # Plan Adaptacji: jeden uczestnik
+    assert SurveyAnswer.objects.count() > 150
+    assert all(r.reward_pokemon.user_id == r.user_id for r in SurveyResponse.objects.select_related('reward_pokemon')[:20])  # nagroda jak w grze
+    plaszow = Pokestop.objects.get(title__startswith='Konsultacje: Płaszów')
+    vision = {a.value for a in SurveyAnswer.objects.filter(response__pokestop=plaszow, question__question_key='vision')}
+    assert vision == {'industrial', 'residential', 'mixed'}  # wyniki ankiety nie są puste ani jednolite
+
+
+def test_demo_texts_pass_the_moderation_rules(monkeypatch):
+    from apps.moderation.rules import inspect_text
+    from apps.pokestops.models import Comment
+
+    monkeypatch.setenv('DEMO_PASSWORD', 'demo-haslo-1234')
+    call_command('seed_demo')
+    texts = [t for s in Pokestop.objects.all() for t in (s.title, s.description)] + list(Comment.objects.values_list('body', flat=True))
+    assert [t for t in texts if inspect_text(t)] == []
 
 
 def test_reset_replaces_existing_pins_and_frees_stakes(monkeypatch):
@@ -96,3 +132,100 @@ def test_demo_has_a_running_and_an_upcoming_event_with_rare_rewards(monkeypatch)
     assert services.is_active_now(cleanup) and cleanup.daily_from is None  # zawsze do odebrania, niezależnie od pory dnia
     assert picnic.daily_from is not None and festival.capacity == 100
     assert all(e.reward_character.is_event_exclusive for e in Event.objects.all())
+
+
+def test_demo_resident_pins_go_through_moderation_like_in_the_game(monkeypatch):
+    from apps.pokestops.models import ModerationLog
+
+    monkeypatch.setenv('DEMO_PASSWORD', 'demo-haslo-1234')
+    call_command('seed_demo')
+    residents = Pokestop.objects.filter(type__in=['report', 'idea', 'place']).count()
+    assert ModerationLog.objects.filter(verdict='approved', pokestop__isnull=False).count() == residents  # każde zgłoszenie ma werdykt w logu
+    assert not ModerationLog.objects.filter(pokestop__type='consultation').exists()  # inicjatywy organizacji nie są moderowane (jak w grze)
+
+
+def test_skip_moderation_flag_bypasses_the_agent(monkeypatch):
+    from apps.pokestops.models import ModerationLog
+
+    monkeypatch.setenv('DEMO_PASSWORD', 'demo-haslo-1234')
+    call_command('seed_demo', '--skip-moderation')
+    assert Pokestop.objects.count() == 42 and not ModerationLog.objects.exists()
+
+
+def test_a_pin_rejected_by_moderation_is_not_created_and_leaves_no_stray_pokemon(monkeypatch):
+    from apps.collection.models import Pokemon
+    from apps.moderation.agent import Review
+    from apps.pokestops import services
+    from apps.pokestops.models import ModerationLog
+
+    class RejectSzewska:
+        def review(self, submission):
+            return Review(approved='Szewska' not in submission['title'], model='test', reason='nie na temat')
+
+    monkeypatch.setattr(services, 'get_agent', lambda: RejectSzewska())
+    monkeypatch.setenv('DEMO_PASSWORD', 'demo-haslo-1234')
+    call_command('seed_demo')
+    assert Pokestop.objects.count() == 41 and not Pokestop.objects.filter(title__contains='Szewska').exists()
+    assert ModerationLog.objects.filter(verdict='rejected').count() == 1
+    author = User.objects.get(email='janusz@demo.smartcity.example')
+    assert not Pokemon.objects.filter(user=author, character__code='sports_car').exists()  # Spryciak nadany pod odrzucony zastaw znika
+
+
+def test_unavailable_moderation_stops_the_seed_with_a_clear_message(monkeypatch):
+    from apps.moderation.agent import ModerationUnavailable
+    from apps.pokestops import services
+
+    class Down:
+        def review(self, submission):
+            raise ModerationUnavailable('AI_API_KEY nie jest ustawiony')
+
+    sleeps = []
+    monkeypatch.setattr(services, 'get_agent', lambda: Down())
+    monkeypatch.setattr('apps.accounts.management.commands.seed_demo.time.sleep', sleeps.append)
+    monkeypatch.setenv('DEMO_PASSWORD', 'demo-haslo-1234')
+    with pytest.raises(CommandError, match='AI_API_KEY'):
+        call_command('seed_demo')
+    assert len(sleeps) == 3  # trzy ponowienia, potem czytelny błąd
+
+
+def test_a_rate_limited_agent_is_retried_and_the_pin_is_created(monkeypatch):
+    from apps.moderation.agent import ModerationUnavailable, Review
+    from apps.pokestops import services
+
+    class Flaky:
+        calls = 0
+
+        def review(self, submission):
+            Flaky.calls += 1
+            if Flaky.calls == 3:  # jedno zapytanie dostaje "429", kolejne próby przechodzą
+                raise ModerationUnavailable('Agent odpowiedział błędem HTTP 429')
+            return Review(approved=True, model='test')
+
+    sleeps = []
+    monkeypatch.setattr(services, 'get_agent', lambda: Flaky())
+    monkeypatch.setattr('apps.accounts.management.commands.seed_demo.time.sleep', sleeps.append)
+    monkeypatch.setenv('DEMO_PASSWORD', 'demo-haslo-1234')
+    call_command('seed_demo')
+    assert Pokestop.objects.count() == 42 and sleeps.count(30.0) == 1
+
+
+def test_network_agents_get_a_pause_between_requests_and_the_stub_does_not(monkeypatch):
+    from dataclasses import replace
+
+    from apps.moderation.agent import Review
+    from apps.pokestops import services
+
+    class Ok:
+        def review(self, submission):
+            return Review(approved=True, model='test')
+
+    sleeps = []
+    monkeypatch.setattr(services, 'get_agent', lambda: Ok())
+    monkeypatch.setattr('apps.accounts.management.commands.seed_demo.time.sleep', sleeps.append)
+    monkeypatch.setenv('DEMO_PASSWORD', 'demo-haslo-1234')
+    call_command('seed_demo')  # conftest ustawia provider stub: bez przerw
+    assert sleeps == []
+    Pokestop.objects.all().delete()
+    monkeypatch.setattr(settings, 'APP', replace(settings.APP, moderation=replace(settings.APP.moderation, provider='gemini')))
+    call_command('seed_demo')
+    assert len(sleeps) == 39 and set(sleeps) == {5.0}  # po każdym zgłoszeniu mieszkańca
