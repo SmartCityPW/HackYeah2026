@@ -1,0 +1,100 @@
+<form (submit)="submit($event)" novalidate>
+  <p class="intro">
+    Wydarzenie pojawi się na mapie jako punkt z kręcącym się rzadkim Spryciakiem. Mieszkańcy zobaczą opis z daleka, ale nagrodę odbiorą
+    <strong>tylko na miejscu (w kółku wokół punktu) i w czasie trwania</strong>. Miejsce to środek mapy: przesuń ją pod właściwy punkt.
+  </p>
+
+  <label class="field" [class.invalid]="errors()['title']">
+    <span>Nazwa wydarzenia <b>*</b></span>
+    <input type="text" maxlength="100" [value]="title()" (input)="title.set(value($event))" />
+    @if (errors()['title']; as message) { <small class="error">{{ message }}</small> }
+  </label>
+  <label class="field" [class.invalid]="errors()['description']">
+    <span>Opis: co to za wydarzenie</span>
+    <textarea rows="3" [value]="description()" (input)="description.set(value($event))" placeholder="Co się będzie działo, dla kogo, co zabrać"></textarea>
+    @if (errors()['description']; as message) { <small class="error">{{ message }}</small> }
+  </label>
+  <label class="field">
+    <span>Adres lub opis miejsca</span>
+    <input type="text" maxlength="200" [value]="address()" (input)="address.set(value($event))" />
+  </label>
+
+  <fieldset>
+    <legend>Kiedy</legend>
+    <div class="row">
+      <label class="field" [class.invalid]="errors()['startsAt']">
+        <span>Początek <b>*</b></span>
+        <input type="datetime-local" [value]="startsAt()" (input)="startsAt.set(value($event))" />
+        @if (errors()['startsAt']; as message) { <small class="error">{{ message }}</small> }
+      </label>
+      <label class="field" [class.invalid]="errors()['endsAt']">
+        <span>Koniec <b>*</b></span>
+        <input type="datetime-local" [value]="endsAt()" (input)="endsAt.set(value($event))" />
+        @if (errors()['endsAt']; as message) { <small class="error">{{ message }}</small> }
+      </label>
+    </div>
+    <label class="check"><input type="checkbox" [checked]="limitHours()" (change)="limitHours.set(!limitHours())" /> Nagrodę można odebrać tylko w określonych godzinach każdego dnia</label>
+    @if (limitHours()) {
+      <div class="row">
+        <label class="field" [class.invalid]="errors()['dailyFrom']">
+          <span>Codziennie od</span>
+          <input type="time" [value]="dailyFrom()" (input)="dailyFrom.set(value($event))" />
+          @if (errors()['dailyFrom']; as message) { <small class="error">{{ message }}</small> }
+        </label>
+        <label class="field" [class.invalid]="errors()['dailyTo']">
+          <span>do</span>
+          <input type="time" [value]="dailyTo()" (input)="dailyTo.set(value($event))" />
+          @if (errors()['dailyTo']; as message) { <small class="error">{{ message }}</small> }
+        </label>
+      </div>
+      <small class="hint">Godziny liczą się w czasie polskim i nie mogą przechodzić przez północ.</small>
+    }
+  </fieldset>
+
+  <fieldset [class.invalid]="errors()['rewardCharacter']">
+    <legend>Nagroda: rzadki Spryciak <b>*</b></legend>
+    <div class="rewards" role="radiogroup" aria-label="Nagroda">
+      @for (c of rewards(); track c.code) {
+        <button type="button" role="radio" class="reward" [class.on]="reward() === c.code" [attr.aria-checked]="reward() === c.code" (click)="reward.set(c.code)">
+          <span class="emoji">{{ c.emoji }}</span>
+          <strong>{{ c.label }}</strong>
+          <small>{{ types[c.typeCode].label }} · moc {{ c.basePower }}</small>
+        </button>
+      }
+    </div>
+    @if (chosen(); as c) {
+      <div class="preview">
+        <div class="model"><app-spryciak-model [character]="c.code" /></div>
+        <p>Uczestnicy dostaną: <strong>{{ c.emoji }} {{ c.label }}</strong> ({{ c.categoryLabel }}). Tak będzie się kręcił przy punkcie wydarzenia.</p>
+      </div>
+    }
+    @if (errors()['rewardCharacter']; as message) { <small class="error">{{ message }}</small> }
+  </fieldset>
+
+  <fieldset>
+    <legend>Opcjonalnie</legend>
+    <div class="row">
+      <label class="field" [class.invalid]="errors()['capacity']">
+        <span>Limit miejsc</span>
+        <input type="number" min="1" inputmode="numeric" [value]="capacity()" (input)="capacity.set(value($event))" />
+        @if (errors()['capacity']; as message) { <small class="error">{{ message }}</small> }
+      </label>
+      <label class="field">
+        <span>Wiek od</span>
+        <input type="number" min="0" max="120" inputmode="numeric" [value]="ageMin()" (input)="ageMin.set(value($event))" />
+      </label>
+      <label class="field" [class.invalid]="errors()['ageMax']">
+        <span>Wiek do</span>
+        <input type="number" min="0" max="120" inputmode="numeric" [value]="ageMax()" (input)="ageMax.set(value($event))" />
+        @if (errors()['ageMax']; as message) { <small class="error">{{ message }}</small> }
+      </label>
+    </div>
+    <small class="hint">Wiek jest tylko informacją dla uczestników: aplikacja nie zna wieku graczy.</small>
+  </fieldset>
+
+  @if (formError(); as message) { <p class="form-error" role="alert">{{ message }}</p> }
+  <div class="buttons">
+    <button type="submit" class="primary" [disabled]="busy()">{{ busy() ? 'Publikowanie…' : 'Opublikuj wydarzenie' }}</button>
+    <button type="button" (click)="cancelled.emit()">Anuluj</button>
+  </div>
+</form>

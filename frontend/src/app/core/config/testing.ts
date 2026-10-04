@@ -9,12 +9,12 @@ export const TEST_CONFIG: AppConfig = {
   map: { styleUrl: 'http://tiles.test/style', workerUrl: '/worker.mjs', center: { lat: 50.0617, lng: 19.9373 }, zoom: 16, pitch: 50, bearing: 0 },
   game: {
     interactionRangeM: 50, simulatedGps: { lat: 50.0617, lng: 19.9373 }, maxTeamSize: 3, typeMultiplier: 1.2,
-    actionDwellSeconds: 3, leaveGraceSeconds: 2, encounterRefreshMeters: 10, encounterRefreshSeconds: 30, battleClashMs: 0,
+    actionDwellSeconds: 3, leaveGraceSeconds: 2, encounterRefreshMeters: 10, encounterRefreshSeconds: 30, battleClashMs: 0, gpsMaxAgeSeconds: 10, gpsTimeoutSeconds: 10,
   },
   upload: { enabled: true, maxPhotos: 3, maxPhotoBytes: 5 * 1024 * 1024 },
   timeline: { titleMaxLength: 120, bodyMaxLength: 1000, maxCustomFields: 10, customFieldLabelMaxLength: 40, customFieldValueMaxLength: 300 },
   survey: { maxQuestions: 12, maxOptions: 10 },
-  ui: { toastMs: 3000, commentsPageSize: 2, mapReloadDebounceMs: 0, moderationPollSeconds: 30 },
+  ui: { toastMs: 3000, commentsPageSize: 2, mapReloadDebounceMs: 0, moderationPollSeconds: 30, eventRefreshSeconds: 60 },
   dev: { tools: true },
 };
 

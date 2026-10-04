@@ -1,0 +1,14 @@
+:host { display: block; }
+.reward { display: grid; justify-items: center; text-align: center; gap: 6px; }
+.kicker { margin: 0; font-size: .8rem; font-weight: 700; color: var(--brand-strong); }
+h2 { margin: 2px 0 6px; font-size: 1.25rem; }
+h3 { margin: 4px 0; font-size: 1.15rem; }
+.model { width: 200px; }
+.chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 0; }
+.chip { background: var(--tint); border-radius: 999px; padding: 3px 10px; font-size: .78rem; font-weight: 700; }
+.chip.power { background: var(--accent-tint); color: var(--accent-ink); }
+.chip.rare { background: var(--brand-strong); color: var(--on-strong); }
+.note { margin: 6px 0 4px; color: var(--text-muted); font-size: .9rem; }
+.actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 6px; }
+.btn { display: inline-block; box-sizing: border-box; border: 0; border-radius: 14px; padding: 12px 18px; font: inherit; font-weight: 700; text-align: center; text-decoration: none; cursor: pointer; background: var(--tint); color: var(--text); }
+.btn.primary { background: var(--brand-strong); color: var(--on-strong); }

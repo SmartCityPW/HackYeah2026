@@ -134,11 +134,13 @@ class NewQuestionSerializer(serializers.Serializer):
 
 
 class PositionSerializer(CamelSerializer):
-    """Pozycja gracza w chwili akcji (`PositionRequest`): serwer liczy z niej odległość od celu."""
+    """Pozycja gracza w chwili akcji (`PositionRequest`): serwer sprawdza jej wiarygodność (`apps.game.location`) i liczy odległość od celu."""
 
     lat = serializers.FloatField(min_value=-90, max_value=90)
     lng = serializers.FloatField(min_value=-180, max_value=180)
-    accuracy_m = serializers.FloatField(required=False, min_value=0)
+    accuracy_m = serializers.FloatField(required=False, allow_null=True, min_value=0)
+    taken_at = serializers.DateTimeField(required=False, allow_null=True)
+    source = serializers.ChoiceField(choices=['gps', 'simulated'], required=False, default='gps')
 
 
 class NewPokestopSerializer(CamelSerializer):

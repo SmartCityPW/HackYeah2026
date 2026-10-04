@@ -28,7 +28,13 @@ INSERT INTO collection_character (code, label, emoji, category_label, model_path
     ('bench', 'Ławka', '🪑', 'Mała architektura', 'models/spryciaki/bench.glb', (SELECT id FROM collection_type WHERE code = 'infra'), 13, 3, false, false),
     ('cone', 'Pachołek', '🚧', 'Roboty drogowe', 'models/spryciaki/cone.glb', (SELECT id FROM collection_type WHERE code = 'infra'), 12, 3, false, false),
     ('fire_hydrant', 'Hydrant', '🧯', 'Sieć wodna', 'models/spryciaki/fire_hydrant.glb', (SELECT id FROM collection_type WHERE code = 'infra'), 19, 4, false, false),
-    ('floor_hole', 'Dziura w chodniku', '🕳️', 'Chodniki', 'models/spryciaki/floor_hole.glb', (SELECT id FROM collection_type WHERE code = 'infra'), 16, 4, false, false);
+    ('floor_hole', 'Dziura w chodniku', '🕳️', 'Chodniki', 'models/spryciaki/floor_hole.glb', (SELECT id FROM collection_type WHERE code = 'infra'), 16, 4, false, false),
+    ('gold_bike', 'Złoty Rower', '🥇', 'Wydarzenia rowerowe', NULL, (SELECT id FROM collection_type WHERE code = 'transport'), 40, 6, false, true),
+    ('shiny_bin', 'Błyszczący Kosz', '✨', 'Wydarzenia sprzątające', NULL, (SELECT id FROM collection_type WHERE code = 'clean'), 36, 6, false, true),
+    ('giant_tree', 'Zielony Gigant', '🌲', 'Wydarzenia zielone', NULL, (SELECT id FROM collection_type WHERE code = 'green'), 42, 6, false, true),
+    ('lantern', 'Lampion Festiwalowy', '🏮', 'Festiwale i koncerty', NULL, (SELECT id FROM collection_type WHERE code = 'energy'), 38, 6, false, true),
+    ('cloud_kite', 'Chmurka-Latawiec', '🪁', 'Wydarzenia plenerowe', NULL, (SELECT id FROM collection_type WHERE code = 'air'), 37, 6, false, true),
+    ('mural_beast', 'Mural-Stwór', '🎨', 'Sztuka w mieście', NULL, (SELECT id FROM collection_type WHERE code = 'infra'), 39, 6, false, true);
 
 INSERT INTO game_enemy_type (code, name, emoji, description, type_id, action_kind, action_label, min_level, max_level, base_power, power_growth, base_xp, spawn_weight) VALUES
     ('traffic_jam', 'Korek Komunikacyjny', '🚗', 'Zablokował skrzyżowanie i nie chce odjechać.', (SELECT id FROM collection_type WHERE code = 'transport'), 'checkin', 'Stań przy skrzyżowaniu i rozładuj korek', 2, 4, 30, 10, 40, 3),

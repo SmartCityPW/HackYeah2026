@@ -28,13 +28,17 @@ export interface AppConfig {
     encounterRefreshSeconds: number;
     /** Najkrótszy czas animacji starcia (wynik i tak przychodzi z backendu). */
     battleClashMs: number;
+    /** Akcja (głos, walka itd.) prosi o odczyt GPS nie starszy niż tyle sekund; serwer odrzuca odczyty starsze niż `location.max_age_seconds`. */
+    gpsMaxAgeSeconds: number;
+    /** Ile sekund czekamy na świeży odczyt GPS przed akcją. */
+    gpsTimeoutSeconds: number;
   };
   upload: { enabled: boolean; maxPhotos: number; maxPhotoBytes: number };
   /** Limity formularzy losów inicjatywy (tylko do podpowiedzi i licznika znaków; decyduje backend: pokestops.timeline). */
   timeline: { titleMaxLength: number; bodyMaxLength: number; maxCustomFields: number; customFieldLabelMaxLength: number; customFieldValueMaxLength: number };
   /** Limity kreatora ankiet (decyduje backend: pokestops.survey). */
   survey: { maxQuestions: number; maxOptions: number };
-  ui: { toastMs: number; commentsPageSize: number; mapReloadDebounceMs: number; moderationPollSeconds: number };
+  ui: { toastMs: number; commentsPageSize: number; mapReloadDebounceMs: number; moderationPollSeconds: number; eventRefreshSeconds: number };
   dev: { tools: boolean };
 }
 
@@ -122,6 +126,8 @@ export function parseAppConfig(raw: unknown): AppConfig {
       encounterRefreshMeters: num(game, 'encounterRefreshMeters', 'game.encounterRefreshMeters'),
       encounterRefreshSeconds: num(game, 'encounterRefreshSeconds', 'game.encounterRefreshSeconds'),
       battleClashMs: num(game, 'battleClashMs', 'game.battleClashMs'),
+      gpsMaxAgeSeconds: num(game, 'gpsMaxAgeSeconds', 'game.gpsMaxAgeSeconds'),
+      gpsTimeoutSeconds: num(game, 'gpsTimeoutSeconds', 'game.gpsTimeoutSeconds'),
     },
     upload: {
       enabled: flag(upload, 'enabled', 'upload.enabled'),
@@ -144,6 +150,7 @@ export function parseAppConfig(raw: unknown): AppConfig {
       commentsPageSize: num(ui, 'commentsPageSize', 'ui.commentsPageSize'),
       mapReloadDebounceMs: num(ui, 'mapReloadDebounceMs', 'ui.mapReloadDebounceMs'),
       moderationPollSeconds: num(ui, 'moderationPollSeconds', 'ui.moderationPollSeconds'),
+      eventRefreshSeconds: num(ui, 'eventRefreshSeconds', 'ui.eventRefreshSeconds'),
     },
     dev: { tools: flag(dev, 'tools', 'dev.tools') },
   };

@@ -21,6 +21,14 @@
 .stop-marker[data-trusted] { --stop-color: var(--color-pink); }
 .stop-marker[data-trusted] span { font-size: 28px; font-weight: 900; color: var(--surface); }
 
+/* Wydarzenia: pinezka na jasnym tle z podwójną, przerywaną obwódką; trwające teraz (data-active) dodatkowo pulsują. */
+.stop-marker.event-marker { --stop-color: var(--color-lavender); outline: 3px dashed var(--color-pink); outline-offset: 2px; }
+.stop-marker.event-marker span { font-size: 24px; }
+.stop-marker.event-marker[data-active='true'] { animation: event-pulse 1.8s infinite; }
+.stop-marker.event-marker[data-active='false'] { filter: saturate(.55); }
+@keyframes event-pulse { 70% { box-shadow: 0 0 0 14px color-mix(in srgb, var(--color-pink) 0%, transparent); } 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-pink) 60%, transparent); } }
+
 /* Cele poza kółkiem interakcji: widoczne, ale przygaszone, bo trzeba do nich podejść. */
 .stop-marker.out-of-range, .enemy-marker.out-of-range { opacity: .45; filter: grayscale(.6); }
+.stop-marker.event-marker.out-of-range { animation: none; }
 .enemy-marker.out-of-range { animation: none; }

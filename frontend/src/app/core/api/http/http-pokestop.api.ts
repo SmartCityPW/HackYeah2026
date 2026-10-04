@@ -3,7 +3,8 @@ import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { AppConfigService } from '../../config/app-config.service';
 import { toApiError } from '../../http/api-error';
-import { Position } from '../../game.model';
+import { PlayerPosition } from '../../game.model';
+import { toPositionDto } from '../../http/position.dto';
 import { Pokemon } from '../../pokemon.model';
 import { Bbox, CharacterId, CommentPage, NewReport, Pokestop, PokestopComment, PokestopPatch, PokestopStatus, SurveyAnswers, SurveyResult, SurveyResults, TimelineEntry, UpdateDraft, VoteContext, VoteResult } from '../../pokestop.model';
 import { PokestopApi } from '../pokestop.api';
@@ -71,8 +72,8 @@ export class HttpPokestopApi extends PokestopApi {
     await this.send<void>('DELETE', `/pokestops/${id}/updates/${updateId}`);
   }
 
-  async answerSurvey(id: number, answers: SurveyAnswers, position: Position): Promise<SurveyResult> {
-    const dto = await this.send<SurveyResultDto>('POST', `/pokestops/${id}/survey-responses`, { position: { lat: position.lat, lng: position.lng }, answers });
+  async answerSurvey(id: number, answers: SurveyAnswers, position: PlayerPosition): Promise<SurveyResult> {
+    const dto = await this.send<SurveyResultDto>('POST', `/pokestops/${id}/survey-responses`, { position: toPositionDto(position), answers });
     return toSurveyResult(dto);
   }
 
@@ -81,7 +82,7 @@ export class HttpPokestopApi extends PokestopApi {
   }
 
   async vote(id: number, vote: 'for' | 'against', { pokemonId, position }: VoteContext): Promise<VoteResult> {
-    const dto = await this.send<VoteResultDto>('POST', `/pokestops/${id}/vote`, { vote, pokemonId, position: { lat: position.lat, lng: position.lng } });
+    const dto = await this.send<VoteResultDto>('POST', `/pokestops/${id}/vote`, { vote, pokemonId, position: toPositionDto(position) });
     return toVoteResult(dto);
   }
 
@@ -95,7 +96,7 @@ export class HttpPokestopApi extends PokestopApi {
     return toComment(dto);
   }
 
-  async create(report: NewReport, position: Position): Promise<Pokestop> {
+  async create(report: NewReport, position: PlayerPosition): Promise<Pokestop> {
     const dto = await this.send<PokestopDto>('POST', '/pokestops', toNewPokestop(report, position));
     return toPokestop(dto);
   }

@@ -1,0 +1,37 @@
+@let e = event();
+@let r = reward();
+<section class="sheet" role="dialog" [attr.aria-label]="'Wydarzenie: ' + e.title">
+  <button type="button" class="close" (click)="closed.emit()" aria-label="Zamknij"><app-icon name="close" /></button>
+  <p class="kicker">Wydarzenie · {{ e.organization }}</p>
+  <h2>{{ e.title }}</h2>
+  <p class="when"><strong>{{ period() }}</strong></p>
+  @if (e.address) { <p class="where">{{ e.address }}</p> }
+  <p class="state" [attr.data-state]="e.activeNow ? 'now' : e.phase">{{ state() }}</p>
+  @if (e.description) { <p class="description">{{ e.description }}</p> }
+
+  <div class="reward-box">
+    <div class="model"><app-spryciak-model [character]="e.rewardCharacter" /></div>
+    <div>
+      <p class="reward-title">Nagroda za udział</p>
+      <strong>{{ r.emoji }} {{ r.label }}</strong>
+      <p class="chips">
+        <span class="chip rare">★ Rzadki</span>
+        <span class="chip">{{ types[r.typeCode].emoji }} {{ types[r.typeCode].label }}</span>
+        <span class="chip power">Moc {{ r.basePower }}</span>
+      </p>
+      <small>Dostaje go każdy, kto będzie na miejscu w czasie wydarzenia (jeden raz).</small>
+    </div>
+  </div>
+
+  <dl class="facts">
+    <dt>Uczestnicy</dt><dd>{{ e.participantCount }}@if (e.capacity !== null) { z {{ e.capacity }} miejsc }</dd>
+    @if (age(); as range) { <dt>Wiek</dt><dd>{{ range }}</dd> }
+  </dl>
+
+  @if (canCollect() && e.phase !== 'ended' && e.phase !== 'cancelled') {
+    @if (blocker(); as message) { <p class="hint warn">{{ message }}</p> }
+    <button type="button" class="collect" [disabled]="!canPress()" (click)="collect.emit()">
+      {{ e.checkedIn ? 'Nagroda odebrana' : busy() ? 'Odbieranie…' : 'Odbierz pokemona' }}
+    </button>
+  }
+</section>

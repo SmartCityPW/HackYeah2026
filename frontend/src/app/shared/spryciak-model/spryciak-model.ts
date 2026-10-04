@@ -44,7 +44,7 @@ export class SpryciakModel {
       const canvas = this.canvas()?.nativeElement;
       if (!canvas) return;
       try {
-        const off = await this.previews.attach(canvas, this.species().modelPath, { silhouette: this.silhouette(), phase: this.phase() });
+        const off = await this.previews.attach(canvas, this.species().modelPath, { silhouette: this.silhouette(), phase: this.phase(), code: this.character() });
         if (destroyed) off();
         else detach = off;
       } catch {

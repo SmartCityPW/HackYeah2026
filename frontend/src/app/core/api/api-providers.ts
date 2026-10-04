@@ -1,6 +1,9 @@
 import { Provider, inject } from '@angular/core';
 import { AppConfigService } from '../config/app-config.service';
 import { AccountApi } from './account.api';
+import { EventApi } from './event.api';
+import { MockEventApi } from './event.api.mock';
+import { HttpEventApi } from './http/http-event.api';
 import { MockAccountApi } from './account.api.mock';
 import { GameApi } from './game.api';
 import { MockGameApi } from './game.api.mock';
@@ -22,6 +25,8 @@ export const API_PROVIDERS: Provider[] = [
   MockGameApi,
   MockAccountApi,
   MockModerationApi,
+  MockEventApi,
+  { provide: EventApi, useFactory: () => inject<EventApi>(inject(AppConfigService).config.api.mode.pokestops === 'http' ? HttpEventApi : MockEventApi) },
   { provide: ModerationApi, useFactory: () => inject<ModerationApi>(inject(AppConfigService).config.api.mode.pokestops === 'http' ? HttpModerationApi : MockModerationApi) },
   { provide: PokestopApi, useFactory: () => inject<PokestopApi>(inject(AppConfigService).config.api.mode.pokestops === 'http' ? HttpPokestopApi : MockPokestopApi) },
   { provide: GameApi, useFactory: () => inject<GameApi>(inject(AppConfigService).config.api.mode.game === 'http' ? HttpGameApi : MockGameApi) },

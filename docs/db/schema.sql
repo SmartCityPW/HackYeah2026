@@ -10,7 +10,9 @@
 --   * to jest docelowy kształt bazy: modele Django mają go odwzorować,
 --     a migracje (`makemigrations`) wygenerują właściwy DDL. Plik służy jako wzorzec i do szybkiej inicjalizacji.
 --
--- v5: przeciwnicy przypisani do kwadratów terenu (game_encounter_cell, game_encounter.cell_id), wspólni dla graczy;
+-- v6: przeciwnicy generowani indywidualnie dla każdego gracza (user_id w game_encounter_cell i game_encounter), game_player_location (ostatnia
+--     zweryfikowana pozycja gracza, wykrywanie teleportacji);
+-- v5: przeciwnicy przypisani do kwadratów terenu (game_encounter_cell, game_encounter.cell_id);
 --     game_attack zapisuje też próby odrzucone (antyoszustwo) i poza zasięgiem.
 --
 -- v4: zgodność z docs/opis.md: wydarzenia (events_*), ankiety (pokestops_question/_survey_*), głosowanie i ankiety
@@ -445,6 +447,8 @@ CREATE TABLE events_event (
     location            geography(Point, 4326) NOT NULL,
     starts_at           timestamptz  NOT NULL,
     ends_at             timestamptz  NOT NULL,
+    daily_from          time,                                                          -- godziny dzienne odbioru nagrody (czas lokalny wg app.timezone); NULL = przez cały okres
+    daily_to            time,
     reward_character_id smallint     NOT NULL REFERENCES collection_character (id),   -- unikalny pokemon za udział (is_event_exclusive)
     capacity            integer,                                                       -- NULL = bez limitu miejsc
     age_min             smallint,
@@ -454,6 +458,7 @@ CREATE TABLE events_event (
     updated_at          timestamptz  NOT NULL DEFAULT now(),
     CONSTRAINT event_title_not_blank CHECK (char_length(btrim(title)) >= 3),
     CONSTRAINT event_ends_after_start CHECK (ends_at > starts_at),
+    CONSTRAINT event_daily_window CHECK ((daily_from IS NULL AND daily_to IS NULL) OR (daily_from IS NOT NULL AND daily_to IS NOT NULL AND daily_from < daily_to)),
     CONSTRAINT event_capacity_positive CHECK (capacity IS NULL OR capacity > 0),
     CONSTRAINT event_age_range CHECK (age_min IS NULL OR age_max IS NULL OR age_min <= age_max)
 );
@@ -497,17 +502,19 @@ CREATE TABLE game_enemy_type (                          -- szablony, z których 
     CONSTRAINT enemy_weight_positive CHECK (spawn_weight > 0)
 );
 
-CREATE TABLE game_encounter_cell (                      -- kwadrat terenu (bok game.encounters.cell_size_m), wspólny dla graczy
+CREATE TABLE game_encounter_cell (                      -- kwadrat terenu (bok game.encounters.cell_size_m) JEDNEGO gracza: każdy ma własne zasiedlenie
     id            bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id       bigint      REFERENCES accounts_user (id) ON DELETE CASCADE,   -- właściciel kwadratu; NULL tylko w starych wierszach (wspólne kwadraty)
     "row"         integer     NOT NULL,                   -- numer kwadratu w siatce (z szerokości geograficznej)
     col           integer     NOT NULL,                   -- numer kwadratu w rzędzie (z długości, liczonej dla środka rzędu)
     populated_at  timestamptz,                            -- ostatnie zasiedlenie (losowanie 0..max_per_cell przeciwników)
     refill_at     timestamptz,                            -- kiedy wyczyszczony kwadrat zasiedli się na nowo; NULL, gdy stoją w nim przeciwnicy
-    CONSTRAINT game_encounter_cell_unique UNIQUE ("row", col)
+    CONSTRAINT game_encounter_cell_user_unique UNIQUE (user_id, "row", col)
 );
 
 CREATE TABLE game_encounter (                           -- konkretny przeciwnik na mapie
     id            bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    user_id       bigint           REFERENCES accounts_user (id) ON DELETE CASCADE,         -- właściciel: tylko on widzi i atakuje; NULL tylko w starych wierszach (wspólne kwadraty)
     cell_id       bigint           REFERENCES game_encounter_cell (id) ON DELETE CASCADE,   -- kwadrat, do którego należy przeciwnik
     enemy_type_id smallint         NOT NULL REFERENCES game_enemy_type (id),
     level         smallint         NOT NULL,
@@ -530,6 +537,7 @@ CREATE TABLE game_encounter (                           -- konkretny przeciwnik 
 );
 CREATE INDEX game_encounter_active_location_idx ON game_encounter USING gist (location) WHERE status = 'active';
 CREATE INDEX game_encounter_cell_idx ON game_encounter (cell_id) WHERE status = 'active';
+CREATE INDEX game_encounter_user_status_idx ON game_encounter (user_id, status);
 CREATE INDEX game_encounter_active_expiry_idx ON game_encounter (expires_at) WHERE status = 'active';
 
 -- Stawiany pokemon musi należeć do autora, być dostępny (nie już zastawiony) i mieć gatunek
@@ -666,6 +674,15 @@ $$;
 CREATE TRIGGER game_attack_pokemon_check
     AFTER INSERT ON game_attack_pokemon
     FOR EACH ROW EXECUTE FUNCTION game_attack_pokemon_validate();
+
+CREATE TABLE game_player_location (                     -- ostatnia zweryfikowana pozycja gracza: podstawa wykrywania teleportacji między akcjami
+    user_id     bigint PRIMARY KEY REFERENCES accounts_user (id) ON DELETE CASCADE,
+    lat         double precision NOT NULL,
+    lng         double precision NOT NULL,
+    accuracy_m  double precision,
+    source      varchar(10)      NOT NULL DEFAULT 'gps',      -- gps | simulated
+    reported_at timestamptz      NOT NULL
+);
 
 CREATE TABLE game_player_progress (
     user_id    bigint PRIMARY KEY REFERENCES accounts_user (id) ON DELETE CASCADE,

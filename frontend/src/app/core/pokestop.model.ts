@@ -1,4 +1,4 @@
-import { Position } from './game.model';
+import { PlayerPosition } from './game.model';
 import { Pokemon } from './pokemon.model';
 
 export type PokestopType = 'report' | 'idea' | 'place' | 'ngo' | 'consultation';
@@ -188,7 +188,7 @@ export interface Bbox {
 /** Dane, które serwer musi dostać razem z głosem: kto dostaje exp i gdzie głosujący faktycznie stoi. */
 export interface VoteContext {
   pokemonId: number;
-  position: Position;
+  position: PlayerPosition;
 }
 
 export interface VoteResult {

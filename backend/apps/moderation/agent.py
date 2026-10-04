@@ -25,6 +25,7 @@ class ModerationUnavailable(Exception):
 class Review:
     approved: bool
     model: str
+    reason: str | None = None  # przy odrzuceniu: kategoria naruszenia (np. "vulgar"), nigdy fragment treści
 
 
 class ModerationAgent(Protocol):
@@ -150,12 +151,71 @@ class GeminiAgent:
         return parse_verdict(str(verdict))
 
 
+class RulesAgent:
+    """Warstwa 1: reguły z config/moderation_rules.yaml. Działa bez sieci i klucza, więc moderacja istnieje zawsze."""
+
+    def review(self, submission: dict) -> Review:
+        from apps.moderation.rules import inspect_submission
+        category = inspect_submission(submission)
+        return Review(approved=category is None, model='rules', reason=category)
+
+
+def _ai_agent() -> ModerationAgent | None:
+    """Warstwa 2 (AI) skonfigurowana w moderation.layered.ai. Zwraca None, gdy jej nie ma (brak klucza albo adresu)."""
+    kind = settings.APP.moderation.layered.ai
+    if kind == 'gemini' and secret('AI_API_KEY', required=False):
+        return GeminiAgent()
+    if kind == 'http' and settings.APP.moderation.http.url:
+        return HttpAgent()
+    if kind not in ('none', 'gemini', 'http'):
+        raise ValueError(f'moderation.layered.ai: nieobsługiwana wartość {kind!r} (none | gemini | http)')
+    return None
+
+
+def has_ai_layer() -> bool:
+    """Czy skonfigurowany agent ocenia też sens treści (temat), a nie tylko reguły."""
+    provider = settings.APP.moderation.provider
+    if provider in ('gemini', 'http'):
+        return True
+    return provider == 'layered' and _ai_agent() is not None
+
+
+class LayeredAgent:
+    """Reguły, a potem AI. Odrzucenie przez reguły kończy sprawę (bez kosztu i bez ryzyka wstrzyknięcia instrukcji do modelu).
+
+    Gdy AI jest skonfigurowane, a nie odpowiada, zgłoszenie nie przechodzi (ModerationUnavailable), jak w pojedynczym agencie,
+    chyba że `moderation.layered.on_ai_error` to rules_only (wtedy wystarczy, że przeszło reguły).
+    Gdy AI nie jest skonfigurowane (brak klucza), działają same reguły, chyba że `moderation.layered.require_ai` jest true.
+    """
+
+    def review(self, submission: dict) -> Review:
+        first = RulesAgent().review(submission)
+        if not first.approved:
+            return first
+        ai = _ai_agent()
+        if ai is None:
+            if settings.APP.moderation.layered.require_ai:
+                raise ModerationUnavailable('Warstwa AI jest wymagana (moderation.layered.require_ai), a nie jest skonfigurowana')
+            return first
+        try:
+            second = ai.review(submission)
+        except ModerationUnavailable:
+            if settings.APP.moderation.layered.on_ai_error == 'rules_only':
+                return Review(True, 'rules (AI niedostępne)')
+            raise
+        return Review(approved=second.approved, model=f'rules+{second.model}', reason=None if second.approved else 'ai')
+
+
 def get_agent() -> ModerationAgent:
     provider = settings.APP.moderation.provider
     if provider == 'stub':
         return StubAgent()
+    if provider == 'rules':
+        return RulesAgent()
+    if provider == 'layered':
+        return LayeredAgent()
     if provider == 'http':
         return HttpAgent()
     if provider == 'gemini':
         return GeminiAgent()
-    raise ValueError(f'moderation.provider: nieobsługiwana wartość {provider!r} (stub | http | gemini)')
+    raise ValueError(f'moderation.provider: nieobsługiwana wartość {provider!r} (stub | rules | layered | http | gemini)')

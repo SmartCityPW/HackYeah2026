@@ -22,6 +22,11 @@ Każdy plik z `frontend/public/` (modele 3D, tekstury, ikony, dźwięki, czcionk
 | trash_can.glb („Trash Can”) | **do uzupełnienia** | **do uzupełnienia** | **do uzupełnienia** | `frontend/public/models/spryciaki/` — Spryciak (kod `trash_can`) |
 | tree.glb („Tree”) | **do uzupełnienia** | **do uzupełnienia** | **do uzupełnienia** | `frontend/public/models/spryciaki/` — Spryciak (kod `tree`) |
 | van.glb („Van”) | **do uzupełnienia** | **do uzupełnienia** | **do uzupełnienia** | `frontend/public/models/spryciaki/` — Spryciak (kod `van`) |
+| Ikony PWA (`icon-*.png`, `icon-maskable-*.png`, `apple-touch-icon.png`) | własne: kadr „GO” z loga projektu na gradiencie z palety HackYeah | własność zespołu | zespół projektu | `frontend/public/icons/` — manifest PWA, ikona na ekranie głównym |
+
+## Modele do uzupełnienia
+
+Rzadkie Spryciaki wyłączne dla wydarzeń (`is_event_exclusive` w `backend/config/seed/reference.yaml`) nie mają jeszcze modeli 3D: `gold_bike`, `shiny_bin`, `giant_tree`, `lantern`, `cloud_kite`, `mural_beast`. Do czasu ich dodania aplikacja rysuje postać zastępczą w barwie z palety. Każdy nowy plik wpisz do tabeli powyżej.
 
 ## Biblioteki i dane
 

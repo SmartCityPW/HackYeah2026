@@ -1,0 +1,23 @@
+# Wdrożenie prototypu (hackathon, wydarzenie z graczami). Skopiuj do backend/config/production.yaml, wpisz swoją domenę
+# i wskaż plik w .env:  APP_CONFIG_OVERRIDE=config/production.yaml  (z danymi demo: ...,config/demo.example.yaml)
+# Układ: przeglądarka -> Caddy (HTTPS) -> nginx we frontendzie -> /api/ do gunicorna. Dlatego trusted_proxies to 2.
+# Bez Caddy (np. własny tunel albo proxy hostingu) ustaw trusted_proxies na liczbę proxy przed aplikacją.
+app:
+  debug: false
+  allowed_hosts: [twoja-domena.example, localhost, 127.0.0.1]
+  cors_allowed_origins: ["https://twoja-domena.example"]   # aplikacja i API są pod jednym adresem, ale wpis nic nie kosztuje
+  https_proxy: true            # Django ufa nagłówkowi X-Forwarded-Proto od proxy
+  hsts_seconds: 0              # po sprawdzeniu, że całość działa na HTTPS, ustaw 31536000
+server:
+  trusted_proxies: 2
+auth:
+  guest_rate: 300/hour         # konta gościa na adres IP; na imprezie wiele osób siedzi w jednej sieci Wi-Fi
+  login_rate: 20/minute
+location:
+  allow_simulated: false       # produkcja: żadnych symulowanych pozycji GPS
+moderation:
+  provider: layered            # reguły + (gdy ustawisz AI_API_KEY) Gemini; bez klucza same reguły
+  layered:
+    ai: gemini
+    require_ai: false          # true = bez klucza AI zgłoszenia nie przechodzą
+    on_ai_error: reject        # Gemini nie odpowiada (np. limit darmowego planu): reject = użytkownik dostaje "spróbuj ponownie"; rules_only = przepuszczamy to, co przeszło reguły

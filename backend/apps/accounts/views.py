@@ -18,7 +18,7 @@ from apps.accounts.serializers import (
 )
 from core.errors import ApiError
 from core.permissions import role_required
-from core.throttling import GuestCreationThrottle
+from core.throttling import GuestCreationThrottle, LoginThrottle
 
 
 class GuestView(APIView):
@@ -35,6 +35,7 @@ class GuestView(APIView):
 class RegisterView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
+    throttle_classes = [LoginThrottle]
 
     def post(self, request):
         s = CredentialsSerializer(data=request.data)
@@ -46,6 +47,7 @@ class RegisterView(APIView):
 class RegisterOrganizationView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
+    throttle_classes = [LoginThrottle]
 
     def post(self, request):
         s = OrganizationRegistrationSerializer(data=request.data)
@@ -58,6 +60,7 @@ class RegisterOrganizationView(APIView):
 class LoginView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
+    throttle_classes = [LoginThrottle]
 
     def post(self, request):
         s = CredentialsSerializer(data=request.data)

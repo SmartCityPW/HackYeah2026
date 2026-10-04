@@ -1,5 +1,6 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
-import { ApplicationConfig, Injector, inject, provideAppInitializer, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { ApplicationConfig, Injector, inject, isDevMode, provideAppInitializer, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { provideServiceWorker } from '@angular/service-worker';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { API_PROVIDERS } from './core/api/api-providers';
 import { CatalogService } from './core/catalog/catalog.service';
@@ -28,5 +29,8 @@ export const appConfig: ApplicationConfig = {
       await injector.get(SessionService).init();
     }),
     ...API_PROVIDERS,
+    // PWA: service worker tylko w buildzie produkcyjnym (w `ng serve` psułby odświeżanie). Zapewnia instalację na ekranie głównym i szybki start;
+    // żądania do API i kafelki mapy nie są cache'owane (patrz ngsw-config.json), więc dane są zawsze świeże.
+    provideServiceWorker('ngsw-worker.js', { enabled: !isDevMode(), registrationStrategy: 'registerWhenStable:30000' }),
   ],
 };

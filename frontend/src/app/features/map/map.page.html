@@ -21,7 +21,7 @@
   </button>
 }
 
-@if (canParticipate() && !panelOpen() && !selected() && !selectedEncounter() && !battleEncounter() && !surveyStop()) {
+@if (canParticipate() && !panelOpen() && !selected() && !selectedEncounter() && !battleEncounter() && !surveyStop() && !selectedEvent()) {
   @if (session.canPublishInitiatives()) {
     <button class="fab" (click)="togglePanel()"><app-icon name="plus" /> {{ session.role() === 'org' ? 'Nowa inicjatywa' : 'Zgłoś' }}</button>
   } @else {
@@ -56,6 +56,28 @@
   </section>
 }
 
+@if (selectedEvent(); as ev) {
+  <app-event-card
+    [event]="ev"
+    [distance]="eventDistance()"
+    [radius]="interactionRadius"
+    [canCollect]="canAnswerSurvey()"
+    [busy]="collecting()"
+    (closed)="closeEvent()"
+    (collect)="collectEvent(ev)"
+  />
+}
+
+@if (eventReward(); as won) {
+  <app-reward-overlay
+    [pokemon]="won.pokemon"
+    [kicker]="'Wydarzenie: ' + won.event.title"
+    heading="Rzadki Spryciak jest Twój!"
+    note="Dostajesz go za obecność na wydarzeniu. Takiego nie zdobędziesz w walce ani w ankiecie."
+    (closed)="eventReward.set(null)"
+  />
+}
+
 @if (surveyStop(); as survey) {
   <app-survey [stop]="survey" (closed)="closeSurvey()" />
 }
@@ -74,7 +96,7 @@
   <div class="crosshair" [class.out-of-range]="!pinInRange()" aria-hidden="true">📍</div>
   <section class="sheet tall" style="--stop-color: var(--color-indigo)">
     <button class="sheet-close" (click)="panelOpen.set(false)" aria-label="Zamknij"><app-icon name="close" /></button>
-    <app-report-panel [pinInRange]="pinInRange()" (drafted)="onReportDrafted($event)" />
+    <app-report-panel [pinInRange]="pinInRange()" [center]="centerPosition()" (drafted)="onReportDrafted($event)" (eventCreated)="onEventCreated($event)" />
   </section>
 }
 

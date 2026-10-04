@@ -30,7 +30,7 @@ services:
       db:
         condition: service_healthy
     ports:
-      - "${BACKEND_PORT:-8000}:8000"    # po prawej port z backend/config/default.yaml (server.port)
+      - "127.0.0.1:${BACKEND_PORT:-8000}:8000"    # tylko z tego komputera (diagnostyka); z zewnątrz API jest pod /api/ we froncie. Po prawej port z backend/config/default.yaml (server.port)
     volumes:
       - media:/app/data/media           # backend/config/default.yaml (storage.media_root)
 
@@ -41,12 +41,33 @@ services:
         NODE_VERSION: ${NODE_VERSION:-24}
     depends_on:
       - backend
+    environment:
+      # Który plik z frontend/public/config nginx podaje przeglądarce jako config/app-config.yaml. Domyślnie wersja wdrożeniowa
+      # (API pod /api/, bez narzędzi deweloperskich). Do pokazu z symulatorem GPS: FRONTEND_CONFIG=app-config.yaml w .env.
+      FRONTEND_CONFIG: ${FRONTEND_CONFIG:-app-config.production.yaml}
     ports:
       - "${FRONTEND_PORT:-4200}:80"     # adres z backend/config/default.yaml (app.cors_allowed_origins) musi się zgadzać z portem
     volumes:
       # Konfiguracja aplikacji (adres backendu, api.mode.*): edytujesz plik na hoście i odświeżasz stronę, bez przebudowy obrazu.
       - ./frontend/public/config:/usr/share/nginx/html/config:ro
 
+  # HTTPS (opcjonalnie): docker compose --profile tls up -d --build  (w .env: DOMAIN=twoja-domena.example, porty 80 i 443 otwarte).
+  # Przeglądarki dają lokalizację tylko na HTTPS, więc bez tego gra na telefonach nie zadziała (poza localhost).
+  caddy:
+    image: caddy:2
+    profiles: ["tls"]
+    depends_on:
+      - frontend
+    environment:
+      DOMAIN: ${DOMAIN:-localhost}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+
 volumes:
+  caddy-data:
   db-data:
   media:

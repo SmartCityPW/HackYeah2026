@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.models import Role
+from apps.game.location import Fix
 from apps.pokestops import services, survey, timeline
 from apps.pokestops.models import Comment, Pokestop, Status, Update, Vote
 from apps.pokestops.serializers import (
@@ -143,7 +144,7 @@ class VoteView(APIView):
         s.is_valid(raise_exception=True)
         d = s.validated_data
         stop, pokemon = services.vote(
-            user=request.user, pokestop_id=pk, value=d['vote'], pokemon_id=d['pokemon_id'], lat=d['position']['lat'], lng=d['position']['lng'],
+            user=request.user, pokestop_id=pk, value=d['vote'], pokemon_id=d['pokemon_id'], fix=Fix.from_position(d['position']),
         )
         from apps.collection.serializers import PokemonSerializer
 
@@ -158,7 +159,7 @@ class SurveyResponsesView(APIView):
         s = SurveyResponseRequestSerializer(data=request.data)
         s.is_valid(raise_exception=True)
         d = s.validated_data
-        stop, pokemon = survey.answer_survey(user=request.user, pokestop_id=pk, lat=d['position']['lat'], lng=d['position']['lng'], answers=d['answers'])
+        stop, pokemon = survey.answer_survey(user=request.user, pokestop_id=pk, fix=Fix.from_position(d['position']), answers=d['answers'])
         from apps.collection.serializers import PokemonSerializer
 
         response = Response({'stop': _detail(request, stop.id).data, 'pokemon': PokemonSerializer(pokemon).data})

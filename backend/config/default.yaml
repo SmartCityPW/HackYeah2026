@@ -15,12 +15,15 @@ app:
   allowed_hosts: [localhost, 127.0.0.1]
   cors_allowed_origins: ["http://localhost:4200"]
   api_prefix: api/v1
+  https_proxy: false             # true za proxy z TLS (Caddy, nginx): ufamy nagłówkowi X-Forwarded-Proto
+  hsts_seconds: 0                # >0 (np. 31536000) dopiero, gdy cała domena działa już na HTTPS
 
 server:                 # używane przez config/gunicorn.py
   host: 0.0.0.0
   port: 8000
   workers: 3
   timeout_seconds: 30
+  trusted_proxies: 0    # ile proxy stoi przed aplikacją; limity żądań liczą wtedy IP klienta z X-Forwarded-For (w Dockerze: 2, patrz production.yaml)
 
 database:
   engine: postgresql    # postgresql | sqlite
@@ -47,6 +50,7 @@ auth:
   refresh_token_days: 14
   password_min_length: 8
   guest_rate: 5/hour    # limit zakładania kont gościa na adres IP
+  login_rate: 20/minute # limit prób logowania i rejestracji na adres IP (ochrona przed zgadywaniem haseł)
 
 game:
   interaction_range_m: 50        # zasięg: głos, ankieta, zameldowanie, atak
@@ -58,17 +62,16 @@ game:
   levels:
     exp_per_pokemon_level: 100
     xp_per_player_level: 100
-  encounters:                    # przeciwnicy są przypisani do miejsc (kwadratów terenu) i wspólni dla graczy
+  encounters:                    # przeciwnicy generowani INDYWIDUALNIE dla każdego gracza i przypisani do miejsc (kwadratów terenu)
     cell_size_m: 100             # bok kwadratu terenu
-    max_per_cell: 6              # kwadrat przy zasiedleniu losuje 0..max_per_cell przeciwników
+    max_per_cell: 6              # kwadrat gracza przy zasiedleniu losuje 0..max_per_cell przeciwników
     max_in_response: 5           # ilu najbliższych w promieniu zwraca GET /encounters
     lifetime_minutes: 30         # po tym czasie przeciwnik wygasa
-    respawn_seconds: 60          # wyczyszczony (pokonani lub wygasli) kwadrat zasiedla się na nowo po tym czasie
+    respawn_seconds: 60          # wyczyszczony (pokonani lub wygasli) kwadrat gracza zasiedla się na nowo po tym czasie
+    retention_hours: 24          # zakończeni przeciwnicy bez śladu walki są usuwani po tym czasie (`manage.py prune_encounters`, też przy starcie)
     default_radius_m: 50         # promień zapytania domyślny: kółko interakcji
     max_radius_m: 500
-  anti_cheat:
-    max_accuracy_m: 100
-    max_speed_mps: 40
+  anti_cheat:                    # limity częstotliwości walk (wiarygodność pozycji: sekcja `location`)
     min_seconds_between_attacks: 5
     max_attacks_per_hour: 20
 
@@ -95,11 +98,16 @@ pokestops:
     text_max_length: 2000
 
 moderation:
-  provider: stub                 # stub | http | gemini
+  provider: layered              # layered (reguły, potem AI) | rules (same reguły) | gemini | http | stub (atrapa: tylko do testów)
   timeout_seconds: 5
   log_retention_days: 90         # log werdyktów zawiera treść zgłoszeń (także odrzuconych, mogą w niej być dane osobowe): starsze wpisy czyści `manage.py moderation_prune_log` (i `bootstrap`)
   cases_file: config/moderation_cases.yaml   # zestaw regresyjny agenta; dopisuje do niego `manage.py moderation_log_to_cases`
   prompt_file: config/moderation_prompt.txt
+  rules_file: config/moderation_rules.yaml   # warstwa 1: wulgaryzmy, nienawiść, groźby, dane osobowe, spam, wstrzykiwanie instrukcji
+  layered:                       # provider: layered
+    ai: gemini                   # warstwa 2 (ocena sensu treści): gemini | http | none. Bez klucza AI_API_KEY działają same reguły
+    require_ai: false            # true = bez skonfigurowanej warstwy AI (brak klucza) zgłoszenia nie przechodzą (503)
+    on_ai_error: reject          # gdy AI jest skonfigurowane, ale nie odpowiada (limit zapytań, awaria): reject = 503 "spróbuj ponownie" | rules_only = przepuść to, co przeszło reguły
   stub:
     reject_marker: "[odrzuć]"    # tryb stub: tytuł lub opis z tym znacznikiem jest odrzucany (do demo i testów)
   http:
@@ -110,6 +118,21 @@ moderation:
     model: gemini-3.5-flash-lite # tani i szybki wariant; nazwy modeli się zmieniają: https://ai.google.dev/gemini-api/docs/models
     temperature: 0               # klasyfikacja ma być powtarzalna
     max_output_tokens: 256       # zapas na wewnętrzne "myślenie" modelu; sama odpowiedź to jedna cyfra
+
+location:                        # weryfikacja pozycji gracza przy KAŻDEJ akcji związanej z miejscem (głos, pinezka, ankieta, wydarzenie, walka, przeciwnicy)
+  require_accuracy: true         # klient musi podać dokładność GPS (accuracyM)
+  max_accuracy_m: 50             # gorsza dokładność = pozycja odrzucona (przy kółku 50 m większy błąd niczego nie dowodzi)
+  require_timestamp: true        # klient musi podać chwilę odczytu GPS (takenAt)
+  max_age_seconds: 30            # starszy odczyt = odrzucony (nie da się użyć dawnej pozycji)
+  max_future_seconds: 5          # tolerancja zegara klienta (odczyt "z przyszłości")
+  max_speed_mps: 40              # szybsza zmiana pozycji między dwiema akcjami = teleportacja, pozycja odrzucona
+  speed_ignore_below_m: 60       # przesunięcia mniejsze niż to nie liczą się jako ruch (szum GPS)
+  allow_simulated: false         # pozycje ze źródłem "simulated" (tryb deweloperski, testy) przyjmujemy tylko, gdy true: lokalnie, w demo i testach; w produkcji false
+
+events:                          # wydarzenia zaufanych podmiotów ("cool thing"): rzadki pokemon za obecność na miejscu i w czasie; godziny dzienne liczą się w strefie app.timezone
+  default_window_days: 14        # GET /events bez `to`: wydarzenia z najbliższych N dni
+  max_duration_days: 31          # najdłuższy dozwolony okres jednego wydarzenia
+  description_max_length: 2000
 
 contract:               # dokumentacja, z którą kod jest porównywany w testach i w `manage.py contract_status`
   openapi_file: ../docs/openapi.yaml

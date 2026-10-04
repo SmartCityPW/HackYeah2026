@@ -8,6 +8,8 @@ database:
   name: data/dev.sqlite3      # liczone od katalogu backend/
 seed:
   on_start: true
+location:
+  allow_simulated: true      # lokalnie: tryb deweloperski frontendu (symulowany GPS) wysyła pozycję ze źródłem "simulated"
 
 # Moderacja z prawdziwym agentem (Google Gemini): odkomentuj, ustaw AI_API_KEY w środowisku i sprawdź:
 #   .venv/bin/python manage.py moderation_check

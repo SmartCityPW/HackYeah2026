@@ -1,24 +1,7 @@
 @let s = stop();
 <section class="survey" role="dialog" [attr.aria-label]="reward() ? 'Nowy Spryciak' : 'Ankieta'">
   @if (reward(); as pokemon) {
-    @let sp = species()!;
-    <div class="reward" aria-live="polite">
-      <p class="kicker">Dziękujemy za wypełnienie ankiety</p>
-      <h2>Wpadł Ci nowy Spryciak!</h2>
-      <div class="model"><app-spryciak-model [character]="pokemon.character" /></div>
-      <h3>{{ sp.emoji }} {{ sp.label }}</h3>
-      <p class="chips">
-        <span class="chip">{{ types[pokemon.typeCode].emoji }} {{ types[pokemon.typeCode].label }}</span>
-        @if (sp.categoryLabel) { <span class="chip">{{ sp.categoryLabel }}</span> }
-        <span class="chip power">Moc {{ pokemon.power }}</span>
-        <span class="chip">Poziom {{ pokemon.level }}</span>
-      </p>
-      <p class="note">Dołączył do Twoich Spryciaków. Zdobywa exp, gdy głosujesz, i pomaga w walkach.</p>
-      <div class="actions">
-        <a class="btn primary" routerLink="/spryciaki" (click)="closed.emit()">Zobacz moje Spryciaki</a>
-        <button type="button" class="btn" (click)="closed.emit()">Wróć na mapę</button>
-      </div>
-    </div>
+    <app-reward [pokemon]="pokemon" kicker="Dziękujemy za wypełnienie ankiety" (closed)="closed.emit()" />
   } @else {
     <button type="button" class="close" (click)="closed.emit()" aria-label="Zamknij ankietę"><app-icon name="close" /></button>
     <header>

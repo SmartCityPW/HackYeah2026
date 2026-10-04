@@ -44,3 +44,19 @@ def test_demo_initiative_has_a_timeline_custom_fields_and_a_survey(monkeypatch):
     stop = Pokestop.objects.get(type='ngo')
     assert [f['label'] for f in stop.custom_fields] == ['Liczba drzew', 'Budżet']
     assert stop.updates.count() == 2 and stop.questions.count() == 3
+
+
+def test_demo_has_a_running_and_an_upcoming_event_with_rare_rewards(monkeypatch):
+    from apps.events import services
+    from apps.events.models import Event
+
+    monkeypatch.setenv('DEMO_PASSWORD', 'demo-haslo-1234')
+    call_command('seed_demo')
+    call_command('seed_demo')  # idempotentnie
+    assert Event.objects.count() == 3
+    picnic, cleanup, festival = Event.objects.order_by('starts_at', 'id')
+    assert (picnic.reward_character.code, cleanup.reward_character.code, festival.reward_character.code) == ('gold_bike', 'shiny_bin', 'lantern')
+    assert services.phase(picnic) == 'ongoing' and services.phase(festival) == 'upcoming'
+    assert services.is_active_now(cleanup) and cleanup.daily_from is None  # zawsze do odebrania, niezależnie od pory dnia
+    assert picnic.daily_from is not None and festival.capacity == 100
+    assert all(e.reward_character.is_event_exclusive for e in Event.objects.all())

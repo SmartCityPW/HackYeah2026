@@ -14,6 +14,8 @@ from rest_framework import status as http
 from apps.accounts.models import Role, User
 from apps.collection.models import Pokemon, PokemonOrigin
 from apps.collection.services import grant_pokemon
+from apps.game import location
+from apps.game.location import Fix
 from apps.pokestops import services, timeline
 from apps.pokestops.models import ORG_TYPES, Pokestop, Question, Status, SurveyAnswer, SurveyResponse
 from apps.scenarios.models import FieldType
@@ -40,7 +42,10 @@ def _check(question: Question, value) -> tuple[object, str | None]:
             return value, 'Oczekiwano tekstu'
         value = value.strip()
         limit = settings.APP.pokestops.survey.text_max_length
-        return value, (f'Maksymalnie {limit} znaków' if len(value) > limit else None)
+        if len(value) > limit:
+            return value, f'Maksymalnie {limit} znaków'
+        from apps.moderation.rules import inspect_text
+        return value, ('Odpowiedź nie spełnia zasad serwisu' if inspect_text(value) else None)
     if t == FieldType.NUMBER:
         if isinstance(value, bool):
             return value, 'Podaj liczbę'
@@ -96,7 +101,7 @@ def _survey_stop(pokestop_id: int) -> Pokestop:
     return stop
 
 
-def answer_survey(*, user: User, pokestop_id: int, lat: float, lng: float, answers: dict) -> tuple[Pokestop, Pokemon]:
+def answer_survey(*, user: User, pokestop_id: int, fix: Fix, answers: dict) -> tuple[Pokestop, Pokemon]:
     if user.role != Role.RESIDENT:
         raise services._forbidden('forbidden', 'Ankiety wypełniają mieszkańcy')
     stop = _survey_stop(pokestop_id)
@@ -104,6 +109,8 @@ def answer_survey(*, user: User, pokestop_id: int, lat: float, lng: float, answe
         raise ApiError(http.HTTP_409_CONFLICT, 'survey_closed', 'Ta ankieta jest już zamknięta')
     if SurveyResponse.objects.filter(pokestop=stop, user=user).exists():
         raise ApiError(http.HTTP_409_CONFLICT, 'already_answered', 'Już wypełniłeś tę ankietę')
+    verified = location.verify(user, fix)
+    lat, lng = verified.lat, verified.lng
     radius = settings.APP.game.interaction_range_m
     distance = distance_m(lat, lng, stop.lat, stop.lng)
     if distance > radius:

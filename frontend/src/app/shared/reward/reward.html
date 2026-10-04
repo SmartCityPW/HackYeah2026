@@ -1,0 +1,20 @@
+@let sp = species();
+@let pk = pokemon();
+<div class="reward" aria-live="polite">
+  @if (kicker()) { <p class="kicker">{{ kicker() }}</p> }
+  <h2>{{ heading() }}</h2>
+  <div class="model"><app-spryciak-model [character]="pk.character" /></div>
+  <h3>{{ sp.emoji }} {{ sp.label }}</h3>
+  <p class="chips">
+    @if (sp.isEventExclusive) { <span class="chip rare">★ Rzadki</span> }
+    <span class="chip">{{ types[pk.typeCode].emoji }} {{ types[pk.typeCode].label }}</span>
+    @if (sp.categoryLabel) { <span class="chip">{{ sp.categoryLabel }}</span> }
+    <span class="chip power">Moc {{ pk.power }}</span>
+    <span class="chip">Poziom {{ pk.level }}</span>
+  </p>
+  <p class="note">{{ note() }}</p>
+  <div class="actions">
+    <a class="btn primary" routerLink="/spryciaki" (click)="closed.emit()">Zobacz moje Spryciaki</a>
+    <button type="button" class="btn" (click)="closed.emit()">Wróć na mapę</button>
+  </div>
+</div>

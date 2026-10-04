@@ -5,6 +5,14 @@ from apps.accounts.models import OrganizationKind, Organization
 from core.serializers import CamelSerializer
 
 
+def _clean_public_text(value: str) -> str:
+    """Nazwa wyświetlana i nazwa organizacji są publiczne (mapa, komentarze), więc przechodzą przez reguły moderacji."""
+    from apps.moderation.rules import inspect_text
+    if inspect_text(value):
+        raise serializers.ValidationError('Ta nazwa nie spełnia zasad serwisu')
+    return value
+
+
 class CredentialsSerializer(CamelSerializer):
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True, trim_whitespace=False)
@@ -12,6 +20,9 @@ class CredentialsSerializer(CamelSerializer):
 
     def validate_email(self, value: str) -> str:
         return value.lower()
+
+    def validate_displayName(self, value: str) -> str:  # noqa: N802 (DRF szuka validate_<nazwa pola w JSON>)
+        return _clean_public_text(value)
 
     def validate_password(self, value: str) -> str:
         minimum = settings.APP.auth.password_min_length
@@ -27,6 +38,9 @@ class OrganizationInputSerializer(CamelSerializer):
     contact_person = serializers.CharField(max_length=100, required=False, allow_null=True, allow_blank=True)
     contact_email = serializers.EmailField(required=False, allow_null=True)
     contact_phone = serializers.CharField(max_length=30, required=False, allow_null=True, allow_blank=True)
+
+    def validate_name(self, value: str) -> str:
+        return _clean_public_text(value)
 
 
 class OrganizationRegistrationSerializer(CredentialsSerializer):

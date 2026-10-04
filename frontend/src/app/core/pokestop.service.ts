@@ -4,7 +4,7 @@ import { AppConfigService } from './config/app-config.service';
 import { Pokemon } from './pokemon.model';
 import { PokemonService } from './pokemon.service';
 import { ProgressService } from './progress.service';
-import { Position } from './game.model';
+import { PlayerPosition } from './game.model';
 import { Bbox, NewReport, Pokestop, PokestopPatch, PokestopStatus, SurveyAnswers, SurveyResults, TimelineEntry, UpdateDraft, VoteContext, isTrustedType } from './pokestop.model';
 import { hasInteraction } from './pokestop.utils';
 
@@ -98,7 +98,7 @@ export class PokestopService {
    * Ankieta zaufanego podmiotu: zwraca nowego pokemona (nagrodę), którego gatunek gracz poznaje dopiero teraz.
    * Błędy (za daleko, już wypełniona, zamknięta, nieprawidłowe odpowiedzi) przechodzą do wywołującego.
    */
-  async answerSurvey(id: number, answers: SurveyAnswers, position: Position): Promise<Pokemon> {
+  async answerSurvey(id: number, answers: SurveyAnswers, position: PlayerPosition): Promise<Pokemon> {
     const { stop, pokemon } = await this.api.answerSurvey(id, answers, position);
     this.merge([stop]);
     void this.pokemons.refresh();
@@ -122,7 +122,7 @@ export class PokestopService {
     }));
   }
 
-  async addReport(report: NewReport, position: Position): Promise<Pokestop> {
+  async addReport(report: NewReport, position: PlayerPosition): Promise<Pokestop> {
     const stop = await this.api.create(report, position);
     this.merge([stop]);
     void this.pokemons.refresh(); // zastawiony pokemon przestaje być dostępny

@@ -1,5 +1,6 @@
 import { Me } from '../account.api';
-import { AttackResult, Encounter, Position, TypeCode } from '../../game.model';
+import { AttackResult, Encounter, PlayerPosition, TypeCode } from '../../game.model';
+import { toPositionDto } from '../../http/position.dto';
 import { Pokemon } from '../../pokemon.model';
 import { CharacterId, NewReport, Pokestop, PokestopComment, SurveyResult, SurveyResults, TimelineEntry, VoteResult } from '../../pokestop.model';
 import { AttackResultDto, CommentDto, EncounterDto, MeDto, NewPokestopDto, PokemonDto, PokestopDto, SurveyResultDto, SurveyResultsDto, TimelineEntryDto, VoteResultDto } from './contract.types';
@@ -88,7 +89,7 @@ export function toComment(dto: CommentDto): PokestopComment {
  * a dla `report`/`idea` także postać (z gatunku zastawionego pokemona), więc jej wtedy nie wysyłamy.
  * Zdjęcia nie są jeszcze wysyłane (POST /photos po stronie backendu zwraca 501).
  */
-export function toNewPokestop(report: NewReport, position: Position): NewPokestopDto {
+export function toNewPokestop(report: NewReport, position: PlayerPosition): NewPokestopDto {
   const staked = report.type === 'report' || report.type === 'idea';
   return {
     scenarioCode: report.scenarioId,
@@ -97,7 +98,7 @@ export function toNewPokestop(report: NewReport, position: Position): NewPokesto
     ...(staked ? { stakedPokemonId: report.stakedPokemonId } : { character: report.character }),
     lat: report.lat,
     lng: report.lng,
-    position: { lat: position.lat, lng: position.lng },
+    position: toPositionDto(position),
     details: report.details,
     ...(report.questions?.length ? { questions: report.questions } : {}),
   };

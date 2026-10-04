@@ -67,6 +67,10 @@ elif APP.database.engine == 'postgresql':
 else:
     raise ValueError(f'database.engine: nieobsługiwana wartość {APP.database.engine!r} (postgresql | sqlite)')
 
+# Limity żądań (throttling) zapisują liczniki w pamięci podręcznej. Domyślna pamięć procesu jest osobna w każdym z procesów
+# gunicorna (3 procesy = limit 3 razy większy), dlatego liczniki trzymamy w bazie. Tabelę tworzy `manage.py bootstrap`.
+CACHES = {'default': {'BACKEND': 'django.core.cache.backends.db.DatabaseCache', 'LOCATION': 'django_cache'}}
+
 LANGUAGE_CODE = APP.app.language
 TIME_ZONE = APP.app.timezone
 USE_TZ = True
@@ -77,13 +81,21 @@ MEDIA_ROOT = APP.path(APP.storage.media_root)
 
 CORS_ALLOWED_ORIGINS = APP.app.cors_allowed_origins
 
+if APP.app.https_proxy:
+    # TLS kończy proxy przed aplikacją (Caddy, nginx): ufamy jego nagłówkowi, żeby Django wiedziało, że połączenie jest bezpieczne.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+if APP.app.hsts_seconds:
+    SECURE_HSTS_SECONDS = APP.app.hsts_seconds
+SECURE_CONTENT_TYPE_NOSNIFF = True
+
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': ['rest_framework_simplejwt.authentication.JWTAuthentication'],
     'DEFAULT_PERMISSION_CLASSES': ['rest_framework.permissions.IsAuthenticated'],
     'DEFAULT_RENDERER_CLASSES': ['rest_framework.renderers.JSONRenderer'],
     'DEFAULT_PARSER_CLASSES': ['rest_framework.parsers.JSONParser', 'rest_framework.parsers.MultiPartParser'],
     'EXCEPTION_HANDLER': 'core.errors.exception_handler',
-    'DEFAULT_THROTTLE_RATES': {'guest': APP.auth.guest_rate},
+    'DEFAULT_THROTTLE_RATES': {'guest': APP.auth.guest_rate, 'login': APP.auth.login_rate},
+    'NUM_PROXIES': APP.server.trusted_proxies or None,  # None = adres klienta z połączenia; liczba = IP z X-Forwarded-For przed N proxy
     'DATETIME_FORMAT': 'iso-8601',
 }
 

@@ -1,4 +1,4 @@
-import { Position } from '../game.model';
+import { PlayerPosition } from '../game.model';
 import { Pokemon } from '../pokemon.model';
 import { Bbox, CharacterId, CommentPage, NewReport, Pokestop, PokestopComment, PokestopPatch, PokestopStatus, SurveyAnswers, SurveyResult, SurveyResults, TimelineEntry, UpdateDraft, VoteContext, VoteResult } from '../pokestop.model';
 
@@ -41,7 +41,7 @@ export abstract class PokestopApi {
    * Pinezkę można postawić tylko w kółku interakcji gracza: `position` to pozycja gracza, a `report.lat/lng` miejsce pinezki.
    * Poza kółkiem backend odpowiada `TooFarError`.
    */
-  abstract create(report: NewReport, position: Position): Promise<Pokestop>;
+  abstract create(report: NewReport, position: PlayerPosition): Promise<Pokestop>;
   abstract setStatus(id: number, status: PokestopStatus): Promise<Pokestop>;
   /** Prowadzenie inicjatywy przez organizatora (status z komentarzem, treść, pola własne). */
   abstract manage(id: number, patch: PokestopPatch): Promise<Pokestop>;
@@ -51,7 +51,7 @@ export abstract class PokestopApi {
   abstract editUpdate(id: number, updateId: number, draft: Partial<UpdateDraft>): Promise<TimelineEntry>;
   abstract deleteUpdate(id: number, updateId: number): Promise<void>;
   /** Ankieta przy inicjatywie zaufanego podmiotu. Tylko w kółku interakcji (inaczej `TooFarError`); nagroda: nowy pokemon. */
-  abstract answerSurvey(id: number, answers: SurveyAnswers, position: Position): Promise<SurveyResult>;
+  abstract answerSurvey(id: number, answers: SurveyAnswers, position: PlayerPosition): Promise<SurveyResult>;
   abstract surveyResults(id: number): Promise<SurveyResults>;
   abstract listCollection(): Promise<Record<CharacterId, number>>;
   /** Pokemony użytkownika. `availableOnly` pomija zastawione na zgłoszeniach (do wyboru zastawu). */

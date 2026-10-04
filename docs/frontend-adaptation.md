@@ -58,7 +58,7 @@ Reszta aplikacji (strony, komponenty) rozmawia tylko z abstrakcjami `PokestopApi
 | Przeciwnicy i walka | `NotAdaptedYet` | backend zwraca jeszcze 501; ekran wyboru 3 pokemonów, wynik `lost` |
 | Losy inicjatywy (oś czasu, pola własne, status z komentarzem) | działa: `GET /pokestops/{id}/timeline`, `POST/PATCH/DELETE .../updates`, `PATCH /pokestops/{id}`; karta inicjatywy rozwija się, a organizator ma panel prowadzenia (`features/org/initiative-manager`) | brak |
 | Ankiety zaufanych podmiotów | działa: formularz i ekran nagrody (`features/map/survey`), kreator pytań (`shared/question-builder`), wyniki w panelu organizatora | brak |
-| Wydarzenia | brak | nowe ekrany (backend: 501) |
+| Wydarzenia „cool thing” | działa: `GET/POST /events`, `PATCH /events/{id}`, `POST /events/{id}/check-in`; punkt na mapie z wirującym rzadkim pokemonem (`MapController.showEvents`), karta wydarzenia (`features/map/event-card`), formularz organizatora w panelu nowej inicjatywy (`features/map/event-form`), lista i odwoływanie (`/org/wydarzenia`). Atrapa liczy okres i godziny dzienne jak serwer (`core/event.schedule.ts`) | brak |
 
 Pełna lista rozbieżności z numerami: [`api-contract.md`](api-contract.md), sekcja "Co musi zmienić frontend".
 `NotAdaptedYet` rzuca czytelny komunikat z odwołaniem do punktu, więc po przełączeniu trybu widać dokładnie, czego jeszcze brakuje.
@@ -77,6 +77,12 @@ exp dla wybranego pokemona, zastaw przy zgłoszeniu, odpowiedzi tylko pod koment
 jest ta sama w obu trybach. **Konsekwencja dla demo na atrapach:** żeby zagłosować, włącz 📍 GPS (pozycja na Rynku); w zasięgu jest pinezka
 „Zniszczona ławka przy Rynku”.
 
+## Lokalizacja gracza i jej mockowanie
+
+Każda akcja związana z miejscem wysyła `PlayerPosition` (`lat`, `lng`, `accuracyM`, `takenAt`, `source`), a serwer sprawdza, czy można jej wierzyć (decyzja 38 w `api-contract.md`). Przed akcją `GeolocationService.fresh()` prosi przeglądarkę o odczyt nie starszy niż `game.gpsMaxAgeSeconds`.
+Do testów (`dev.tools: true`): przycisk 📍 GPS, strzałki/WASD albo parametr adresu **`?gps=50.0676,19.9917`** ustawiają pozycję symulowaną (`source: simulated`). Backend przyjmie ją tylko przy `location.allow_simulated: true` (lokalnie, `demo.example.yaml`).
+Przeciwnicy są indywidualni: dwa konta w tym samym miejscu widzą różnych.
+
 ## Dostosowanie jednej operacji (wzór)
 
 1. Zobacz kształt w `docs/openapi.yaml` i, jeśli trzeba, dopisz DTO w `core/api/http/contract.types.ts`.
@@ -94,7 +100,7 @@ przez dwóch użytkowników-gości i zapisz odpowiedzi `GET /pokestops`, `/me/co
 
 ## Znane ograniczenia
 
-- **Postać za wydarzenia:** obecny zestaw Spryciaków nie ma postaci `is_event_exclusive` (dawna `festival` jest wyłączona). Do ustalenia przy wydarzeniach (Etap 4).
+- **Rzadkie gatunki za wydarzenia:** 6 postaci `is_event_exclusive` (po jednej na typ) w `backend/config/seed/reference.yaml`. **Nie mają jeszcze modeli 3D**, więc na mapie i w ekranie nagrody kręci się postać zastępcza w barwie z palety (inna dla każdego gatunku). Dodanie modeli: plik `.glb` w `frontend/public/models/spryciaki/`, `model_path` w YAML-u, `manage.py export_reference` i wpis w `docs/ASSETS.md`.
 - **Tryb `http` dla `pokestops` i `account` jest kompletny dla pętli gry** (głos, zgłoszenie, komentarze). Walka (`game: http`) i zdjęcia czekają na backend, więc `game` zostaje na `mock`.
 - **Tryb `http` wymaga działającego backendu już przy starcie** (zakłada konto gościa i pobiera `/me`). Gdy backend nie odpowiada, aplikacja się nie uruchomi (biały ekran). Ekran błędu startu to zadanie na etap wdrożeniowy.
 - Narzędzia deweloperskie (przełącznik ról, symulator GPS) wyłącza `dev.tools: false`. W produkcji koniecznie.

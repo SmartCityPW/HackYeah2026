@@ -8,3 +8,10 @@ seed:
   on_start: false
 auth:
   guest_rate: 1000/hour
+  login_rate: 1000/minute
+location:                        # testy zwykłych akcji nie wysyłają dokładności ani czasu odczytu; testy lokalizacji włączają pełną weryfikację
+  require_accuracy: false
+  require_timestamp: false
+  allow_simulated: true
+moderation:
+  provider: stub

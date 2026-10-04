@@ -18,9 +18,10 @@ def attack_url(encounter: Encounter) -> str:
     return f'{LIST}/{encounter.id}/attack'
 
 
-def make_encounter(power: int = 10, at=RYNEK, enemy: str = 'trash_beast', **extra) -> Encounter:
+def make_encounter(user, power: int = 10, at=RYNEK, enemy: str = 'trash_beast', **extra) -> Encounter:
+    """Przeciwnik należący do `user` (każdy gracz ma własnych, więc atak na cudzego daje 404)."""
     return Encounter.objects.create(
-        enemy_type=EnemyType.objects.get(code=enemy), level=1, power=power, xp_reward=25, lat=at[0], lng=at[1],
+        user=user, enemy_type=EnemyType.objects.get(code=enemy), level=1, power=power, xp_reward=25, lat=at[0], lng=at[1],
         expires_at=timezone.now() + timedelta(minutes=30), **extra,
     )
 
@@ -47,16 +48,57 @@ def game_config(monkeypatch):
 
 # ───────────── przeciwnicy w okolicy ─────────────
 
-def test_encounters_are_tied_to_places_and_shared_between_players(resident, make_resident, game_config):
+def test_encounters_are_generated_individually_for_each_player(resident, make_resident, game_config):
     game_config(encounters={'max_per_cell': 6})
     services.rng.seed(1)
-    first = client_for(resident).get(LIST, {'lat': RYNEK[0], 'lng': RYNEK[1], 'radius': 50})
+    params = {'lat': RYNEK[0], 'lng': RYNEK[1], 'radius': 100}
+    first = client_for(resident).get(LIST, params)
     assert first.status_code == 200, first.data
-    assert EncounterCell.objects.exists() and Encounter.objects.filter(cell__isnull=False).exists()
-    again = client_for(make_resident()).get(LIST, {'lat': RYNEK[0], 'lng': RYNEK[1], 'radius': 50}).data
-    assert [e['id'] for e in again] == [e['id'] for e in first.data]  # ci sami przeciwnicy dla innego gracza
+    other = make_resident()
+    second = client_for(other).get(LIST, params).data
+    mine, theirs = {e.id for e in Encounter.objects.filter(user=resident)}, {e.id for e in Encounter.objects.filter(user=other)}
+    assert mine and theirs and not mine & theirs  # każdy ma własne wiersze, nic wspólnego
+    assert {e['id'] for e in first.data} <= mine and {e['id'] for e in second} <= theirs
+    assert EncounterCell.objects.filter(user=resident).exists() and EncounterCell.objects.filter(user=other).exists()
     for e in first.data:
         assert set(e) == {'id', 'name', 'emoji', 'level', 'typeCode', 'power', 'description', 'actionLabel', 'xpReward', 'lat', 'lng', 'expiresAt'}
+
+
+def test_same_place_gives_different_enemies_to_different_players(make_resident, game_config):
+    game_config(encounters={'max_per_cell': 6, 'max_in_response': 50})
+    params = {'lat': RYNEK[0], 'lng': RYNEK[1], 'radius': 100}
+    layouts = set()
+    for seed in range(8):
+        services.rng.seed(seed)
+        user = make_resident(f'gracz{seed}')
+        layouts.add(tuple((e['name'], e['level']) for e in client_for(user).get(LIST, params).data))
+    assert len(layouts) > 3  # losowanie jest osobne dla każdego gracza, a nie jedno wspólne dla miejsca
+
+
+def test_a_player_never_sees_or_attacks_someone_elses_enemy(resident, make_resident):
+    theirs = make_resident()
+    enemy = make_encounter(theirs, power=10)
+    mine = client_for(resident).get(LIST, {'lat': RYNEK[0], 'lng': RYNEK[1], 'radius': 100}).data
+    assert enemy.id not in [e['id'] for e in mine]
+    r = client_for(resident).post(attack_url(enemy), body(resident), format='json')
+    assert r.status_code == 404 and Encounter.objects.get(pk=enemy.pk).status == EncounterStatus.ACTIVE
+    assert client_for(theirs).post(attack_url(enemy), body(theirs), format='json').data['outcome'] == 'won'
+
+
+def test_enemy_types_do_not_repeat_back_to_back_for_one_player(resident, game_config):
+    game_config(encounters={'max_per_cell': 6, 'max_in_response': 50})
+    for seed in range(20):
+        Encounter.objects.filter(user=resident).delete()
+        EncounterCell.objects.filter(user=resident).delete()
+        services.rng.seed(seed)
+        client_for(resident).get(LIST, {'lat': RYNEK[0], 'lng': RYNEK[1], 'radius': 1})
+        types = list(Encounter.objects.filter(user=resident).order_by('id').values_list('enemy_type__code', flat=True))
+        assert all(a != b for a, b in zip(types, types[1:])), types
+
+
+def test_admin_gets_no_encounters(admin):
+    assert client_for(admin).get(LIST, {'lat': RYNEK[0], 'lng': RYNEK[1], 'radius': 100}).data == []
+    assert not EncounterCell.objects.exists()
 
 
 def test_response_is_limited_to_nearest_in_radius(resident, game_config):
@@ -90,7 +132,7 @@ def test_cleared_cell_respawns_only_after_configured_delay(resident, game_config
 
 
 def test_expired_encounters_are_hidden_and_marked(resident):
-    old = make_encounter()
+    old = make_encounter(resident)
     Encounter.objects.filter(pk=old.pk).update(expires_at=timezone.now() - timedelta(seconds=1))
     client_for(resident).get(LIST, {'lat': RYNEK[0], 'lng': RYNEK[1]})
     assert Encounter.objects.get(pk=old.pk).status == EncounterStatus.EXPIRED
@@ -105,7 +147,7 @@ def test_encounter_query_is_validated(resident):
 # ───────────── walka ─────────────
 
 def test_win_rewards_team_player_and_collection(resident):
-    enemy = make_encounter(power=10)
+    enemy = make_encounter(resident, power=10)
     starter = resident.pokemons.first()
     r = client_for(resident).post(attack_url(enemy), body(resident, accuracyM=5), format='json')
     assert r.status_code == 200, r.data
@@ -123,16 +165,17 @@ def test_win_rewards_team_player_and_collection(resident):
     assert PlayerProgress.objects.get(user=resident).xp == 25
 
 
-def test_defeated_encounter_cannot_be_won_twice(resident, make_resident):
-    enemy = make_encounter(power=10)
+def test_defeated_encounter_cannot_be_won_twice(resident):
+    enemy = make_encounter(resident, power=10)
     assert client_for(resident).post(attack_url(enemy), body(resident), format='json').data['outcome'] == 'won'
-    other = make_resident()
-    r = client_for(other).post(attack_url(enemy), body(other), format='json')
-    assert r.status_code == 409 and r.data['code'] == 'encounter_defeated'
+    age_attacks(resident)
+    again = client_for(resident).post(attack_url(enemy), body(resident), format='json')
+    assert again.status_code == 409 and again.data['code'] == 'encounter_defeated'
+    assert Attack.objects.filter(outcome='won').count() == 1
 
 
 def test_loss_is_recorded_and_enemy_stays(resident):
-    enemy = make_encounter(power=20)  # remis to porażka: suma musi być większa
+    enemy = make_encounter(resident, power=20)  # remis to porażka: suma musi być większa
     r = client_for(resident).post(attack_url(enemy), body(resident), format='json')
     assert r.data['outcome'] == 'lost' and r.data['pokemonPowerTotal'] == 20 and 'expGained' not in r.data['pokemons'][0]
     assert Encounter.objects.get(pk=enemy.pk).status == EncounterStatus.ACTIVE
@@ -141,18 +184,18 @@ def test_loss_is_recorded_and_enemy_stays(resident):
 
 
 def test_same_type_multiplier_comes_from_configuration(resident, monkeypatch):
-    enemy = make_encounter(power=23, enemy='traffic_jam')  # transport, jak startowy Rowerzysta
+    enemy = make_encounter(resident, power=23, enemy='traffic_jam')  # transport, jak startowy Rowerzysta
     r = client_for(resident).post(attack_url(enemy), body(resident), format='json')
     assert r.data['outcome'] == 'won' and r.data['pokemonPowerTotal'] == 24 and r.data['pokemons'][0]['typeMultiplierApplied'] == 1.2
 
     monkeypatch.setattr(settings, 'APP', replace(settings.APP, game=replace(settings.APP.game, same_type_multiplier=1.0)))
     age_attacks(resident)
-    second = make_encounter(power=23, enemy='traffic_jam')
+    second = make_encounter(resident, power=23, enemy='traffic_jam')
     assert client_for(resident).post(attack_url(second), body(resident), format='json').data['pokemonPowerTotal'] == 20
 
 
 def test_too_far_is_recorded_without_fight(resident):
-    enemy = make_encounter(power=1)
+    enemy = make_encounter(resident, power=1)
     r = client_for(resident).post(attack_url(enemy), body(resident, at=FAR), format='json')
     assert r.status_code == 200 and r.data['outcome'] == 'too_far' and r.data['distanceM'] > 1000
     attempt = Attack.objects.get()
@@ -164,7 +207,7 @@ def test_team_is_validated(resident, make_resident):
     from apps.collection.models import Character
     from apps.collection.services import grant_pokemon
 
-    enemy = make_encounter()
+    enemy = make_encounter(resident)
     client = client_for(resident)
     starter = resident.pokemons.first()
     extra = [grant_pokemon(resident, Character.objects.get(code='trash_can'), PokemonOrigin.ENCOUNTER) for _ in range(3)]
@@ -184,7 +227,7 @@ def test_party_of_three_sums_power(resident):
     from apps.collection.services import grant_pokemon
 
     team = [resident.pokemons.first()] + [grant_pokemon(resident, Character.objects.get(code='trash_can'), PokemonOrigin.ENCOUNTER) for _ in range(2)]
-    enemy = make_encounter(power=55)  # Śmieciowy Potwór (clean)
+    enemy = make_encounter(resident, power=55)  # Śmieciowy Potwór (clean)
     r = client_for(resident).post(attack_url(enemy), {**body(resident), 'pokemonIds': [p.id for p in team]}, format='json')
     assert r.data['outcome'] == 'won' and r.data['pokemonPowerTotal'] == 20 + 18 + 18  # Kosz na śmieci (clean) = typ przeciwnika: 15 * 1.2
 
@@ -192,25 +235,25 @@ def test_party_of_three_sums_power(resident):
 # ───────────── antyoszustwo ─────────────
 
 def test_poor_gps_accuracy_is_rejected_and_logged(resident):
-    enemy = make_encounter()
+    enemy = make_encounter(resident)
     r = client_for(resident).post(attack_url(enemy), body(resident, accuracyM=500), format='json')
-    assert r.status_code == 422 and r.data['code'] == 'position_unreliable'
+    assert r.status_code == 422 and r.data['code'] == 'gps_inaccurate'
     attempt = Attack.objects.get()
     assert attempt.outcome == 'rejected' and 'GPS' in attempt.reason
     assert Encounter.objects.get(pk=enemy.pk).status == EncounterStatus.ACTIVE
 
 
 def test_teleporting_between_attempts_is_rejected(resident):
-    far_enemy = make_encounter(power=999, at=FAR)
+    far_enemy = make_encounter(resident, power=999, at=FAR)
     client_for(resident).post(attack_url(far_enemy), body(resident, at=FAR), format='json')  # porażka przy FAR
     age_attacks(resident, seconds=10)  # ~1,1 km w 10 s = ~110 m/s
-    r = client_for(resident).post(attack_url(make_encounter()), body(resident), format='json')
-    assert r.status_code == 422 and r.data['code'] == 'position_unreliable'
+    r = client_for(resident).post(attack_url(make_encounter(resident)), body(resident), format='json')
+    assert r.status_code == 422 and r.data['code'] == 'implausible_movement'
     assert Attack.objects.filter(outcome='rejected').count() == 1
 
 
 def test_attack_rate_limits_come_from_configuration(resident, game_config):
-    enemy = make_encounter(power=999)
+    enemy = make_encounter(resident, power=999)
     client = client_for(resident)
     assert client.post(attack_url(enemy), body(resident), format='json').data['outcome'] == 'lost'
     quick = client.post(attack_url(enemy), body(resident), format='json')
@@ -223,13 +266,13 @@ def test_attack_rate_limits_come_from_configuration(resident, game_config):
 
 
 def test_admin_cannot_attack_and_unknown_encounter_is_404(resident, admin):
-    enemy = make_encounter()
+    enemy = make_encounter(resident)
     assert client_for(admin).post(attack_url(enemy), {'lat': NEAR[0], 'lng': NEAR[1], 'pokemonIds': [1]}, format='json').status_code == 403
     assert client_for(resident).post(f'{LIST}/999999/attack', body(resident), format='json').status_code == 404
 
 
 def test_expired_encounter_cannot_be_attacked(resident):
-    enemy = make_encounter()
+    enemy = make_encounter(resident)
     Encounter.objects.filter(pk=enemy.pk).update(expires_at=timezone.now() - timedelta(seconds=1))
     r = client_for(resident).post(attack_url(enemy), body(resident), format='json')
     assert r.status_code == 409 and r.data['code'] == 'encounter_expired'

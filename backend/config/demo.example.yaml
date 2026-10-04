@@ -5,3 +5,6 @@ app:
   debug: true
 seed:
   demo_on_start: true
+location:
+  allow_simulated: true   # demo: przycisk GPS (tryby deweloperskie frontendu) wysyła pozycję symulowaną
+  # max_accuracy_m: 500   # odkomentuj, jeśli pokazujesz na komputerze z prawdziwą lokalizacją z Wi-Fi (dokładność zwykle 100-1000 m)

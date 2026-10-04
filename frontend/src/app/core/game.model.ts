@@ -47,6 +47,21 @@ export interface Position {
   lng: number;
 }
 
+/** Skąd pochodzi pozycja: prawdziwy odczyt GPS albo symulacja (tryb deweloperski, testy). */
+export type PositionSource = 'gps' | 'simulated';
+
+/**
+ * Pozycja gracza wysyłana do serwera przy każdej akcji związanej z miejscem. Serwer sprawdza, czy można jej wierzyć: dokładność
+ * (`accuracyM`), aktualność odczytu (`takenAt`) i źródło (`simulated` przyjmuje tylko w trybie deweloperskim), a także tempo ruchu.
+ */
+export interface PlayerPosition extends Position {
+  /** Dokładność odczytu w metrach (brak przy symulacji). */
+  accuracyM?: number;
+  /** Chwila odczytu, ISO 8601 (brak przy symulacji). */
+  takenAt?: string;
+  source?: PositionSource;
+}
+
 export interface AttackPokemonResult {
   pokemonId: number;
   /** Moc pokemona przed mnożnikiem. */

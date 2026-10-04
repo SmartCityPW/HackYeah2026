@@ -40,10 +40,21 @@
       (cancelled)="back()"
     />
   }
+  @case ('event') {
+    <p class="kicker">{{ organization() }}</p>
+    <h2>Nowe wydarzenie „cool thing”</h2>
+    <app-event-form [location]="center()" (cancelled)="back()" (created)="eventCreated.emit($event)" />
+  }
   @case ('scenario') {
     <p class="kicker">{{ isOrg() ? organization() : categoryMeta()?.label }}</p>
     <h2>{{ isOrg() ? 'Wybierz rodzaj inicjatywy' : 'Wybierz rodzaj' }}</h2>
     <div class="catalog">
+      @if (isOrg()) {
+        <button type="button" class="card event" (click)="eventMode.set(true)">
+          <span class="emoji">🎪</span>
+          <span><strong>Wydarzenie „cool thing”</strong><small>Mieszkańcy, którzy przyjdą na miejsce w czasie wydarzenia, dostają rzadkiego Spryciaka wybranego przez Ciebie</small></span>
+        </button>
+      }
       @for (s of catalog(); track s.id) {
         <button type="button" class="card" (click)="chosen.set(s)">
           <span class="emoji">{{ s.emoji }}</span>

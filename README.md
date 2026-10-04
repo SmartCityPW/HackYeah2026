@@ -26,10 +26,11 @@ narzędzie do konsultacji, ankiet i wydarzeń. Wymagania źródłowe: [`docs/opi
 | **Pinezki** | Zgłoszenie problemu, pomysł mieszkańca, cool miejsce, inicjatywa NGO, konsultacje. Formularze to dane (katalog 20 scenariuszy), nie kod. |
 | **Zastaw** | Zgłaszając problem lub pomysł zostawiasz na nim jednego swojego pokemona. Wraca z premią exp, gdy zgłoszenie zbierze próg głosów lub zostanie rozwiązane, a bez premii po odrzuceniu lub wycofaniu. |
 | **Głosowanie z bliska** | Głos „za/przeciw” działa tylko w promieniu 50 m od pinezki (liczy serwer). Za głos wybrany pokemon dostaje exp. Autor nie głosuje na własną pinezkę. |
-| **Moderacja AI** | Zgłoszenia mieszkańców ocenia agent (odpowiedź tylko tak/nie): domyślnie atrapa `stub`, opcjonalnie Google Gemini (`moderation.provider: gemini`, klucz w `AI_API_KEY`). Odrzucone nie powstają. Awaria agenta też nie przepuszcza treści. |
+| **Moderacja** | Dwie warstwy (`moderation.provider: layered`, domyślnie). 1) **Reguły** (`config/moderation_rules.yaml`, bez sieci i klucza): wulgaryzmy, mowa nienawiści, groźby, dane osobowe (telefon, e-mail, PESEL, karta), spam i linki, próby wstrzyknięcia instrukcji do AI; obejmują też warianty typu `k u r w a`, `ku*wa`, `kurwaaa`. 2) **Google Gemini** (klucz `AI_API_KEY`): ocenia, czy zgłoszenie dotyczy miasta. Bez klucza działają same reguły. Moderowane są: zgłoszenia mieszkańców (reguły + AI), komentarze, odpowiedzi tekstowe w ankietach i nazwy (konto, organizacja) (reguły). Odrzucone nie powstają i trafiają do logu z kategorią (`vulgar`, `spam`, `injection`, `ai`…). Awaria Gemini nie przepuszcza treści (zmienisz to w `moderation.layered.on_ai_error`). |
 | **Pokemony** | Każdy dostaje startowego. Poziom i moc rosną z exp. Typy dają mnożnik ×1,2 w walce. |
 | **Walka** | Losowi przeciwnicy generowani przez serwer, drużyna do 3 pokemonów, wygrana daje exp, XP i nowego pokemona. *(Backend: jeszcze nie zaimplementowane, frontend ma atrapę.)* |
-| **Ankiety i wydarzenia** | Odpowiedź na ankietę daje pokemona. Udział w wydarzeniu daje unikalnego. *(Backend: modele gotowe, brak logiki.)* |
+| **Ankiety** | Odpowiedź na ankietę zaufanego podmiotu daje nowego pokemona (gatunek poznajesz dopiero po wysłaniu). |
+| **Wydarzenia „cool thing”** | Zaufany podmiot ustawia wydarzenie na mapie (okres, godziny dzienne, rzadki pokemon z katalogu jako nagroda). Opis widać zawsze, a pokemona odbiera się **tylko w kółku 50 m i w czasie trwania**. Jeden pokemon na uczestnika. |
 
 ## Stan projektu
 
@@ -134,9 +135,9 @@ upload:
 Odśwież stronę. Aplikacja sama założy konto gościa, pobierze rolę z `/me` (przełącznik 👤/🏢/🛡️ znika, bo rolę ustala serwer) i dociągnie pinezki z widocznej części mapy. Działa cała pętla gry:
 
 - **Głos:** włącz 📍 GPS, otwórz pinezkę z Rynku, wybierz pokemona i zagłosuj. Serwer dolicza exp (toast pokazuje nowy poziom). Z innego miejsca dostaniesz „Jesteś za daleko (… m)”.
-- **Zgłoszenie:** ➕ Zgłoś → problem → wybierz pokemona do zastawienia. Tytuł ze znacznikiem `[odrzuć]` zasymuluje odrzucenie przez moderację (tryb `stub`): komunikat serwera, formularz zostaje wypełniony.
+- **Zgłoszenie:** ➕ Zgłoś → problem → wybierz pokemona do zastawienia. Tytuł z wulgaryzmem, numerem telefonu albo linkiem zostanie odrzucony przez moderację: komunikat serwera, formularz zostaje wypełniony.
 - **Komentarze:** pod pinezką, z odpowiedziami („Odpowiedz”) i „Pokaż starsze komentarze”.
-- Walka, zdjęcia, ankiety i wydarzenia są jeszcze tylko w kontrakcie albo w modelach.
+- Zdjęcia są jeszcze tylko w kontrakcie (`POST /photos`: 501).
 
 Aplikacja w trybie `http` wymaga działającego backendu już przy starcie: gdy go nie ma, strona zostaje pusta.
 
@@ -171,6 +172,28 @@ docker compose up --build          # PostgreSQL + backend + frontend (nginx)
 > Przetestowane: `docker compose up --build` stawia wszystkie trzy usługi, frontend odpowiada na `/` i podstronach (`/inicjatywy` bez 404), a backend zakłada administratora i dane demo.
 > **Niesprawdzone w przeglądarce:** czy mapa i modele 3D ładują się z nginx. Pliki odpowiadają z właściwymi typami (`.mjs` jako JavaScript, `.glb`).
 > Spójność `docker-compose.yml` z konfiguracją pilnują testy (`backend/tests/test_deployment_files.py`).
+
+### 7a. Wdrożenie prototypu dla graczy (HTTPS, moderacja, limity)
+
+Cel: kilkaset osób na telefonach, jedna domena, HTTPS (przeglądarki dają lokalizację tylko na HTTPS, więc bez niego gra nie działa).
+
+```bash
+cp .env.example .env                                              # DJANGO_SECRET_KEY, DB_PASSWORD, ADMIN_PASSWORD, AI_API_KEY (Gemini; bez klucza same reguły)
+cp backend/config/production.example.yaml backend/config/production.yaml   # wpisz swoją domenę w allowed_hosts i cors_allowed_origins
+# w .env:  APP_CONFIG_OVERRIDE=config/production.yaml   DOMAIN=twoja-domena.example
+docker compose --profile tls up -d --build                        # PostgreSQL + backend + frontend + Caddy (certyfikat sam)
+```
+
+- DNS domeny musi wskazywać na serwer, a porty 80 i 443 muszą być otwarte (Caddy wystawia certyfikat Let's Encrypt).
+- Całość jest pod jednym adresem: nginx we frontendzie kieruje `/api/` do backendu, więc nie ma CORS ani adresu API do wpisywania. Port backendu (8000) jest dostępny tylko z serwera.
+- Frontend czyta `frontend/public/config/app-config.production.yaml` (bez przełącznika ról i symulatora GPS, bez zdjęć). Do pokazu z symulowanym GPS ustaw w `.env` `FRONTEND_CONFIG=app-config.yaml` (i `location.allow_simulated: true` w YAML backendu).
+- Bez Caddy (własny tunel albo proxy) ustaw `server.trusted_proxies` na liczbę proxy przed aplikacją (1 przy samym nginx), inaczej limity żądań liczą zły adres IP. Zostaw `docker compose up` bez `--profile tls`.
+- Limity: konta gościa `auth.guest_rate` (na IP; na imprezie wiele osób siedzi w jednej sieci, stąd 300/h), logowanie i rejestracja `auth.login_rate`. Liczniki są w bazie, więc działają dla wszystkich procesów gunicorna.
+- Konto administratora powstaje z `ADMIN_PASSWORD` (adres `admin@smartcity.local`); zaloguj się na `/logowanie`, moderuj w zakładce Moderacja, weryfikuj organizacje. Log odrzuceń: `GET /admin/moderation-log` (kategoria zamiast treści w polu `reason`).
+- Kopia bazy: `./scripts/backup_db.sh` (zrób przed otwarciem dla graczy).
+- Sprawdzenie moderacji na żywo (z kluczem): `cd backend && python manage.py moderation_eval --delay 3`; bez klucza pomija przypadki „nie na temat”.
+
+**Czego prototyp nie ma:** zdjęć (`POST /photos` → 501), polityki prywatności i zgody rodziców dla osób poniżej 16 lat (do dopisania przed publicznym udostępnieniem), unieważniania tokenów po wylogowaniu, pewności co do lokalizacji (pozycję podaje telefon; serwer odrzuca złą dokładność, stare odczyty i teleportację, ale jej nie dowodzi).
 
 ### 8. Kontrola dokumentacji względem kodu
 
@@ -218,7 +241,7 @@ Kod nie zawiera wartości zmiennych na stałe, a testy pilnują, że w plikach Y
 ## Dalszy plan
 
 1. **Walka** po stronie backendu (generowanie przeciwników, rozstrzyganie) i ekran wyboru drużyny we frontendzie.
-2. **Zdjęcia** (odblokowują zgłoszenia ze zdjęciem), potem **ankiety** i **wydarzenia**.
+2. **Zdjęcia** (odblokowują zgłoszenia ze zdjęciem).
 3. Logowanie i rejestracja w interfejsie (dziś rolą jest gość, a organizację lub administratora ustawia wklejony token), moderacja AI z prawdziwym agentem ([`docs/plan.md`](docs/plan.md)).
 
 ## Rozwiązywanie problemów

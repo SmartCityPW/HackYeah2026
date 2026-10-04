@@ -203,6 +203,78 @@
       "isEventExclusive": false,
       "basePower": 16,
       "powerGrowth": 4
+    },
+    {
+      "code": "gold_bike",
+      "label": "Złoty Rower",
+      "emoji": "🥇",
+      "categoryLabel": "Wydarzenia rowerowe",
+      "typeCode": "transport",
+      "modelPath": null,
+      "isStarter": false,
+      "isEventExclusive": true,
+      "basePower": 40,
+      "powerGrowth": 6
+    },
+    {
+      "code": "shiny_bin",
+      "label": "Błyszczący Kosz",
+      "emoji": "✨",
+      "categoryLabel": "Wydarzenia sprzątające",
+      "typeCode": "clean",
+      "modelPath": null,
+      "isStarter": false,
+      "isEventExclusive": true,
+      "basePower": 36,
+      "powerGrowth": 6
+    },
+    {
+      "code": "giant_tree",
+      "label": "Zielony Gigant",
+      "emoji": "🌲",
+      "categoryLabel": "Wydarzenia zielone",
+      "typeCode": "green",
+      "modelPath": null,
+      "isStarter": false,
+      "isEventExclusive": true,
+      "basePower": 42,
+      "powerGrowth": 6
+    },
+    {
+      "code": "lantern",
+      "label": "Lampion Festiwalowy",
+      "emoji": "🏮",
+      "categoryLabel": "Festiwale i koncerty",
+      "typeCode": "energy",
+      "modelPath": null,
+      "isStarter": false,
+      "isEventExclusive": true,
+      "basePower": 38,
+      "powerGrowth": 6
+    },
+    {
+      "code": "cloud_kite",
+      "label": "Chmurka-Latawiec",
+      "emoji": "🪁",
+      "categoryLabel": "Wydarzenia plenerowe",
+      "typeCode": "air",
+      "modelPath": null,
+      "isStarter": false,
+      "isEventExclusive": true,
+      "basePower": 37,
+      "powerGrowth": 6
+    },
+    {
+      "code": "mural_beast",
+      "label": "Mural-Stwór",
+      "emoji": "🎨",
+      "categoryLabel": "Sztuka w mieście",
+      "typeCode": "infra",
+      "modelPath": null,
+      "isStarter": false,
+      "isEventExclusive": true,
+      "basePower": 39,
+      "powerGrowth": 6
     }
   ],
   "types": [

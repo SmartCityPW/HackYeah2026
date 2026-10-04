@@ -7,7 +7,9 @@ import { NewQuestion, NewReport, isTrustedType } from '../../../core/pokestop.mo
 import { PokemonService } from '../../../core/pokemon.service';
 import { ToastService } from '../../../core/toast.service';
 import { SessionService } from '../../../core/session.service';
+import { GameEvent } from '../../../core/event.model';
 import { QuestionBuilder } from '../../../shared/question-builder/question-builder';
+import { EventForm } from '../event-form/event-form';
 import { ScenarioForm } from '../../../shared/scenario-form/scenario-form';
 
 export type ReportDraft = Omit<NewReport, 'lat' | 'lng'>;
@@ -15,7 +17,7 @@ export type ReportDraft = Omit<NewReport, 'lat' | 'lng'>;
 /** Panel tworzenia pinezki: krok 1 wybór scenariusza z katalogu, krok 2 formularz scenariusza. */
 @Component({
   selector: 'app-report-panel',
-  imports: [ScenarioForm, QuestionBuilder],
+  imports: [ScenarioForm, QuestionBuilder, EventForm],
   templateUrl: './report-panel.html',
   styleUrl: './report-panel.css',
 })
@@ -25,6 +27,11 @@ export class ReportPanel {
   private readonly pokemons = inject(PokemonService);
 
   readonly drafted = output<ReportDraft>();
+  /** Środek mapy: tam organizacja stawia wydarzenie (bez ograniczenia kółkiem gracza). */
+  readonly center = input<{ lat: number; lng: number } | null>(null);
+  readonly eventCreated = output<GameEvent>();
+  /** Organizacja tworzy wydarzenie "cool thing" zamiast inicjatywy. */
+  protected readonly eventMode = signal(false);
   /** Czy celownik stoi w kółku interakcji gracza (tylko tam można dodać pinezkę). */
   readonly pinInRange = input(true);
 
@@ -54,14 +61,15 @@ export class ReportPanel {
     return category ? scenariosInCategory(category) : [];
   });
   /** Kroki: 'category' -> 'scenario' -> 'form'. */
-  protected readonly step = computed(() => (this.chosen() ? 'form' : this.isOrg() || this.category() ? 'scenario' : 'category'));
+  protected readonly step = computed(() => (this.eventMode() ? 'event' : this.chosen() ? 'form' : this.isOrg() || this.category() ? 'scenario' : 'category'));
 
   /** Ankietę można dodać do inicjatywy zaufanego podmiotu (pomysł NGO, konsultacje). */
   protected readonly canHaveSurvey = computed(() => this.isOrg() && !!this.chosen() && isTrustedType(this.chosen()!.pokestopType));
 
   protected back(): void {
     this.clearSurvey();
-    if (this.chosen()) this.chosen.set(null);
+    if (this.eventMode()) this.eventMode.set(false);
+    else if (this.chosen()) this.chosen.set(null);
     else this.category.set(null);
   }
 
@@ -93,6 +101,7 @@ export class ReportPanel {
 
   /** Wraca do wyboru rodzaju zgłoszenia. Rodzic woła to po udanym dodaniu, a po błędzie zostawia formularz z wpisanymi danymi. */
   reset(): void {
+    this.eventMode.set(false);
     this.clearSurvey();
     this.chosen.set(null);
     this.category.set(null);

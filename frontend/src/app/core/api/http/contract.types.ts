@@ -1,3 +1,5 @@
+import { PositionDto } from '../../http/position.dto';
+
 /** Kształty odpowiedzi backendu używane przez frontend (wycinek docs/openapi.yaml). Rozszerzaj w miarę adaptacji. */
 export interface PageDto<T> {
   count: number;
@@ -101,8 +103,8 @@ export interface NewPokestopDto {
   stakedPokemonId?: number;
   lat: number;
   lng: number;
-  /** Pozycja gracza: serwer sprawdza, czy pinezka leży w jego kółku interakcji. */
-  position: { lat: number; lng: number };
+  /** Pozycja gracza: serwer sprawdza jej wiarygodność i to, czy pinezka leży w jego kółku interakcji. */
+  position: PositionDto;
   details: Record<string, unknown>;
   questions?: { key: string; label: string; type: string; required?: boolean; options?: { value: string; label: string }[]; min?: number | null; max?: number | null }[];
 }

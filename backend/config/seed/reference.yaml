@@ -29,6 +29,15 @@ characters:
   - {code: fire_hydrant,    label: Hydrant,            emoji: "🧯", category_label: Sieć wodna,        type: infra,     base_power: 19, power_growth: 4, model_path: models/spryciaki/fire_hydrant.glb}
   - {code: floor_hole,      label: Dziura w chodniku,  emoji: "🕳️", category_label: Chodniki,          type: infra,     base_power: 16, power_growth: 4, model_path: models/spryciaki/floor_hole.glb}
 
+  # Rzadkie Spryciaki wyłączne dla wydarzeń (is_event_exclusive): nie wypadają z walk ani ankiet, dostaje się je tylko za obecność na wydarzeniu
+  # zaufanego podmiotu. Organizator wybiera nagrodę z tej listy. Bez modeli 3D (postać zastępcza), więc moc to placeholder jak wyżej.
+  - {code: gold_bike,   label: Złoty Rower,         emoji: "🥇", category_label: Wydarzenia rowerowe,    type: transport, base_power: 40, power_growth: 6, is_event_exclusive: true}
+  - {code: shiny_bin,   label: Błyszczący Kosz,     emoji: "✨", category_label: Wydarzenia sprzątające, type: clean,     base_power: 36, power_growth: 6, is_event_exclusive: true}
+  - {code: giant_tree,  label: Zielony Gigant,      emoji: "🌲", category_label: Wydarzenia zielone,     type: green,     base_power: 42, power_growth: 6, is_event_exclusive: true}
+  - {code: lantern,     label: Lampion Festiwalowy, emoji: "🏮", category_label: Festiwale i koncerty,   type: energy,    base_power: 38, power_growth: 6, is_event_exclusive: true}
+  - {code: cloud_kite,  label: Chmurka-Latawiec,    emoji: "🪁", category_label: Wydarzenia plenerowe,   type: air,       base_power: 37, power_growth: 6, is_event_exclusive: true}
+  - {code: mural_beast, label: Mural-Stwór,         emoji: "🎨", category_label: Sztuka w mieście,       type: infra,     base_power: 39, power_growth: 6, is_event_exclusive: true}
+
 enemy_types:
   - {code: traffic_jam,    name: Korek Komunikacyjny, emoji: "🚗",  description: Zablokował skrzyżowanie i nie chce odjechać., type: transport, action_kind: checkin, action_label: Stań przy skrzyżowaniu i rozładuj korek, min_level: 2, max_level: 4, base_power: 30, power_growth: 10, base_xp: 40, spawn_weight: 3}
   - {code: trash_beast,    name: Śmieciowy Potwór,    emoji: "🗑️", description: Rośnie przy każdym wyrzuconym papierku., type: clean, action_kind: checkin, action_label: Wyrzuć jedną śmieć do kosza w pobliżu, min_level: 1, max_level: 3, base_power: 20, power_growth: 8, base_xp: 25, spawn_weight: 4}

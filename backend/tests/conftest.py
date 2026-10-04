@@ -2,6 +2,7 @@ from dataclasses import replace
 
 import pytest
 from django.conf import settings
+from django.core.management import call_command
 from rest_framework.test import APIClient
 
 from apps.accounts.models import Organization, OrganizationMember, Role, User, VerificationStatus
@@ -22,12 +23,21 @@ def django_db_setup(django_db_setup, django_db_blocker):
         seed_dir = settings.APP.path(settings.APP.seed.dir)
         load_reference(seed_dir / 'reference.yaml')
         load_scenarios(seed_dir / 'scenarios.yaml')
+        call_command('createcachetable')
 
 
 @pytest.fixture(autouse=True)
 def stub_moderation_provider(monkeypatch):
     """Testy nie zależą od lokalnej konfiguracji dewelopera (np. `moderation.provider: gemini` w config/local.yaml)."""
     monkeypatch.setattr(settings, 'APP', replace(settings.APP, moderation=replace(settings.APP.moderation, provider='stub')))
+
+
+@pytest.fixture(autouse=True)
+def relaxed_location_checks(monkeypatch):
+    """Zwykłe testy akcji nie wysyłają dokładności GPS ani czasu odczytu i nie zależą od lokalnej konfiguracji dewelopera.
+    Testy lokalizacji (`test_location.py`) włączają pełną weryfikację, więc sprawdzają to, co działa na produkcji."""
+    relaxed = replace(settings.APP.location, require_accuracy=False, require_timestamp=False, allow_simulated=True)
+    monkeypatch.setattr(settings, 'APP', replace(settings.APP, location=relaxed))
 
 
 def client_for(user: User | None = None) -> APIClient:

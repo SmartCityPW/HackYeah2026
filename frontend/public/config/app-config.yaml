@@ -35,6 +35,8 @@ game:
   encounterRefreshMeters: 10              # po tylu metrach ruchu pytamy o przeciwników na nowo
   encounterRefreshSeconds: 30             # odświeżanie przeciwników także na postoju
   battleClashMs: 1600                     # najkrótszy czas animacji starcia
+  gpsMaxAgeSeconds: 10                    # przed akcją prosimy o odczyt GPS nie starszy niż tyle sekund (backend: location.max_age_seconds, dziś 30)
+  gpsTimeoutSeconds: 10                   # ile sekund czekamy na świeży odczyt GPS przed akcją
   simulatedGps: { lat: 50.0676, lng: 19.9917 }  # pozycja z przycisku "GPS" (narzędzia deweloperskie): wejście na TAURON Arenę
 
 upload:
@@ -57,6 +59,7 @@ ui:
   toastMs: 3000
   commentsPageSize: 10                    # komentarze nadrzędne na stronę
   mapReloadDebounceMs: 400                # po ilu ms od zatrzymania mapy dociągamy pinezki z widocznego obszaru
+  eventRefreshSeconds: 60                 # mapa odświeża wydarzenia (czy można już odebrać nagrodę zmienia się z czasem)
   moderationPollSeconds: 30               # administrator: co ile sekund sprawdzamy nowe odrzucenia moderacji AI (odznaka i komunikat)
 
 dev:

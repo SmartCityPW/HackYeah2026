@@ -45,12 +45,15 @@ class EncounterStatus(models.TextChoices):
 
 
 class EncounterCell(models.Model):
-    """Kwadrat terenu (bok `game.encounters.cell_size_m`), do którego przypisani są przeciwnicy, wspólny dla wszystkich graczy.
+    """Kwadrat terenu (bok `game.encounters.cell_size_m`) JEDNEGO gracza: każdy ma własne zasiedlenie, więc dwóch graczy w tym samym
+    miejscu widzi różnych przeciwników.
 
-    `row`/`col` to numer kwadratu w siatce (patrz `services.cell_of`). `refill_at`: kiedy pusty kwadrat zasiedli się na nowo
-    (NULL, dopóki stoją w nim przeciwnicy albo nikt jeszcze nie zauważył, że jest pusty).
+    `row`/`col` to numer kwadratu w siatce (patrz `services.cells_around`). `refill_at`: kiedy pusty kwadrat gracza zasiedli się na nowo
+    (NULL, dopóki stoją w nim przeciwnicy albo nikt jeszcze nie zauważył, że jest pusty). `user` jest NULL tylko w starych wierszach
+    z czasów wspólnych kwadratów (nikt już ich nie widzi).
     """
 
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE, related_name='+')
     row = models.IntegerField()
     col = models.IntegerField()
     populated_at = models.DateTimeField(null=True, blank=True)
@@ -58,10 +61,12 @@ class EncounterCell(models.Model):
 
     class Meta:
         db_table = 'game_encounter_cell'
-        constraints = [models.UniqueConstraint(fields=['row', 'col'], name='game_encounter_cell_unique')]
+        constraints = [models.UniqueConstraint(fields=['user', 'row', 'col'], name='game_encounter_cell_user_unique')]
 
 
 class Encounter(models.Model):
+    # Właściciel: przeciwnika widzi i może zaatakować tylko on. NULL tylko w starych wierszach (wspólne kwadraty).
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.CASCADE, related_name='+')
     cell = models.ForeignKey(EncounterCell, null=True, blank=True, on_delete=models.CASCADE, related_name='encounters')
     enemy_type = models.ForeignKey(EnemyType, on_delete=models.PROTECT, related_name='encounters')
     level = models.SmallIntegerField()
@@ -77,7 +82,10 @@ class Encounter(models.Model):
 
     class Meta:
         db_table = 'game_encounter'
-        indexes = [models.Index(fields=['status', 'lat', 'lng'], name='game_encounter_state_pos_idx')]
+        indexes = [
+            models.Index(fields=['status', 'lat', 'lng'], name='game_encounter_state_pos_idx'),
+            models.Index(fields=['user', 'status'], name='game_encounter_user_status_idx'),
+        ]
         constraints = [
             models.CheckConstraint(condition=Q(level__gte=1, level__lte=100), name='encounter_level_range'),
             models.CheckConstraint(condition=Q(power__gt=0), name='encounter_power_positive'),
@@ -140,6 +148,20 @@ class AttackPokemon(models.Model):
             models.CheckConstraint(condition=Q(type_multiplier_applied__gte=1), name='attack_pokemon_multiplier_valid'),
             models.CheckConstraint(condition=Q(exp_gained__gte=0), name='attack_pokemon_exp_non_negative'),
         ]
+
+
+class PlayerLocation(models.Model):
+    """Ostatnia zweryfikowana pozycja gracza: podstawa wykrywania teleportacji (zbyt szybkiej zmiany miejsca) między akcjami."""
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, primary_key=True, on_delete=models.CASCADE, related_name='+')
+    lat = models.FloatField()
+    lng = models.FloatField()
+    accuracy_m = models.FloatField(null=True, blank=True)
+    source = models.CharField(max_length=10, default='gps')
+    reported_at = models.DateTimeField()
+
+    class Meta:
+        db_table = 'game_player_location'
 
 
 class PlayerProgress(models.Model):

@@ -1,0 +1,55 @@
+# Reguły moderacji bez AI (warstwa 1): działają zawsze, bez klucza, bez sieci i bez kosztu.
+# Tekst jest przed porównaniem normalizowany: małe litery, bez polskich znaków, cyfry i znaki podobne do liter
+# (k0rwa, kurw@, ku*wa), powtórzone litery zredukowane (kurwaaaa), litery rozdzielone odstępami (k u r w a) sklejone.
+# Listy są celowo ostrożne: wolimy przepuścić wątpliwe słowo (dalej ocenia je AI i administrator), niż odrzucać
+# poprawne zgłoszenia ("suka" to też samica psa, "pedał" to część roweru, "robactwo" to prawdziwy problem miejski).
+# Zasięg: wulgaryzmy, mowa nienawiści, groźby, dane osobowe, spam i próby wstrzyknięcia instrukcji do AI.
+# Czy zgłoszenie dotyczy miasta (np. przepis na zupę), ocenia dopiero AI.
+
+vulgar:
+  contains: [kurw, pierd, jeb, pizd, huj, gowno, fuck, shit, bitch, cunt, asshole, kutas]
+  startswith: [ruchac, ruchan, fiut, dupa, dupy, dupie, dupek, dupsk, cipa, cipy, cipk, cwel, debil, idiot, kretyn, imbecyl, szmat, dziwk, pojeb, sukinsyn, sukin]
+
+hate:
+  contains: [czarnuch, ciapat, pedalstw, zydostw, cyganstw, podludzi, nigger, nigga, faggot, heilhitler, siegheil]
+  patterns:
+    - '(wyrzucic|wywalic|wygnac|wybic|wytepic|usunac) (z (kraju|miasta|polski) )?(imigrant|uchodzc|muzulman|zydow|cyganow|murzynow|ukraincow|arabow|gejow|lesbijek|obcych)'
+    - '(imigranci|uchodzcy|muzulmanie|zydzi|cyganie|ukraincy|arabowie|murzyni|geje|lesbijki|obcy) (to|sa|jest) (robactwo|szkodniki|smiecie|zaraza|swinie|brudasy|odpadki)'
+    - 'hitler mial racje'
+    - 'do gazu'
+
+threat:
+  patterns:
+    - '(zabije|zabijemy|zastrzele|pobije|pobijemy|zajebie|zgwalce|zamorduje|zatluke|zadziabie) (cie|was|go|ja|ich|wszystkich|tego|ta|tych)'
+    - '(zabij|zdechnij|zdychaj|spieprzaj) (sie|do domu)'
+    - '(podpale|spale|wysadze|rozpierdole|zniszcze) (go|ja|to|ten|te|ta|wszystko|cale|calosc|przystanek|szkole|urzad)'
+    - 'podloze bombe'
+    - 'mam (bron|noz|bombe) i'
+
+personal_data:
+  # telefon, e-mail, PESEL (z sumą kontrolną) i numer karty (algorytm Luhna) wykrywa kod; tu dodatkowe wzorce
+  patterns:
+    - '(moj|jego|jej) (pesel|numer telefonu|adres zamieszkania)'
+    - '\b(pesel|nr dowodu|numer dowodu|numer konta)\b'
+
+spam:
+  contains: [kupteraz, zarabiaj, zarobisz, bitcoin, kryptowalut, kasyno, bukmacher, darmowepieniadze, linkwbio, wygrajnagrode, tanieokulary, klikajwlink]
+  patterns:
+    - '(napisz|pisz|dzwon) (na|do) (whatsapp|telegram|signal|priv|pw)'
+    - '\bt\.me\b'
+    - '(rabat \d+ ?%|\d+ ?% rabat|promocja tylko|tylko dzis)'
+
+injection:
+  patterns:
+    - '\b(z?ignoruj|z?ignorujcie|pomin|zapomnij|zapomnijcie)\b.{0,40}\b(polecen|instrukcj|zasad|powyzsz|poprzedni|wszystk)'
+    - '\bignore\b.{0,30}\b(previous|above|prior|all|these)\b.{0,30}\b(instruction|prompt|rule|command)'
+    - '\bodpowiedz\b.{0,10}\b(1|jeden|tak)\b'
+    - '\b(output|answer|reply|respond)\b.{0,10}\b(1|yes|approve)\b'
+    - '\bjestes (teraz|od teraz)\b'
+    - '\byou are (now|no longer)\b'
+    - '(system prompt|prompt systemowy|polecenie systemowe|nowe polecenie|developer mode|tryb deweloperski)'
+    - '\bmoderatorze\b'
+    - 'zatwierdz (kazde|wszystkie|to) zgloszeni'
+    - '(zostalo|zostala|jest) (juz )?(zatwierdzon|zaakceptowan)\w* (przez|jako)'
+    - '</?\s*zgloszenie'
+    - '</?\s*(system|assistant|instruction)'

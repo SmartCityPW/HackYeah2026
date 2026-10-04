@@ -27,6 +27,40 @@ users:
       - {character: air_conditioner, exp: 20}
     starter_exp: 620
 
+# Wydarzenia "cool thing" fundacji (czasy względem chwili ładowania danych, żeby demo zawsze miało wydarzenie trwające teraz i zapowiedziane).
+events:
+  - title: "Piknik rowerowy przy Arenie"
+    organization: Fundacja Zielone Miasto
+    description: "Wspólna jazda po nowej drodze rowerowej, dmuchany tor i serwis rowerów. Zapraszamy całe rodziny, a każdy, kto dojedzie na miejsce, dostanie rzadkiego Złotego Rowera."
+    address: "Plac przed TAURON Areną Kraków"
+    lat: 50.0675
+    lng: 19.9915
+    starts_in_hours: -2          # zaczęło się 2 godziny temu
+    duration_hours: 72           # trzy dni
+    daily_from: "08:00"          # odbiór nagrody codziennie 8:00-22:00
+    daily_to: "22:00"
+    reward: gold_bike
+  - title: "Sprzątanie skweru przy Arenie"
+    organization: Fundacja Zielone Miasto
+    description: "Razem sprzątamy skwer obok Areny: worki, rękawice i napoje zapewniamy my. Dla każdego, kto przyjdzie pomóc, rzadki Błyszczący Kosz. Trwa non stop przez trzy dni, więc można wpaść kiedy się chce."
+    address: "Skwer obok TAURON Areny Kraków"
+    lat: 50.0677
+    lng: 19.9920
+    starts_in_hours: -1
+    duration_hours: 72           # bez godzin dziennych: nagrodę można odebrać o każdej porze (łatwy pokaz w trybie symulowanego GPS)
+    reward: shiny_bin
+  - title: "Festiwal Lampionów"
+    organization: Fundacja Zielone Miasto
+    description: "Wieczór z lampionami nad Białym Potokiem: warsztaty, muzyka i wspólne puszczanie lampionów. Dla gości mamy rzadkiego Lampiona Festiwalowego."
+    address: "Skwer przy ul. Lema"
+    lat: 50.0690
+    lng: 19.9896
+    starts_in_hours: 48
+    duration_hours: 5
+    reward: lantern
+    capacity: 100
+    age_min: 8
+
 # Każdy mieszkaniec ma pokemona startowego, więc zgłoszenia problemów mają różnych autorów.
 pokestops:
   - {author: kasia@demo.smartcity.example,  scenario: res-pothole, title: Dziura na przejściu dla pieszych, description: Wyrwa w asfalcie tuż przy krawężniku przy wyjściu z tramwaju., lat: 50.0669, lng: 19.9905}

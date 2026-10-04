@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import * as maplibregl from 'maplibre-gl';
 import { CharacterId, Pokestop, isTrustedType } from '../../../core/pokestop.model';
-import { createCharacter, createTrustedMarker } from './character-factory';
+import { createCharacter, createEventBase, createTrustedMarker } from './character-factory';
 
 /** Klucz wspólnego modelu inicjatyw zaufanych podmiotów w pamięci podręcznej (nie jest kodem postaci). */
 const TRUSTED_KEY = '!trusted';
@@ -25,7 +25,7 @@ export class CharactersLayer implements maplibregl.CustomLayerInterface {
   private renderer?: THREE.WebGLRenderer;
   private readonly scene = new THREE.Scene();
   private readonly camera = new THREE.Camera();
-  private readonly placed = new Map<number, Placed>();
+  private readonly placed = new Map<string, Placed>();
   private readonly cache = new Map<CharacterId, Promise<THREE.Object3D>>();
   /** Model gracza (jego Spryciak-towarzysz); nie obraca się w kółko, tylko lekko "oddycha". */
   private player?: { object: THREE.Object3D; mercator: maplibregl.MercatorCoordinate; modelPath: string | null };
@@ -50,28 +50,57 @@ export class CharactersLayer implements maplibregl.CustomLayerInterface {
 
   /** Dopasowuje postacie do listy pokestopów: dodaje nowe, usuwa brakujące. */
   async setStops(stops: Pokestop[]): Promise<void> {
-    const ids = new Set(stops.map((s) => s.id));
-    for (const [id, placed] of this.placed) {
-      if (ids.has(id)) continue;
+    await this.sync(
+      's',
+      stops.map((stop) => {
+        // Inicjatywa zaufanego podmiotu to wykrzyknik, a nie postać: gatunek nagrody za ankietę jest tajemnicą do jej wypełnienia.
+        const trusted = isTrustedType(stop.type);
+        return {
+          id: stop.id, lat: stop.lat, lng: stop.lng, key: trusted ? TRUSTED_KEY : stop.character,
+          load: () => (trusted ? Promise.resolve(createTrustedMarker()) : createCharacter(this.modelPathOf(stop.character), stop.character)),
+        };
+      }),
+    );
+  }
+
+  /**
+   * Dopasowuje punkty wydarzeń: przy każdym kręci się rzadki pokemon, którego dostanie uczestnik (w odróżnieniu od inicjatyw
+   * zaufanych podmiotów, tu nagroda jest jawna), na podstawie odróżniającej punkt wydarzenia.
+   */
+  async setEvents(events: { id: number; lat: number; lng: number; rewardCharacter: CharacterId }[]): Promise<void> {
+    await this.sync(
+      'e',
+      events.map((event) => ({
+        id: event.id, lat: event.lat, lng: event.lng, key: `event:${event.rewardCharacter}`,
+        load: async () => {
+          const group = new THREE.Group();
+          group.add(await createCharacter(this.modelPathOf(event.rewardCharacter), event.rewardCharacter), createEventBase());
+          return group;
+        },
+      })),
+    );
+  }
+
+  /** Wspólna synchronizacja jednego rodzaju obiektów (`s` pinezki, `e` wydarzenia): usuwa brakujące, dodaje nowe. */
+  private async sync(kind: 's' | 'e', items: { id: number; lat: number; lng: number; key: string; load: () => Promise<THREE.Object3D> }[]): Promise<void> {
+    const wanted = new Set(items.map((i) => `${kind}:${i.id}`));
+    for (const [key, placed] of this.placed) {
+      if (!key.startsWith(`${kind}:`) || wanted.has(key)) continue;
       this.scene.remove(placed.object);
-      this.placed.delete(id);
+      this.placed.delete(key);
     }
     await Promise.all(
-      stops
-        .filter((s) => !this.placed.has(s.id))
-        .map(async (stop) => {
-          // Inicjatywa zaufanego podmiotu to wykrzyknik, a nie postać: gatunek nagrody za ankietę jest tajemnicą do jej wypełnienia.
-          const key = isTrustedType(stop.type) ? TRUSTED_KEY : stop.character;
-          if (!this.cache.has(key)) this.cache.set(key, key === TRUSTED_KEY ? Promise.resolve(createTrustedMarker()) : createCharacter(this.modelPathOf(stop.character)));
-          const template = await this.cache.get(key)!;
+      items
+        .filter((i) => !this.placed.has(`${kind}:${i.id}`))
+        .map(async (item) => {
+          if (!this.cache.has(item.key)) this.cache.set(item.key, item.load());
+          const template = await this.cache.get(item.key)!;
+          const placedKey = `${kind}:${item.id}`;
+          if (this.placed.has(placedKey)) return; // w międzyczasie dodała go inna synchronizacja
           const object = template.clone(true);
           object.visible = false;
           this.scene.add(object);
-          this.placed.set(stop.id, {
-            object,
-            mercator: maplibregl.MercatorCoordinate.fromLngLat([stop.lng, stop.lat], 0),
-            phase: stop.id,
-          });
+          this.placed.set(placedKey, { object, mercator: maplibregl.MercatorCoordinate.fromLngLat([item.lng, item.lat], 0), phase: item.id });
         }),
     );
     this.map?.triggerRepaint();

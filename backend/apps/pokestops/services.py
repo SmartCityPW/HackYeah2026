@@ -17,6 +17,8 @@ from apps.accounts.models import Role, User
 from apps.accounts.services import organization_of
 from apps.collection.models import Character, Pokemon
 from apps.collection.services import add_exp
+from apps.game import location
+from apps.game.location import Fix
 from apps.moderation.agent import ModerationUnavailable, get_agent
 from apps.pokestops.models import (
     ORG_TYPES,
@@ -79,12 +81,14 @@ def _moderate(author: User, scenario: Scenario, data: dict) -> None:
         raise ApiError(http.HTTP_503_SERVICE_UNAVAILABLE, 'moderation_unavailable', 'Nie udało się sprawdzić zgłoszenia, spróbuj ponownie') from exc
     latency = int((time.monotonic() - started) * 1000)
     if not review.approved:
-        ModerationLog.objects.create(author=author, scenario=scenario, submitted=submission, verdict=Verdict.REJECTED, model=review.model, latency_ms=latency)
+        ModerationLog.objects.create(author=author, scenario=scenario, submitted=submission, verdict=Verdict.REJECTED, model=review.model,
+                                     reason=review.reason, latency_ms=latency)
         raise ApiError(http.HTTP_422_UNPROCESSABLE_ENTITY, 'moderation_rejected', 'Zgłoszenie nie spełnia zasad serwisu i nie zostało opublikowane')
     data['_review'] = (review.model, latency)  # zapis do logu po utworzeniu pinezki (w tej samej transakcji)
 
 
-def create_pokestop(user: User, data: dict) -> Pokestop:
+def create_pokestop(user: User, data: dict, *, verify_location: bool = True) -> Pokestop:
+    """Tworzy pinezkę. `verify_location=False` tylko dla danych demo (`seed_demo`), które powstają bez prawdziwego GPS."""
     if user.role == Role.ADMIN:
         raise _forbidden('forbidden', 'Administrator nie dodaje zgłoszeń')
     scenario = Scenario.objects.select_related('default_character').filter(code=data['scenario_code'], is_active=True).first()
@@ -106,8 +110,9 @@ def create_pokestop(user: User, data: dict) -> Pokestop:
     if errors:
         raise _invalid(errors)
     # Pinezkę można postawić tylko w kółku interakcji gracza (sprawdzamy przed moderacją, żeby nie płacić za wywołanie agenta).
-    player = data['position']
-    distance = distance_m(player['lat'], player['lng'], data['lat'], data['lng'])
+    fix = Fix.from_position(data['position'])
+    player = location.verify(user, fix) if verify_location else fix
+    distance = distance_m(player.lat, player.lng, data['lat'], data['lng'])
     if distance > settings.APP.game.interaction_range_m:
         raise too_far(distance, settings.APP.game.interaction_range_m)
     if data.get('questions') and scenario.pokestop_type not in ORG_TYPES:
@@ -172,10 +177,12 @@ def _claim_photos(user: User, ids: list[int]) -> list[Photo]:
 
 # ───────────────────────── głosowanie ─────────────────────────
 
-def vote(*, user: User, pokestop_id: int, value: str, pokemon_id: int, lat: float, lng: float) -> tuple[Pokestop, Pokemon]:
+def vote(*, user: User, pokestop_id: int, value: str, pokemon_id: int, fix: Fix) -> tuple[Pokestop, Pokemon]:
     cfg = settings.APP.game
     if user.role == Role.ADMIN:
         raise _forbidden('forbidden', 'Administrator nie głosuje')
+    verified = location.verify(user, fix)
+    lat, lng = verified.lat, verified.lng
     with transaction.atomic():
         stop = Pokestop.objects.select_for_update().filter(pk=pokestop_id).exclude(status=Status.REJECTED).first()
         if stop is None:
@@ -264,4 +271,17 @@ def add_comment(user: User, pokestop_id: int, text: str, parent_id: int | None) 
         parent = Comment.objects.filter(pk=parent_id, pokestop=stop, parent__isnull=True, hidden_at__isnull=True).first()
         if parent is None:
             raise _invalid({'parentCommentId': 'Odpowiadać można tylko na komentarz nadrzędny tej pinezki'})
+    _moderate_comment(user, stop, text)
     return Comment.objects.create(pokestop=stop, author=user, parent=parent, body=text.strip())
+
+
+def _moderate_comment(author: User, stop: Pokestop, text: str) -> None:
+    """Komentarze przechodzą przez reguły (bez AI: komentarze są krótkie i częste, a "popieram!" nie dotyczy tematu zgłoszenia).
+    Odrzucenie trafia do tego samego logu co zgłoszenia, żeby administrator widział całość w jednym miejscu."""
+    from apps.moderation.rules import inspect_text
+    category = inspect_text(text)
+    if category is None:
+        return
+    ModerationLog.objects.create(author=author, scenario=stop.scenario, submitted={'kind': 'comment', 'pokestopId': stop.pk, 'description': text},
+                                 verdict=Verdict.REJECTED, model='rules', reason=category)
+    raise ApiError(http.HTTP_422_UNPROCESSABLE_ENTITY, 'moderation_rejected', 'Komentarz nie spełnia zasad serwisu i nie został opublikowany')

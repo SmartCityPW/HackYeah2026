@@ -32,6 +32,8 @@ class AppSection:
     allowed_hosts: list[str]
     cors_allowed_origins: list[str]
     api_prefix: str
+    https_proxy: bool
+    hsts_seconds: int
 
 
 @dataclass(frozen=True)
@@ -40,6 +42,7 @@ class ServerSection:
     port: int
     workers: int
     timeout_seconds: int
+    trusted_proxies: int
 
 
 @dataclass(frozen=True)
@@ -76,6 +79,7 @@ class AuthSection:
     refresh_token_days: int
     password_min_length: int
     guest_rate: str
+    login_rate: str
 
 
 @dataclass(frozen=True)
@@ -99,12 +103,11 @@ class EncountersSection:
     respawn_seconds: int
     default_radius_m: int
     max_radius_m: int
+    retention_hours: int
 
 
 @dataclass(frozen=True)
 class AntiCheatSection:
-    max_accuracy_m: float
-    max_speed_mps: float
     min_seconds_between_attacks: int
     max_attacks_per_hour: int
 
@@ -176,15 +179,43 @@ class ModerationGeminiSection:
 
 
 @dataclass(frozen=True)
+class ModerationLayeredSection:
+    ai: str
+    require_ai: bool
+    on_ai_error: str
+
+
+@dataclass(frozen=True)
 class ModerationSection:
     provider: str
     timeout_seconds: float
     log_retention_days: int
     cases_file: str
     prompt_file: str
+    rules_file: str
+    layered: ModerationLayeredSection
     stub: ModerationStubSection
     http: ModerationHttpSection
     gemini: ModerationGeminiSection
+
+
+@dataclass(frozen=True)
+class EventsSection:
+    default_window_days: int
+    max_duration_days: int
+    description_max_length: int
+
+
+@dataclass(frozen=True)
+class LocationSection:
+    require_accuracy: bool
+    max_accuracy_m: float
+    require_timestamp: bool
+    max_age_seconds: float
+    max_future_seconds: float
+    max_speed_mps: float
+    speed_ignore_below_m: float
+    allow_simulated: bool
 
 
 @dataclass(frozen=True)
@@ -207,6 +238,8 @@ class Config:
     game: GameSection
     pokestops: PokestopsSection
     moderation: ModerationSection
+    events: EventsSection
+    location: LocationSection
     contract: ContractSection
 
     def path(self, value: str) -> Path:

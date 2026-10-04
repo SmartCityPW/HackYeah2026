@@ -3,14 +3,14 @@ from pathlib import Path
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
-from apps.moderation.agent import get_agent
+from apps.moderation.agent import get_agent, has_ai_layer
 from apps.moderation.evaluation import load_cases, run_cases, summarize
 
 
 class Command(BaseCommand):
     help = (
         'Ocenia skonfigurowanego agenta moderującego na zestawie przypadków (domyślnie config/moderation_cases.yaml): '
-        'poprawne zgłoszenia, niedozwolona treść i próby wstrzyknięcia instrukcji. Wymaga providera innego niż stub.'
+        'poprawne zgłoszenia, niedozwolona treść i próby wstrzyknięcia instrukcji. Działa dla rules, layered, gemini i http (nie dla atrapy stub). Bez warstwy AI pomija przypadki off_topic.'
     )
 
     def add_arguments(self, parser):
@@ -20,10 +20,15 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         cfg = settings.APP.moderation
         if cfg.provider == 'stub':
-            raise CommandError('moderation.provider to "stub" (atrapa nie ocenia treści). Ustaw gemini albo http, patrz config/local.example.yaml.')
+            raise CommandError('moderation.provider to "stub" (atrapa nie ocenia treści). Ustaw layered, rules, gemini albo http.')
         path = Path(options['cases']) if options['cases'] else settings.APP.path(settings.APP.moderation.cases_file)
         cases = load_cases(path)
-        model = cfg.gemini.model if cfg.provider == 'gemini' else cfg.http.model
+        if not has_ai_layer():
+            skipped = [c.id for c in cases if c.category == 'off_topic']
+            cases = [c for c in cases if c.category != 'off_topic']
+            if skipped:
+                self.stdout.write(self.style.WARNING(f'Brak warstwy AI (klucz AI_API_KEY): pomijam przypadki "nie na temat" ({", ".join(skipped)}). Oceni je dopiero AI.'))
+        model = cfg.gemini.model if cfg.provider == 'gemini' or (cfg.provider == 'layered' and has_ai_layer() and cfg.layered.ai == 'gemini') else cfg.http.model if cfg.provider == 'http' else ''
         self.stdout.write(f'provider: {cfg.provider}' + (f', model: {model}' if model else '') + f', przypadków: {len(cases)}\n')
 
         def show(result):

@@ -2,6 +2,7 @@ import { Injectable, OnDestroy, inject, signal } from '@angular/core';
 import { CatalogService } from '../../core/catalog/catalog.service';
 import { AppConfigService } from '../../core/config/app-config.service';
 import * as maplibregl from 'maplibre-gl';
+import { GameEvent } from '../../core/event.model';
 import { Encounter } from '../../core/game.model';
 import { circleRing } from '../../core/geo.utils';
 import { Bbox, POKESTOP_TYPES, Pokestop, isTrustedType } from '../../core/pokestop.model';
@@ -38,6 +39,7 @@ export class MapController implements OnDestroy {
   private readonly characters = new CharactersLayer((code) => this.catalog.character(code).modelPath);
   private readonly markers = new Map<number, maplibregl.Marker>();
   private readonly enemyMarkers = new Map<number, maplibregl.Marker>();
+  private readonly eventMarkers = new Map<number, maplibregl.Marker>();
   private pulseFrame?: number;
   private userLat?: number;
   /** Widok sprzed trybu walki, przywracany po jej zakończeniu. */
@@ -81,6 +83,35 @@ export class MapController implements OnDestroy {
       if (!this.markers.has(stop.id)) this.markers.set(stop.id, this.createMarker(stop, onSelect));
     }
     void this.characters.setStops(stops);
+  }
+
+  /**
+   * Dopasowuje punkty wydarzeń (marker + wirujący rzadki pokemon na podstawie). Marker pokazuje, czy nagrodę można odebrać
+   * już teraz (`data-active`), a znaczenie niesie też ikona i obramowanie, nie sam kolor.
+   */
+  showEvents(events: GameEvent[], onSelect: (id: number) => void): void {
+    if (!this.map) return;
+    const ids = new Set(events.map((e) => e.id));
+    for (const [id, marker] of this.eventMarkers) {
+      if (ids.has(id)) continue;
+      marker.remove();
+      this.eventMarkers.delete(id);
+    }
+    for (const event of events) {
+      const existing = this.eventMarkers.get(event.id);
+      if (existing) {
+        existing.getElement().dataset['active'] = String(event.activeNow);
+        continue;
+      }
+      const el = document.createElement('button');
+      el.className = 'stop-marker event-marker';
+      el.dataset['active'] = String(event.activeNow);
+      el.innerHTML = '<span>🎪</span>';
+      el.setAttribute('aria-label', `Wydarzenie: ${event.title}`);
+      el.addEventListener('click', () => onSelect(event.id));
+      this.eventMarkers.set(event.id, new maplibregl.Marker({ element: el, anchor: 'bottom', offset: [0, -34] }).setLngLat([event.lng, event.lat]).addTo(this.map));
+    }
+    void this.characters.setEvents(events);
   }
 
   /** Dopasowuje markery przeciwników do listy (dodaje nowe, usuwa pokonanych i wygasłych). */
@@ -152,8 +183,9 @@ export class MapController implements OnDestroy {
   }
 
   /** Przygasza pinezki i przeciwników spoza kółka interakcji (z nimi nie da się nic zrobić, trzeba podejść). */
-  markInRange(stopIds: ReadonlySet<number>, encounterIds: ReadonlySet<number>): void {
+  markInRange(stopIds: ReadonlySet<number>, encounterIds: ReadonlySet<number>, eventIds: ReadonlySet<number> = new Set()): void {
     for (const [id, marker] of this.markers) marker.getElement().classList.toggle('out-of-range', !stopIds.has(id));
+    for (const [id, marker] of this.eventMarkers) marker.getElement().classList.toggle('out-of-range', !eventIds.has(id));
     for (const [id, marker] of this.enemyMarkers) marker.getElement().classList.toggle('out-of-range', !encounterIds.has(id));
   }
 

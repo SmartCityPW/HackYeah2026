@@ -39,11 +39,11 @@ export class ModelPreviewService {
    * Podpina miniaturę modelu do płótna. Zwraca funkcję odpinającą. Rzuca błąd, gdy przeglądarka nie ma WebGL
    * (wtedy komponent pokazuje emoji).
    */
-  async attach(canvas: HTMLCanvasElement, modelPath: string | null, options: { silhouette?: boolean; phase?: number } = {}): Promise<() => void> {
+  async attach(canvas: HTMLCanvasElement, modelPath: string | null, options: { silhouette?: boolean; phase?: number; code?: string } = {}): Promise<() => void> {
     this.ensureRenderer();
     const context = canvas.getContext('2d');
     if (!context) throw new Error('Brak kontekstu 2D');
-    const object = (await this.template(modelPath)).clone(true);
+    const object = (await this.template(modelPath, options.code)).clone(true);
     if (options.silhouette) paintSilhouette(object, cssColor('--color-plum'));
     const sphere = new THREE.Box3().setFromObject(object).getBoundingSphere(new THREE.Sphere());
     const preview: Preview = {
@@ -64,9 +64,11 @@ export class ModelPreviewService {
     };
   }
 
-  private template(modelPath: string | null): Promise<THREE.Object3D> {
-    if (!this.templates.has(modelPath)) this.templates.set(modelPath, createCharacter(modelPath));
-    return this.templates.get(modelPath)!;
+  private template(modelPath: string | null, code?: string): Promise<THREE.Object3D> {
+    // Gatunki bez modelu mają postać zastępczą w barwie zależnej od kodu, więc każdy ma własny szablon.
+    const key = modelPath ?? (code ? `placeholder:${code}` : null);
+    if (!this.templates.has(key)) this.templates.set(key, createCharacter(modelPath, code));
+    return this.templates.get(key)!;
   }
 
   private ensureRenderer(): void {

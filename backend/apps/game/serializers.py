@@ -20,10 +20,13 @@ class EncounterSerializer(CamelSerializer):
     expires_at = serializers.DateTimeField()
 
 
-class EncounterQuerySerializer(serializers.Serializer):
+class EncounterQuerySerializer(CamelSerializer):
     lat = serializers.FloatField(min_value=-90, max_value=90)
     lng = serializers.FloatField(min_value=-180, max_value=180)
     radius = serializers.IntegerField(required=False, min_value=1)
+    accuracy_m = serializers.FloatField(required=False, min_value=0)
+    taken_at = serializers.DateTimeField(required=False)
+    source = serializers.ChoiceField(choices=['gps', 'simulated'], required=False, default='gps')
 
 
 class AttackRequestSerializer(CamelSerializer):
@@ -31,4 +34,5 @@ class AttackRequestSerializer(CamelSerializer):
     lng = serializers.FloatField(min_value=-180, max_value=180)
     accuracy_m = serializers.FloatField(required=False, allow_null=True, min_value=0)
     client_time = serializers.DateTimeField(required=False, allow_null=True)
+    source = serializers.ChoiceField(choices=['gps', 'simulated'], required=False, default='gps')
     pokemon_ids = serializers.ListField(child=serializers.IntegerField(), allow_empty=False)

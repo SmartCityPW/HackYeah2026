@@ -2,7 +2,7 @@ import { DestroyRef, Injectable, effect, inject, signal, untracked } from '@angu
 import { GameApi } from './api/game.api';
 import { CollectionService } from './collection.service';
 import { AppConfigService } from './config/app-config.service';
-import { AttackResult, Encounter } from './game.model';
+import { AttackResult, Encounter, PlayerPosition } from './game.model';
 import { distanceMeters } from './geo.utils';
 import { GeolocationService } from './geolocation.service';
 import { PokemonService } from './pokemon.service';
@@ -24,6 +24,14 @@ export class EncounterService {
   /** Aktualna pozycja użytkownika w formacie {lat, lng} albo null, gdy jej nie znamy. */
   readonly userPosition = this.geo.latLng;
 
+  /**
+   * Świeży odczyt pozycji do wysłania z akcją (głos, pinezka, ankieta, wydarzenie, walka). Serwer odrzuca odczyty niedokładne i stare,
+   * więc przed akcją prosimy przeglądarkę o aktualny; symulacja (tryb deweloperski) wraca od razu.
+   */
+  freshPosition(): Promise<PlayerPosition | null> {
+    return this.geo.fresh();
+  }
+
   constructor() {
     // Przeciwnicy są tam, gdzie gracz: bez pozycji nie ma kogo pokazać.
     effect(() => {
@@ -42,7 +50,8 @@ export class EncounterService {
   }
 
   async refresh(): Promise<void> {
-    const position = this.userPosition();
+    if (!this.userPosition()) return;
+    const position = await this.freshPosition();
     if (!position) return;
     this.lastFetchedAt = position;
     const encounters = await this.api.listEncounters(position, this.game.interactionRangeM);
@@ -55,10 +64,11 @@ export class EncounterService {
    * albo atak już trwa. Po wygranej przeciwnik znika, a exp pokemonów, XP i kolekcja się aktualizują.
    */
   async attack(id: number, pokemonIds: number[]): Promise<AttackResult | null> {
-    const position = this.userPosition();
-    if (!position || this.attacking()) return null;
+    if (!this.userPosition() || this.attacking()) return null;
     this.attacking.set(true);
     try {
+      const position = await this.freshPosition();
+      if (!position) return null;
       const result = await this.api.attack(id, position, pokemonIds);
       if (result.outcome === 'won') {
         this.encounters.update((list) => list.filter((e) => e.id !== id));

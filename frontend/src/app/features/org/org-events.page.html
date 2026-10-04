@@ -1,0 +1,50 @@
+<div class="page">
+  <h1>Wydarzenia organizacji</h1>
+  <p class="lead">
+    Wydarzenia „cool thing”: mieszkańcy, którzy przyjdą na miejsce w czasie trwania, dostają rzadkiego Spryciaka.
+    Nowe wydarzenie dodasz z mapy (przycisk „Nowa inicjatywa”, potem „Wydarzenie”): jej środek wskazuje miejsce.
+  </p>
+
+  <div class="chip-row" role="group" aria-label="Filtr wydarzeń">
+    @for (f of filters; track f.id) {
+      <button type="button" [class.on]="filter() === f.id" [attr.aria-pressed]="filter() === f.id" (click)="filter.set(f.id)">{{ f.label }}</button>
+    }
+  </div>
+
+  @if (pendingCancel(); as event) {
+    <p class="confirm" role="alert">
+      Odwołać „{{ event.title }}”? Zniknie z mapy, a nagrody nie da się już odebrać.
+      <button type="button" class="danger" [disabled]="busy()" (click)="confirmCancel()">Tak, odwołaj</button>
+      <button type="button" (click)="pendingCancel.set(null)">Nie</button>
+    </p>
+  }
+
+  <div class="list">
+    @for (e of items(); track e.id) {
+      <article>
+        <header>
+          <h2>{{ e.title }}</h2>
+          <span class="phase" [attr.data-phase]="e.phase">{{ e.phase === 'ongoing' ? 'Trwa' : e.phase === 'upcoming' ? 'Zapowiedziane' : e.phase === 'ended' ? 'Zakończone' : 'Odwołane' }}</span>
+        </header>
+        <p class="when">{{ period(e) }}</p>
+        @if (e.address) { <p class="where">{{ e.address }}</p> }
+        <p class="state">{{ state(e) }}</p>
+        <p class="reward">
+          Nagroda: <strong>{{ reward(e).label }}</strong>
+          <span class="chip rare">★ Rzadki</span>
+          <span class="chip">{{ reward(e).type }}</span>
+          <span class="chip">Moc {{ reward(e).power }}</span>
+        </p>
+        <p class="count">Uczestnicy: <strong>{{ e.participantCount }}</strong>@if (e.capacity !== null) { z {{ e.capacity }} miejsc }</p>
+        <div class="buttons">
+          @if (e.phase === 'upcoming' || e.phase === 'ongoing') {
+            <button type="button" (click)="showOnMap(e)">Pokaż na mapie</button>
+            <button type="button" class="danger" (click)="pendingCancel.set(e)">Odwołaj</button>
+          }
+        </div>
+      </article>
+    } @empty {
+      @if (loaded()) { <p class="empty">Brak wydarzeń w tym widoku. Dodaj pierwsze z poziomu mapy.</p> }
+    }
+  </div>
+</div>

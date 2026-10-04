@@ -27,6 +27,7 @@ export const routes: Routes = [
     children: [
       { path: '', loadComponent: map, title: 'Mapa' },
       { path: 'inicjatywy', loadComponent: () => import('./features/org/org-initiatives.page').then((m) => m.OrgInitiativesPage), title: 'Inicjatywy organizacji' },
+      { path: 'wydarzenia', loadComponent: () => import('./features/org/org-events.page').then((m) => m.OrgEventsPage), title: 'Wydarzenia organizacji' },
       { path: 'organizacja', loadComponent: () => import('./features/org/org-profile.page').then((m) => m.OrgProfilePage), title: 'Organizacja' },
     ],
   },

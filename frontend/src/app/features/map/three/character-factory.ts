@@ -10,14 +10,31 @@ const gltfLoader = new GLTFLoader();
  * Zwraca postać z podstawą na y=0, wyśrodkowaną w poziomie, o wysokości CHARACTER_HEIGHT_M.
  * `modelPath` (glTF, względem public/) pochodzi ze słownika postaci; bez modelu albo gdy plik się nie wczyta, rysujemy postać zastępczą.
  */
-export async function createCharacter(modelPath: string | null): Promise<THREE.Object3D> {
-  if (!modelPath) return normalize(buildPlaceholder());
+export async function createCharacter(modelPath: string | null, code?: string): Promise<THREE.Object3D> {
+  if (!modelPath) return normalize(buildPlaceholder(code));
   try {
     return normalize((await gltfLoader.loadAsync(modelPath)).scene);
   } catch (error) {
     console.warn(`Nie udało się wczytać modelu postaci "${modelPath}", używam zastępczej`, error);
-    return normalize(buildPlaceholder());
+    return normalize(buildPlaceholder(code));
   }
+}
+
+/** Barwy postaci zastępczej: tokeny palety, wybierane po kodzie gatunku, żeby rzadkie gatunki bez modelu różniły się od siebie. */
+const PLACEHOLDER_TOKENS = ['--color-pink', '--color-indigo', '--color-lavender', '--color-plum'];
+
+/** Indeks barwy (0 do 3) dla kodu gatunku; ten sam kod zawsze daje tę samą barwę. */
+export function placeholderTintIndex(code: string): number {
+  let hash = 0;
+  for (const ch of code) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  return hash % PLACEHOLDER_TOKENS.length;
+}
+
+function placeholderColors(code?: string): { body: number; dark: number } {
+  if (!code) return { body: 0x2f9e6e, dark: 0x1f6f4d };
+  const token = getComputedStyle(document.documentElement).getPropertyValue(PLACEHOLDER_TOKENS[placeholderTintIndex(code)]).trim();
+  const body = new THREE.Color(token || '#7371fc');
+  return { body: body.getHex(), dark: body.clone().multiplyScalar(0.65).getHex() };
 }
 
 /** Kolor z tokenu palety (styles.css): materiały three.js wymagają konkretnej wartości, nie zmiennej CSS. */
@@ -42,6 +59,27 @@ export function createTrustedMarker(): THREE.Object3D {
   return normalize(group);
 }
 
+/**
+ * Podstawa pod modelem wydarzenia: płaski, jasny dysk, który odróżnia punkt wydarzenia od zwykłych pinezek
+ * (rzadki pokemon stoi na scenie). Wymiary w metrach, jak postać.
+ */
+export function createEventBase(): THREE.Object3D {
+  const disc = new THREE.Mesh(
+    new THREE.CylinderGeometry(15, 15, 0.9, 28),
+    new THREE.MeshStandardMaterial({ color: token('--color-lavender', '#cdc1ff'), flatShading: true, roughness: 0.7 }),
+  );
+  disc.position.y = 0.45;
+  const rim = new THREE.Mesh(
+    new THREE.TorusGeometry(15, 0.9, 6, 36),
+    new THREE.MeshStandardMaterial({ color: token('--color-pink', '#ea638c'), flatShading: true, roughness: 0.6 }),
+  );
+  rim.rotation.x = Math.PI / 2;
+  rim.position.y = 0.9;
+  const group = new THREE.Group();
+  group.add(disc, rim);
+  return group;
+}
+
 function normalize(object: THREE.Object3D): THREE.Object3D {
   const box = new THREE.Box3().setFromObject(object);
   const size = box.getSize(new THREE.Vector3());
@@ -60,13 +98,14 @@ function normalize(object: THREE.Object3D): THREE.Object3D {
 const mat = (color: number) => new THREE.MeshStandardMaterial({ color, flatShading: true, roughness: 0.8 });
 
 /** Postać zastępcza dla gatunku bez modelu 3D: low-poly stworek z oczami i rączkami (bez zewnętrznych assetów). */
-function buildPlaceholder(): THREE.Group {
+function buildPlaceholder(code?: string): THREE.Group {
+  const { body: bodyColor, dark } = placeholderColors(code);
   const g = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.45, 1.3, 8), mat(0x2f9e6e));
+  const body = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.45, 1.3, 8), mat(bodyColor));
   body.position.y = 0.85;
-  const lid = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 0.14, 8), mat(0x1f6f4d));
+  const lid = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 0.14, 8), mat(dark));
   lid.position.y = 1.58;
-  const handle = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.1, 0.1), mat(0x1f6f4d));
+  const handle = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.1, 0.1), mat(dark));
   handle.position.y = 1.72;
   g.add(body, lid, handle);
   for (const x of [-0.2, 0.2]) {
@@ -75,11 +114,11 @@ function buildPlaceholder(): THREE.Group {
     const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.07, 6, 6), mat(0x111111));
     pupil.position.set(x, 1.05, 0.58);
     g.add(eye, pupil);
-    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.5, 5), mat(0x2f9e6e));
+    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 0.5, 5), mat(bodyColor));
     arm.position.set(x * 3.2, 0.85, 0);
     arm.rotation.z = x > 0 ? -0.5 : 0.5;
     g.add(arm);
-    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.16, 0.4), mat(0x1f6f4d));
+    const foot = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.16, 0.4), mat(dark));
     foot.position.set(x * 1.3, 0.08, 0.05);
     g.add(foot);
   }

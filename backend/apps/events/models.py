@@ -25,6 +25,10 @@ class Event(models.Model):
     lng = models.FloatField()
     starts_at = models.DateTimeField()
     ends_at = models.DateTimeField()
+    # Opcjonalne godziny dzienne (czas lokalny wg app.timezone): wydarzenie trwa od `starts_at` do `ends_at`, ale odbiór nagrody
+    # jest możliwy tylko między tymi godzinami każdego dnia. Brak = przez cały okres.
+    daily_from = models.TimeField(null=True, blank=True)
+    daily_to = models.TimeField(null=True, blank=True)
     reward_character = models.ForeignKey(Character, on_delete=models.PROTECT, related_name='+')
     capacity = models.IntegerField(null=True, blank=True)
     age_min = models.SmallIntegerField(null=True, blank=True)
@@ -39,6 +43,10 @@ class Event(models.Model):
         constraints = [
             models.CheckConstraint(condition=Q(title__length__gte=3), name='event_title_not_blank'),
             models.CheckConstraint(condition=Q(ends_at__gt=models.F('starts_at')), name='event_ends_after_start'),
+            models.CheckConstraint(
+                condition=(Q(daily_from__isnull=True) & Q(daily_to__isnull=True)) | (Q(daily_from__isnull=False) & Q(daily_to__isnull=False) & Q(daily_from__lt=models.F('daily_to'))),
+                name='event_daily_window',
+            ),
             models.CheckConstraint(condition=Q(capacity__isnull=True) | Q(capacity__gt=0), name='event_capacity_positive'),
             models.CheckConstraint(condition=Q(age_min__isnull=True) | Q(age_max__isnull=True) | Q(age_min__lte=models.F('age_max')), name='event_age_range'),
         ]

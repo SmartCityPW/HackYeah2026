@@ -419,8 +419,13 @@ paths:
         '200': { description: Strona wydarzeń, content: { application/json: { schema: { $ref: '#/components/schemas/EventPage' } } } }
     post:
       tags: [events]
-      summary: Dodaj wydarzenie (zweryfikowana organizacja)
-      description: 'Rola `org` i organizacja `verified`. Nagrodą jest unikalny gatunek (`rewardCharacter` musi być oznaczony jako wyłączny dla wydarzeń). Treść organizacji nie przechodzi przez agenta moderującego.'
+      summary: Dodaj wydarzenie "cool thing" (zweryfikowana organizacja)
+      description: |
+        Rola `org` i organizacja `verified`. Nagrodą jest rzadki gatunek wybrany z katalogu (`GET /catalog`, `isEventExclusive: true`):
+        `rewardCharacter` innego gatunku daje `422`. Treść organizacji nie przechodzi przez agenta moderującego.
+        **Okres:** `startsAt`-`endsAt` (okno ciągłe, do `events.max_duration_days` dni, może obejmować wiele dni) i opcjonalnie godziny dzienne
+        `dailyFrom`-`dailyTo` (`HH:MM`, czas lokalny wg `app.timezone`, bez przechodzenia przez północ): nagrodę odbiera się wtedy tylko w tych
+        godzinach każdego dnia.
       requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/NewEvent' } } } }
       responses:
         '201': { description: Utworzono, content: { application/json: { schema: { $ref: '#/components/schemas/Event' } } } }
@@ -454,17 +459,20 @@ paths:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     post:
       tags: [events]
-      summary: Zamelduj się na wydarzeniu i odbierz unikalnego pokemona
+      summary: Odbierz rzadkiego pokemona z wydarzenia (zameldowanie)
       description: |
-        Udział to obecność na miejscu w czasie trwania wydarzenia. Serwer sprawdza odległość (dziś do 50 m, `422`
-        z kodem `too_far`), okno czasu (`409`, kod `outside_time_window`), limit miejsc (`409`, kod `capacity_reached`)
-        i jednorazowość (`409`, kod `already_checked_in`). Nagroda: nowy pokemon gatunku `rewardCharacter`.
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/PositionRequest' } } } }
+        Udział to obecność **na miejscu i w czasie trwania**. Odbierają mieszkańcy (`403` dla organizacji i administratora). Serwer sprawdza kolejno:
+        odwołanie (`409`, kod `event_cancelled`), jednorazowość (`409`, `already_checked_in`: jeden pokemon na uczestnika na wydarzenie, także wielodniowe),
+        czas (`409`, `outside_time_window`: poza okresem albo poza godzinami dziennymi; komunikat podaje, od kiedy można odebrać),
+        odległość (`422`, `too_far`, dziś do 50 m), dokładność GPS (`422`, `gps_inaccurate`) i limit miejsc (`409`, `capacity_reached`).
+        Nagroda: nowy pokemon gatunku `rewardCharacter`. Opis wydarzenia można obejrzeć z każdej odległości i o każdej porze.
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CheckInRequest' } } } }
       responses:
-        '200': { description: Zameldowano, content: { application/json: { schema: { $ref: '#/components/schemas/CheckInResult' } } } }
+        '200': { description: Odebrano, content: { application/json: { schema: { $ref: '#/components/schemas/CheckInResult' } } } }
         '403': { $ref: '#/components/responses/Forbidden' }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/TooFar' }
   /organizations/{id}:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     get:
@@ -483,17 +491,26 @@ paths:
         mógł dobrać pokemony przed podejściem. Klient pyta z promieniem kółka interakcji (`radius=50`) po każdych ~10 m
         ruchu i co ~30 s na postoju.
 
-        Przeciwnicy są **przypisani do miejsc**, nie do gracza: teren dzieli się na kwadraty 100 × 100 m, a każdy kwadrat
-        przy pierwszym odwiedzeniu losuje 0–6 przeciwników, którzy stoją tam, dopóki nie zostaną pokonani albo nie wygasną
-        (wspólni dla wszystkich graczy w okolicy). Wyczyszczony kwadrat zasiedla się na nowo po ~60 s. Odpowiedź zawiera
-        najbliższych przeciwników w promieniu, **najwyżej 5** (może być pusta). Wartości (kwadrat, liczba, odnowienie)
-        to konfiguracja backendu (`game.encounters`).
+        Przeciwnicy są **generowani indywidualnie dla każdego gracza** i przypisani do miejsc: teren dzieli się na kwadraty
+        100 × 100 m, a **kwadrat danego gracza** przy pierwszym odwiedzeniu losuje 0–6 przeciwników, którzy stoją tam, dopóki
+        nie zostaną pokonani albo nie wygasną (30 min). Dwóch graczy w tym samym miejscu widzi **różnych** przeciwników, a każdy
+        odnawia swoje kwadraty sam (~60 s po wyczyszczeniu). Typy kolejnych przeciwników się nie powtarzają. Przeciwnika widzi i atakuje
+        tylko jego właściciel (cudzy: `404`). Odpowiedź zawiera najbliższych przeciwników w promieniu, **najwyżej 5**
+        (może być pusta; administrator zawsze dostaje pustą). Wartości (kwadrat, liczba, odnowienie) to konfiguracja backendu (`game.encounters`).
+
+        **Pozycja jest weryfikowana** (zob. `PositionRequest`): `accuracyM`, `takenAt` i `source` przekazuje się jako parametry zapytania,
+        a odrzucona pozycja daje `422` z kodem `accuracy_required`, `gps_inaccurate`, `timestamp_required`, `stale_position`,
+        `implausible_movement` albo `simulated_location_not_allowed`.
       parameters:
         - { name: lat, in: query, required: true, schema: { type: number, format: double } }
         - { name: lng, in: query, required: true, schema: { type: number, format: double } }
         - { name: radius, in: query, required: false, description: Promień w metrach (kółko interakcji), schema: { type: integer, default: 50, maximum: 500 } }
+        - { name: accuracyM, in: query, required: false, description: 'Dokładność GPS w metrach (wymagana, gdy `location.require_accuracy`)', schema: { type: number } }
+        - { name: takenAt, in: query, required: false, description: 'Chwila odczytu GPS (wymagana, gdy `location.require_timestamp`)', schema: { type: string, format: date-time } }
+        - { name: source, in: query, required: false, description: 'Źródło pozycji: `gps` (domyślnie) albo `simulated` (tryb deweloperski; serwer przyjmuje tylko przy `location.allow_simulated`)', schema: { type: string, enum: [gps, simulated] } }
       responses:
-        '200': { description: Aktywni przeciwnicy, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Encounter' } } } } }
+        '200': { description: Aktywni przeciwnicy gracza, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Encounter' } } } } }
+        '422': { $ref: '#/components/responses/PositionRejected' }
   /encounters/{id}/attack:
     parameters: [{ $ref: '#/components/parameters/Id' }]
     post:
@@ -513,7 +530,7 @@ paths:
         '403': { description: Administrator nie walczy, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '404': { $ref: '#/components/responses/NotFound' }
         '409': { description: 'Przeciwnik pokonany (`encounter_defeated`) lub wygasły (`encounter_expired`)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
-        '422': { description: 'Błędna drużyna (`validation_error`, pole `pokemonIds`) albo niewiarygodna pozycja (`position_unreliable`: dokładność GPS ponad limit lub zbyt szybki ruch od poprzedniej próby; próba zapisana jako `rejected`)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+        '422': { description: 'Błędna drużyna (`validation_error`, pole `pokemonIds`) albo niewiarygodna pozycja (kody z `PositionRequest`: `accuracy_required`, `gps_inaccurate`, `timestamp_required`, `stale_position`, `implausible_movement`, `simulated_location_not_allowed`); próba zapisana jako `rejected`', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
         '429': { description: 'Za dużo prób (`too_many_requests`): limit 1 na 5 s i 20 na godzinę; takie żądanie nie jest zapisywane', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
 
   /admin/organizations:
@@ -581,6 +598,9 @@ components:
     Forbidden: { description: Rola nie ma uprawnień do tej operacji, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     NotFound: { description: Zasób nie istnieje, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
     Conflict: { description: 'Konflikt stanu (np. głos już oddany, e-mail zajęty)', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    PositionRejected:
+      description: 'Pozycja odrzucona jako niewiarygodna: `accuracy_required`, `gps_inaccurate`, `timestamp_required`, `stale_position`, `implausible_movement` albo `simulated_location_not_allowed` (zob. `PositionRequest`)'
+      content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
     TooFar: { description: 'Gracz stoi poza kółkiem interakcji (kod `too_far`)', content: { application/json: { schema: { $ref: '#/components/schemas/TooFarError' } } } }
     ValidationErrorOrTooFar:
       description: 'Błędne dane (`validation_error`), zgłoszenie odrzucone przez moderację (`moderation_rejected`) albo gracz poza kółkiem interakcji (`too_far`)'
@@ -944,7 +964,8 @@ components:
         lat: { type: number, format: double }
         lng: { type: number, format: double }
         accuracyM: { type: number, description: Deklarowana dokładność GPS w metrach }
-        clientTime: { type: string, format: date-time }
+        clientTime: { type: string, format: date-time, description: 'Chwila odczytu GPS (jak `takenAt` w `PositionRequest`)' }
+        source: { type: string, enum: [gps, simulated], default: gps, description: 'Źródło pozycji (jak w `PositionRequest`)' }
         pokemonIds: { type: array, minItems: 1, maxItems: 3, items: { type: integer }, description: 'Własne, niezastawione pokemony użyte w walce' }
     AttackResult:
       oneOf:
@@ -1031,7 +1052,14 @@ components:
       properties:
         lat: { type: number, format: double }
         lng: { type: number, format: double }
-        accuracyM: { type: number, description: 'Deklarowana dokładność GPS w metrach' }
+        accuracyM: { type: number, nullable: true, description: 'Dokładność GPS w metrach. Serwer wymaga jej (`location.require_accuracy`) i odrzuca gorszą niż `location.max_accuracy_m` (dziś 50 m): `gps_inaccurate`' }
+        takenAt: { type: string, format: date-time, nullable: true, description: 'Chwila odczytu GPS. Serwer wymaga jej (`location.require_timestamp`) i odrzuca starszą niż `location.max_age_seconds` albo z przyszłości: `stale_position`' }
+        source: { type: string, enum: [gps, simulated], default: gps, description: 'Źródło pozycji. `simulated` (tryb deweloperski, testy) serwer przyjmuje tylko przy `location.allow_simulated` (lokalnie, demo; w produkcji false): inaczej `simulated_location_not_allowed`' }
+      description: |
+        Pozycja gracza przy każdej akcji związanej z miejscem (głos, nowa pinezka, ankieta, odbiór nagrody z wydarzenia, walka, przeciwnicy).
+        **Serwer sprawdza, czy jej można wierzyć**, zanim policzy odległość od celu: źródło, dokładność, aktualność odczytu i tempo ruchu
+        względem ostatniej zweryfikowanej pozycji gracza (`implausible_movement`: szybciej niż `location.max_speed_mps`, dziś 40 m/s,
+        z tolerancją na szum GPS). Odrzucenie to `422` z odpowiednim kodem; odrzucona pozycja nie jest zapamiętywana.
     SurveyResponseRequest:
       type: object
       required: [position, answers]
@@ -1089,13 +1117,19 @@ components:
         lng: { type: number, format: double }
         startsAt: { type: string, format: date-time }
         endsAt: { type: string, format: date-time }
+        dailyFrom: { type: string, nullable: true, example: '10:00', description: 'Godziny dzienne odbioru nagrody (czas lokalny); `null` = przez cały okres' }
+        dailyTo: { type: string, nullable: true, example: '18:00' }
         rewardCharacter: { $ref: '#/components/schemas/CharacterCode' }
         capacity: { type: integer, nullable: true }
-        ageMin: { type: integer, nullable: true }
+        ageMin: { type: integer, nullable: true, description: 'Informacyjnie: serwer nie zna wieku graczy' }
         ageMax: { type: integer, nullable: true }
         status: { type: string, enum: [scheduled, cancelled] }
+        phase: { type: string, enum: [upcoming, ongoing, ended, cancelled], description: 'Etap życia: przed startem, w okresie trwania, po zakończeniu albo odwołane' }
+        activeNow: { type: boolean, description: 'Czy w tej chwili można odebrać nagrodę (okres trwania i godziny dzienne); drugim warunkiem jest kółko interakcji' }
+        nextWindowStart: { type: string, format: date-time, nullable: true, description: 'Najbliższy moment, od którego można odebrać nagrodę (`null`, gdy już można albo wydarzenie się skończyło lub zostało odwołane)' }
         participantCount: { type: integer }
-        checkedIn: { type: boolean, description: 'Czy zalogowany użytkownik już się zameldował' }
+        checkedIn: { type: boolean, description: 'Czy zalogowany użytkownik już odebrał nagrodę' }
+        mine: { type: boolean, description: 'Czy zalogowany użytkownik może zarządzać wydarzeniem (organizator, administrator)' }
     NewEvent:
       type: object
       required: [title, lat, lng, startsAt, endsAt, rewardCharacter]
@@ -1107,6 +1141,8 @@ components:
         lng: { type: number, format: double }
         startsAt: { type: string, format: date-time }
         endsAt: { type: string, format: date-time }
+        dailyFrom: { type: string, nullable: true, example: '10:00', description: 'Razem z `dailyTo` albo wcale' }
+        dailyTo: { type: string, nullable: true, example: '18:00' }
         rewardCharacter: { $ref: '#/components/schemas/CharacterCode' }
         capacity: { type: integer, minimum: 1 }
         ageMin: { type: integer }
@@ -1117,6 +1153,11 @@ components:
       properties:
         count: { type: integer }
         results: { type: array, items: { $ref: '#/components/schemas/Event' } }
+    CheckInRequest:
+      type: object
+      required: [position]
+      properties:
+        position: { $ref: '#/components/schemas/PositionRequest' }
     CheckInResult:
       type: object
       required: [event, pokemon]

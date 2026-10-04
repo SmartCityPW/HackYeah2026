@@ -1,7 +1,10 @@
-"""Reguły gry: przeciwnicy przypisani do kwadratów terenu i rozstrzyganie walk. Serwer jest źródłem prawdy.
+"""Reguły gry: przeciwnicy generowani indywidualnie dla każdego gracza i rozstrzyganie walk. Serwer jest źródłem prawdy.
 
-Stałe (kwadrat, liczba przeciwników, odnowienie, zasięg, mnożnik typu, antyoszustwo) pochodzą z konfiguracji YAML
-(`settings.APP.game`), nie z kodu.
+Teren dzieli się na kwadraty, ale zasiedlenie jest **osobne dla każdego gracza**: dwie osoby w tym samym miejscu widzą różnych przeciwników,
+a każdy sam odnawia swoje kwadraty po pokonaniu przeciwników. Pozycję gracza weryfikuje `apps.game.location` przed każdą akcją.
+
+Stałe (kwadrat, liczba przeciwników, odnowienie, zasięg, mnożnik typu, limity walk, wiarygodność pozycji) pochodzą z konfiguracji YAML
+(`settings.APP.game` i `settings.APP.location`), nie z kodu.
 """
 from __future__ import annotations
 
@@ -21,6 +24,8 @@ from rest_framework import status as http
 from apps.accounts.models import Role, User
 from apps.collection.models import Character, Pokemon, PokemonOrigin
 from apps.collection.services import add_exp, grant_pokemon, power_for
+from apps.game import location
+from apps.game.location import Fix, LocationRejected
 from apps.game.models import Attack, AttackOutcome, AttackPokemon, Encounter, EncounterCell, EncounterStatus, EnemyType, PlayerProgress
 from core.errors import ApiError
 from core.geo import distance_m
@@ -66,23 +71,26 @@ def _random_point_in(cell: EncounterCell) -> tuple[float, float]:
     return lat, lng
 
 
-def _pick_enemy_type(types: list[EnemyType]) -> EnemyType:
-    return rng.choices(types, weights=[t.spawn_weight for t in types], k=1)[0]
+def _pick_enemy_type(types: list[EnemyType], avoid: EnemyType | None = None) -> EnemyType:
+    """Losuje typ przeciwnika z wagami; gdy jest z czego wybierać, nie powtarza typu `avoid` (poprzedni przeciwnik tego gracza)."""
+    pool = [t for t in types if avoid is None or t.pk != avoid.pk] or types
+    return rng.choices(pool, weights=[t.spawn_weight for t in pool], k=1)[0]
 
 
 def _spawn(cell: EncounterCell, enemy: EnemyType, now: datetime) -> Encounter:
     level = rng.randint(enemy.min_level, enemy.max_level)
     lat, lng = _random_point_in(cell)
     return Encounter(
-        cell=cell, enemy_type=enemy, level=level, power=enemy.base_power + enemy.power_growth * (level - 1),
+        user=cell.user, cell=cell, enemy_type=enemy, level=level, power=enemy.base_power + enemy.power_growth * (level - 1),
         xp_reward=enemy.base_xp, lat=lat, lng=lng,
         expires_at=now + timedelta(minutes=settings.APP.game.encounters.lifetime_minutes),
     )
 
 
 def _settle(cell: EncounterCell, types: list[EnemyType], now: datetime) -> None:
-    """Zasiedla kwadrat: nowy od razu, wyczyszczony (pokonani lub wygaśli) dopiero po `respawn_seconds`.
+    """Zasiedla kwadrat gracza: nowy od razu, wyczyszczony (pokonani lub wygaśli) dopiero po `respawn_seconds`.
 
+    Typy kolejnych przeciwników się nie powtarzają (także względem ostatniego przeciwnika tego gracza), więc nie widzi w kółko tego samego.
     Wywoływać w transakcji z blokadą wiersza kwadratu, żeby dwa równoległe zapytania nie zasiedliły go dwa razy.
     """
     cfg = settings.APP.game.encounters
@@ -95,7 +103,13 @@ def _settle(cell: EncounterCell, types: list[EnemyType], now: datetime) -> None:
     if cell.refill_at is not None and now < cell.refill_at:
         return
     count = rng.randint(0, cfg.max_per_cell) if types else 0
-    Encounter.objects.bulk_create([_spawn(cell, _pick_enemy_type(types), now) for _ in range(count)])
+    last = Encounter.objects.filter(user=cell.user).select_related('enemy_type').order_by('-spawned_at', '-id').first()
+    previous = last.enemy_type if last else None
+    spawned = []
+    for _ in range(count):
+        previous = _pick_enemy_type(types, previous)
+        spawned.append(_spawn(cell, previous, now))
+    Encounter.objects.bulk_create(spawned)
     cell.populated_at, cell.refill_at = now, None
     cell.save(update_fields=['populated_at', 'refill_at'])
 
@@ -104,21 +118,28 @@ def _expire(now: datetime) -> None:
     Encounter.objects.filter(status=EncounterStatus.ACTIVE, expires_at__lte=now).update(status=EncounterStatus.EXPIRED)
 
 
-def encounters_near(lat: float, lng: float, radius_m: float) -> list[Encounter]:
-    """Najbliżsi aktywni przeciwnicy w promieniu (najwyżej `max_in_response`). Leniwie zasiedla kwadraty w kółku."""
+def encounters_near(user: User, fix: Fix, radius_m: float) -> list[Encounter]:
+    """Najbliżsi aktywni przeciwnicy TEGO gracza w promieniu (najwyżej `max_in_response`). Leniwie zasiedla jego kwadraty w kółku.
+
+    Najpierw weryfikuje pozycję (`apps.game.location`): przeciwnicy są losowani dla miejsca, w którym gracz faktycznie jest.
+    """
     cfg = settings.APP.game.encounters
+    if user.role == Role.ADMIN:
+        return []
+    verified = location.verify(user, fix)
+    lat, lng = verified.lat, verified.lng
     now = timezone.now()
     _expire(now)
     types = list(EnemyType.objects.filter(is_active=True))
     cells = []
     for row, col in cells_around(lat, lng, radius_m):
         with transaction.atomic():
-            cell, _ = EncounterCell.objects.get_or_create(row=row, col=col)
+            cell, _ = EncounterCell.objects.get_or_create(user=user, row=row, col=col)
             cell = EncounterCell.objects.select_for_update().get(pk=cell.pk)
             _settle(cell, types, now)
         cells.append(cell)
 
-    candidates = Encounter.objects.select_related('enemy_type__type').filter(status=EncounterStatus.ACTIVE, expires_at__gt=now, cell__in=cells)
+    candidates = Encounter.objects.select_related('enemy_type__type').filter(user=user, status=EncounterStatus.ACTIVE, expires_at__gt=now, cell__in=cells)
     nearby = [(d, e) for e in candidates if (d := distance_m(lat, lng, e.lat, e.lng)) <= radius_m]
     nearby.sort(key=lambda pair: pair[0])
     return [e for _, e in nearby[: cfg.max_in_response]]
@@ -132,11 +153,8 @@ def _invalid(fields: dict[str, str]) -> ApiError:
 
 @dataclass(frozen=True)
 class AttackRequest:
-    lat: float
-    lng: float
+    fix: Fix
     pokemon_ids: list[int]
-    accuracy_m: float | None = None
-    client_time: datetime | None = None
 
 
 def _check_rate(user: User, now: datetime) -> None:
@@ -161,23 +179,11 @@ def _team(user: User, ids: list[int]) -> list[Pokemon]:
     return sorted(team, key=lambda p: ids.index(p.pk))
 
 
-def _implausible(user: User, req: AttackRequest, now: datetime) -> str | None:
-    """Powód odrzucenia pozycji jako niewiarygodnej (dokładność GPS, tempo ruchu od poprzedniej próby) albo None."""
-    cfg = settings.APP.game.anti_cheat
-    if req.accuracy_m is not None and req.accuracy_m > cfg.max_accuracy_m:
-        return f'Dokładność GPS {round(req.accuracy_m)} m, wymagane najwyżej {round(cfg.max_accuracy_m)} m'
-    previous = Attack.objects.filter(user=user).order_by('-created_at').first()
-    if previous is not None:
-        seconds = (now - previous.created_at).total_seconds()
-        if seconds > 0 and distance_m(previous.lat, previous.lng, req.lat, req.lng) / seconds > cfg.max_speed_mps:
-            return 'Zbyt szybka zmiana pozycji od poprzedniej próby'
-    return None
-
-
 def _log(encounter: Encounter, user: User, req: AttackRequest, distance: float, outcome: str, **extra) -> Attack:
+    fix = req.fix
     return Attack.objects.create(
-        encounter=encounter, user=user, lat=req.lat, lng=req.lng, distance_m=Decimal(str(round(distance, 1))),
-        accuracy_m=None if req.accuracy_m is None else Decimal(str(round(req.accuracy_m, 1))), client_time=req.client_time,
+        encounter=encounter, user=user, lat=fix.lat, lng=fix.lng, distance_m=Decimal(str(round(distance, 1))),
+        accuracy_m=None if fix.accuracy_m is None else Decimal(str(round(fix.accuracy_m, 1))), client_time=fix.taken_at,
         outcome=outcome, **extra,
     )
 
@@ -193,7 +199,7 @@ def _award_character() -> Character:
 def attack(*, user: User, encounter_id: int, req: AttackRequest) -> dict:
     """Rozstrzyga próbę walki i zwraca `AttackResult` z kontraktu (won / lost / too_far).
 
-    Kolejność: limity → przeciwnik (404/409) → drużyna (422) → wiarygodność pozycji (422, zapisana jako `rejected`)
+    Kolejność: limity → przeciwnik gracza (404/409) → drużyna (422) → wiarygodność pozycji (422, zapisana jako `rejected`)
     → odległość (`too_far`, zapisana) → walka. Zwycięstwo jest atomowe: blokada wiersza przeciwnika i unikalny indeks
     na `game_attack (encounter_id) WHERE outcome='won'`.
     """
@@ -204,7 +210,7 @@ def attack(*, user: User, encounter_id: int, req: AttackRequest) -> dict:
     _check_rate(user, now)
     rejection = None
     with transaction.atomic():
-        encounter = Encounter.objects.select_for_update().select_related('enemy_type__type').filter(pk=encounter_id).first()
+        encounter = Encounter.objects.select_for_update().select_related('enemy_type__type').filter(pk=encounter_id, user=user).first()
         if encounter is None:
             raise ApiError(http.HTTP_404_NOT_FOUND, 'not_found', 'Ten przeciwnik nie istnieje')
         if encounter.status == EncounterStatus.ACTIVE and encounter.expires_at <= now:
@@ -215,18 +221,19 @@ def attack(*, user: User, encounter_id: int, req: AttackRequest) -> dict:
         if encounter.status == EncounterStatus.EXPIRED:
             raise ApiError(http.HTTP_409_CONFLICT, 'encounter_expired', 'Ten przeciwnik już zniknął')
         team = _team(user, req.pokemon_ids)
-        distance = distance_m(req.lat, req.lng, encounter.lat, encounter.lng)
+        distance = distance_m(req.fix.lat, req.fix.lng, encounter.lat, encounter.lng)
 
-        reason = _implausible(user, req, now)
-        if reason:
-            _log(encounter, user, req, distance, AttackOutcome.REJECTED, reason=reason)
-            rejection = reason  # zapis próby zostaje (transakcja kończy się normalnie), a błąd idzie po wyjściu z bloku
-        elif distance > cfg.interaction_range_m:
-            _log(encounter, user, req, distance, AttackOutcome.TOO_FAR)
-            return {'outcome': 'too_far', 'distanceM': round(distance)}
+        try:
+            location.verify(user, req.fix, now=now)
+        except LocationRejected as exc:
+            _log(encounter, user, req, distance, AttackOutcome.REJECTED, reason=exc.reason)
+            rejection = exc  # zapis próby zostaje (transakcja kończy się normalnie), a błąd idzie po wyjściu z bloku
         else:
+            if distance > cfg.interaction_range_m:
+                _log(encounter, user, req, distance, AttackOutcome.TOO_FAR)
+                return {'outcome': 'too_far', 'distanceM': round(distance)}
             return _fight(user, encounter, team, req, distance, now)
-    raise ApiError(http.HTTP_422_UNPROCESSABLE_ENTITY, 'position_unreliable', f'Pozycja niewiarygodna: {rejection}')
+    raise rejection
 
 
 def _fight(user: User, encounter: Encounter, team: list[Pokemon], req: AttackRequest, distance: float, now: datetime) -> dict:

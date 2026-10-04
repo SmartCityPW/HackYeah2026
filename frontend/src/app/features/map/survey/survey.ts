@@ -1,15 +1,12 @@
 import { Component, computed, inject, input, output, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
-import { CatalogService } from '../../../core/catalog/catalog.service';
 import { EncounterService } from '../../../core/encounter.service';
-import { TYPES } from '../../../core/game.model';
 import { describeError, toApiError } from '../../../core/http/api-error';
 import { Pokemon } from '../../../core/pokemon.model';
 import { Pokestop, SurveyAnswer, SurveyAnswers, SurveyQuestion } from '../../../core/pokestop.model';
 import { PokestopService } from '../../../core/pokestop.service';
 import { compactAnswers, ratingScale, validateAnswers } from '../../../core/survey.utils';
 import { Icon } from '../../../shared/icon/icon';
-import { SpryciakModel } from '../../../shared/spryciak-model/spryciak-model';
+import { Reward } from '../../../shared/reward/reward';
 
 /**
  * Ankieta zaufanego podmiotu, a po jej wysłaniu ekran nagrody: dopiero tam gracz dowiaduje się, jaki Spryciak wpadł mu w nagrodę
@@ -17,19 +14,17 @@ import { SpryciakModel } from '../../../shared/spryciak-model/spryciak-model';
  */
 @Component({
   selector: 'app-survey',
-  imports: [SpryciakModel, RouterLink, Icon],
+  imports: [Reward, Icon],
   templateUrl: './survey.html',
   styleUrl: './survey.css',
 })
 export class Survey {
   private readonly pokestops = inject(PokestopService);
   private readonly encounters = inject(EncounterService);
-  private readonly catalog = inject(CatalogService);
 
   readonly stop = input.required<Pokestop>();
   readonly closed = output<void>();
 
-  protected readonly types = TYPES;
   protected readonly questions = computed<SurveyQuestion[]>(() => this.stop().questions ?? []);
   protected readonly answers = signal<SurveyAnswers>({});
   protected readonly errors = signal<Record<string, string>>({});
@@ -37,10 +32,6 @@ export class Survey {
   protected readonly busy = signal(false);
   /** Nagroda po wysłaniu ankiety; do tej chwili gatunek jest tajemnicą. */
   protected readonly reward = signal<Pokemon | null>(null);
-  protected readonly species = computed(() => {
-    const pokemon = this.reward();
-    return pokemon ? this.catalog.character(pokemon.character) : null;
-  });
 
   protected scale(q: SurveyQuestion): number[] {
     return ratingScale(q);
@@ -86,13 +77,13 @@ export class Survey {
       this.formError.set('Uzupełnij zaznaczone pytania.');
       return;
     }
-    const position = this.encounters.userPosition();
-    if (!position) {
-      this.formError.set('Włącz lokalizację, żeby wysłać ankietę. Musisz być na miejscu.');
-      return;
-    }
     this.busy.set(true);
     try {
+      const position = await this.encounters.freshPosition();
+      if (!position) {
+        this.formError.set('Włącz lokalizację, żeby wysłać ankietę. Musisz być na miejscu.');
+        return;
+      }
       this.reward.set(await this.pokestops.answerSurvey(this.stop().id, answers, position));
     } catch (error) {
       const e = toApiError(error);

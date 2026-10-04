@@ -33,6 +33,7 @@ export const NAV_ITEMS: Record<Role, NavItem[]> = {
   org: [
     { label: 'Mapa', icon: 'map', path: '/org', exact: true },
     { label: 'Inicjatywy', icon: 'list', path: '/org/inicjatywy' },
+    { label: 'Wydarzenia', icon: 'calendar', path: '/org/wydarzenia' },
     { label: 'Organizacja', icon: 'building', path: '/org/organizacja' },
   ],
   admin: [

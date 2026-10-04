@@ -37,6 +37,9 @@ source config/local.env      # DJANGO_SECRET_KEY, APP_CONFIG_OVERRIDE, DEMO_PASS
 .venv/bin/python manage.py runserver     # http://localhost:8000/api/v1/
 ```
 
+**Lokalizacja gracza** jest weryfikowana przy każdej akcji związanej z miejscem (głos, pinezka, ankieta, wydarzenie, walka, przeciwnicy): dokładność, aktualność odczytu, tempo ruchu i źródło (`location` w `config/default.yaml`).
+Pozycje symulowane (tryb deweloperski frontendu) przyjmuje tylko konfiguracja z `location.allow_simulated: true` (`local.example.yaml`, `demo.example.yaml`). Przeciwnicy są generowani osobno dla każdego gracza; `prune_encounters` czyści stare wiersze.
+
 Odrzucenia moderacji AI widzi administrator w aplikacji (karta „Odrzucenia AI”, `GET /admin/moderation-log`). Fałszywe odrzucenie albo przepuszczony atak dopisujesz do zestawu regresyjnego:
 `python manage.py moderation_log_to_cases <id> --expect approve` (albo `reject`), a stare wpisy (`moderation.log_retention_days`) czyści `moderation_prune_log` (też przy starcie).
 
@@ -78,7 +81,7 @@ backend/
     ├── pokestops/    pinezki, głosy, komentarze, ankiety, moderacja
     ├── events/       wydarzenia (modele gotowe, brak serwisów)
     ├── game/         przeciwnicy, walki, postęp (modele gotowe, częściowo serwisy)
-    └── moderation/   agent AI (port + adaptery stub/http/gemini)
+    └── moderation/   moderacja: reguły (rules.py) + agent AI (port + adaptery stub/rules/layered/http/gemini)
 ```
 
 Zależności między aplikacjami idą w jedną stronę (bez cykli): `accounts ← collection ← scenarios ← pokestops`, `events` i `game` zależą od `accounts` i `collection`.
@@ -99,6 +102,6 @@ tabele i kolumny zgadzają się z `docs/db/schema.sql` z wyjątkiem opisanych r�
 ## Decyzje, o których warto wiedzieć
 
 - **Bez GeoDjango.** Współrzędne to `lat`/`lng`, odległość liczy `core/geo.py` (haversine), a widok mapy to filtr po prostokącie. Dla skali hackathonu wystarcza i nie wymaga GDAL w obrazie ani na komputerach zespołu. `schema.sql` zachowuje `geography` na przyszłość (indeksy przestrzenne).
-- **Agent moderujący to port z trzema adapterami** (`moderation.provider`: `stub`, `http` lub `gemini`). Stub odrzuca treść ze znacznikiem z konfiguracji (domyślnie `[odrzuć]`), więc da się to pokazać na demo bez usługi AI. Awaria agenta nie przepuszcza zgłoszenia (`503`). **`gemini`** to Google Gemini API: model i adres w `moderation.gemini` (YAML), klucz tylko w `AI_API_KEY` (nagłówek `x-goog-api-key`), odpowiedź ograniczona schematem do `0`/`1`, a odmowa filtrów bezpieczeństwa Gemini liczy się jako odrzucenie, nie awaria. Do modelu trafia tylko treść zgłoszenia (scenariusz, tytuł, opis, pola), bez danych autora. Sprawdzenie klucza i modelu: `python manage.py moderation_check`. Ocena jakości (poprawne zgłoszenia, niedozwolona treść, próby wstrzyknięcia instrukcji): `python manage.py moderation_eval --delay 6` na przypadkach z `config/moderation_cases.yaml`.
+- **Moderacja to port z adapterami** (`moderation.provider`: `layered` domyślnie, `rules`, `gemini`, `http`, `stub`). **`layered`** najpierw stosuje reguły z `config/moderation_rules.yaml` (`apps/moderation/rules.py`: wulgaryzmy, nienawiść, groźby, dane osobowe, spam, wstrzykiwanie instrukcji; bez sieci i klucza), a potem, jeśli jest `AI_API_KEY`, Gemini (ocena tematu). Odrzucenie przez reguły kończy sprawę, więc model nie widzi prób wstrzyknięcia. Komentarze, odpowiedzi tekstowe w ankietach i nazwy (konto, organizacja) przechodzą tylko przez reguły. Log odrzuceń ma kategorię w `reason`. `stub` (znacznik `[odrzuć]`) służy już tylko testom. Awaria agenta nie przepuszcza zgłoszenia (`503`). **`gemini`** to Google Gemini API: model i adres w `moderation.gemini` (YAML), klucz tylko w `AI_API_KEY` (nagłówek `x-goog-api-key`), odpowiedź ograniczona schematem do `0`/`1`, a odmowa filtrów bezpieczeństwa Gemini liczy się jako odrzucenie, nie awaria. Do modelu trafia tylko treść zgłoszenia (scenariusz, tytuł, opis, pola), bez danych autora. Sprawdzenie klucza i modelu: `python manage.py moderation_check`. Ocena jakości (poprawne zgłoszenia, niedozwolona treść, próby wstrzyknięcia instrukcji): `python manage.py moderation_eval --delay 6` na przypadkach z `config/moderation_cases.yaml`.
 - **Seedy w YAML** (`config/seed/`), ładowane idempotentnie przez `manage.py bootstrap` (w kontenerze automatycznie, gdy `seed.on_start: true`). `scenarios.yaml` jest **generowany** z katalogu we frontendzie (`cd ../frontend && npm run db:seed-scenarios`) do czasu, aż backend przejmie jego edycję.
 - **Brak panelu Django (`admin`).** Moderacja idzie przez API (`PATCH /pokestops/{id}`), tak jak w kontrakcie.

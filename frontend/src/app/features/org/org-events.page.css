@@ -1,0 +1,17 @@
+article { display: grid; gap: 4px; padding: 14px; border-radius: 14px; background: var(--surface); box-shadow: 0 1px 4px var(--shadow); }
+header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+h2 { margin: 0; font-size: 1.05rem; }
+p { margin: 0; }
+.phase { flex: none; padding: 2px 10px; border-radius: 999px; font-size: .72rem; font-weight: 800; background: var(--tint); color: var(--brand-strong); }
+.phase[data-phase='ongoing'] { background: var(--brand-strong); color: var(--on-strong); }
+.phase[data-phase='cancelled'] { background: var(--accent-tint); color: var(--accent-ink); }
+.when { font-weight: 700; }
+.where, .state, .count { font-size: .85rem; color: var(--text-muted); }
+.reward { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 4px; font-size: .9rem; }
+.chip { padding: 2px 9px; border-radius: 999px; background: var(--tint); font-size: .72rem; font-weight: 700; }
+.chip.rare { background: var(--brand-strong); color: var(--on-strong); }
+.buttons { display: flex; gap: 8px; margin-top: 6px; }
+button { border: 0; border-radius: 10px; padding: 8px 12px; font: inherit; font-size: .85rem; font-weight: 700; cursor: pointer; background: var(--tint); color: var(--brand-strong); }
+button.danger { background: var(--accent-tint); color: var(--accent-ink); }
+button:disabled { opacity: .5; cursor: wait; }
+.confirm { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 12px; padding: 10px 12px; border-radius: 12px; background: var(--accent-tint); color: var(--accent-ink); font-weight: 600; }

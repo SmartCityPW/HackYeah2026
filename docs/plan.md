@@ -1,6 +1,6 @@
 # Plan spinania całości
 
-**Kolejność wykonania:** Etap 0 ✔, Etap 1 ✔, Etap 6 ✔ (paleta; poza 6.6 i 6.7), Etap 2 (adapter gotowy, czeka na test z kluczem), Etap 3 ✔ (poza 3.5), Etap 8 (walka), 7, 4, 5. Numery zostały bez zmian, żeby odwołania w README i dokumentacji się zgadzały. Paleta idzie przed Etapami 2 i 3, żeby nowe ekrany (odrzucenie zgłoszenia, logowanie, rejestracja) powstawały od razu w palecie.
+**Kolejność wykonania:** Etap 0 ✔, Etap 1 ✔, Etap 6 ✔ (paleta; poza 6.6), Etap 2 (adapter gotowy, czeka na test z kluczem), Etap 3 ✔ (poza 3.5), Etap 8 (walka), 7, 4, 5. Numery zostały bez zmian, żeby odwołania w README i dokumentacji się zgadzały. Paleta idzie przed Etapami 2 i 3, żeby nowe ekrany (odrzucenie zgłoszenia, logowanie, rejestracja) powstawały od razu w palecie.
 
 Żywy dokument: po każdym kroku odhaczamy `[x]` i dopisujemy, co faktycznie sprawdzono (a czego nie).
 Zasady: wartości zmienne w YAML, sekrety w env, kontrakt = `docs/openapi.yaml`, `docs/opis.md` ma pierwszeństwo przy rozbieżnościach.
@@ -56,7 +56,7 @@ Zasady: wartości zmienne w YAML, sekrety w env, kontrakt = `docs/openapi.yaml`,
 - [x] 6.4 Typy pinezek i statusy: wyłącznie kolory palety + ikona. Statusy: 🗳️ głosowanie (fiolet), 🔧 w realizacji (lawenda), ✔ załatwione (śliwka), ✕ odrzucone (róż). Przyciski głosu 👍/👎, błędy ⚠. Konsultacje mają podwójne obramowanie pinezki
 - [x] 6.5 Mapa: styl OpenFreeMap `liberty` zostaje bez zmian (zielony). Decyzja 2026-10-03
 - [ ] 6.6 Postacie 3D (`features/map/three`): bez zmian. Rowerzysta i Stworek Kosz budowane w kodzie mają własne kolory, a modele Kenneya własne tekstury. Do decyzji, czy dwie postacie z kodu przemalować na paletę
-- [ ] 6.7 Manifest PWA (`theme_color`, `background_color`, ikony z palety): po Etapie 5. `<meta name="theme-color">` w `index.html` już jest
+- [x] 6.7 Manifest PWA (`frontend/public/manifest.webmanifest`: `theme_color` #4f345a, `background_color` #f5efff, ikony `any` i `maskable` 192/512 z loga na gradiencie palety, `apple-touch-icon`), service worker (`@angular/service-worker`, `ngsw-config.json`, `serviceWorker` w konfiguracji produkcyjnej `angular.json`, `provideServiceWorker` tylko poza trybem deweloperskim), reguły nginx dla `ngsw.json`/`ngsw-worker.js`/manifestu (zawsze świeże). Weryfikacja: build produkcyjny serwowany lokalnie, Chromium: brak błędów manifestu i instalowalności, service worker aktywny. Test konfiguracji: `src/app/pwa.spec.ts`
 - [x] 6.8 Przegląd w przeglądarce (tryb atrap): mapa, karta pinezki, Inicjatywy, Moderacja, formularz z błędem. Test `palette.spec.ts` pilnuje (a) że poza `styles.css` nie ma zaszytych kolorów, (b) że pary tekst/tło z tokenów mają ≥ 4,5:1
 
 **Uwagi z Etapu 6**
@@ -122,8 +122,10 @@ Problem: odrzucone przez agenta zgłoszenie nie powstaje jako pinezka, więc adm
 - [x] 7.4 Wygodne dopisanie wpisu z logu do `moderation_cases.yaml` (np. `manage.py moderation_log_to_cases <id>`), żeby fałszywe odrzucenia i przepuszczone ataki trafiały do zestawu regresyjnego
 - [x] 7.5 Retencja: log zawiera odrzuconą treść, która może zawierać dane osobowe, więc potrzebny jest limit czasu przechowywania (wartość w YAML) i polecenie czyszczące
 
-**Rozstrzygnięte (2026-10-04):** (a) bez przywracania, tylko informacja; (b) wystarcza odznaka i komunikat w aplikacji. Backend: `GET /admin/moderation-log`, `moderation_log_to_cases`, `moderation_prune_log` (też przy starcie), 168 testów ✔. Frontend: 206 testów ✔, `ng build` ✔; odznaka liczy odrzucenia od ostatniej wizyty (pamiętane w przeglądarce, więc per urządzenie). **Niesprawdzone w przeglądarce.**
-
+**Rozstrzygnięte (2026-10-04):** (a) bez przywracania, tylko informacja; (b) wystarcza odznaka i komunikat w aplikacji. Backend: `GET /admin/moderation-log`, `moderation_log_to_cases`, `moderation_prune_log` (też przy starcie), 168 testów ✔. Frontend: 206 testów ✔, `ng build` ✔; odznaka liczy odrzucenia od ostatniej wizyty (pamiętane w przeglądarce, więc per urządzenie). **Niesprawdzone w przeglądarce.**
+
+
+
 ~~Do decyzji:~~ (a) czy administrator ma móc *przywrócić* odrzucone zgłoszenie (wymaga utworzenia pinezki i zastawu pokemona autora), czy tylko wiedzieć o odrzuceniu; (b) czy poza ekranem potrzebne jest powiadomienie zewnętrzne (e-mail, webhook), czy wystarcza odznaka w aplikacji.
 
 ## Etap 8: walka z przeciwnikami: integracja brancha `enemy_and_point_of_interest_range_detection` (dopisane 2026-10-03)
@@ -189,6 +191,31 @@ Pięć uwag użytkownika. Decyzje projektowe są przy punktach.
 - [x] 11.9 **Ankieta w aplikacji:** formularz 7 typów pytań (`features/map/survey`), po wysłaniu ekran „Wpadł Ci nowy Spryciak!” z modelem 3D, typem, mocą i poziomem; do wysłania gatunek jest tajemnicą. Kreator pytań dla organizacji (`shared/question-builder`, w panelu nowej inicjatywy `ngo`/`consultation`) i wyniki ankiety w panelu organizatora. Dane demo backendu mają ankietę, wpisy osi czasu i pola własne. Frontend 194 testy ✔, `ng build` ✔. **Niesprawdzone w przeglądarce**
 - [x] 11.10 **Gdzie jest HTML+CSS przycisków nawigacji:** `frontend/src/app/shared/navbar/navbar.html` i `navbar.css`; lista przycisków (etykiety, ikony, ścieżki) per rola w `core/navigation.ts`, ikony w `shared/icon/`
 
+## Etap 12: wydarzenia „cool thing” zaufanych podmiotów (2026-10-04)
+
+Wymagania użytkownika: zaufany podmiot definiuje wydarzenie, a uczestnik, który przyjdzie w czasie jego trwania, dostaje rzadkiego pokemona wybranego przez organizatora. Punkt wydarzenia na mapie jest podobny do innych obiektów gry; w opisie zapowiedź (jakie wydarzenie, kto organizuje, jaki pokemon), a przy punkcie kręci się nagradzany pokemon. Opis można obejrzeć przed startem, ale pokemona zbiera się **tylko w kółku wokół punktu i w godzinach trwania**. Wydarzenie ma okres (dzień lub dni, godziny).
+
+Decyzje (rozstrzygnięte 2026-10-04): nagroda to **wybór z katalogu rzadkich gatunków** (wyłączne dla wydarzeń, prowadzi je administrator w YAML), nie własny gatunek organizatora. Jeden pokemon na uczestnika na wydarzenie, także wielodniowe. Okres = okno ciągłe `startsAt`-`endsAt` plus opcjonalne godziny dzienne.
+
+- [x] 12.1 Katalog: 6 rzadkich gatunków wyłącznych dla wydarzeń (po jednym na typ, moc 36-42 wobec 12-26 zwykłych), bez modeli 3D (postać zastępcza w barwie z palety, emoji); `export_reference` odświeżył `catalog.mock.json` i `seed_reference.sql`
+- [x] 12.2 Backend (30 testów): `GET/POST /events`, `GET/PATCH /events/{id}`, `POST /events/{id}/check-in` (zasięg, okno czasu z godzinami dziennymi, limit miejsc, jednorazowość, nagroda), testy
+- [x] 12.3 Kontrakt (decyzje 35-37): `openapi.yaml`, `api-contract.md`, `schema.sql` (godziny dzienne), dane demo
+- [x] 12.4 Frontend: model, API (atrapa liczy okres i godziny dzienne jak serwer, `core/event.schedule.ts`; http), serwis, punkty wydarzeń na mapie (marker + dysk + wirujący nagradzany pokemon, postać zastępcza w barwie z palety dla gatunków bez modelu), odświeżanie stanu co `ui.eventRefreshSeconds`
+- [x] 12.5 Frontend: karta wydarzenia (zapowiedź, organizator, nagroda, okres, stan), odbiór nagrody tylko w kółku i w czasie, ekran nagrody
+- [x] 12.6 Frontend (organizator): formularz wydarzenia z mapy (miejsce, okres, godziny, nagroda z katalogu), lista własnych wydarzeń z odwołaniem
+- [x] 12.7 Dokumentacja i testy końcowe: backend 203 ✔ (30 testów wydarzeń), frontend 252 ✔, `ng build` ✔; smoke test na prawdziwym serwerze (utworzenie, odmowa poza godzinami, nagroda spoza katalogu 422, zapowiedź z godzinami dziennymi). **Niesprawdzone w przeglądarce:** wygląd punktu wydarzenia i dysku 3D, karty i formularza. **Bez modeli 3D** dla 6 rzadkich gatunków (zob. `docs/ASSETS.md`)
+
+## Etap 13: przeciwnicy indywidualni i dokładniejsza weryfikacja lokalizacji (2026-10-04)
+
+Powód: ten sam Korek Komunikacyjny w tym samym miejscu. Przeciwnicy były wspólne dla graczy w kwadracie 100 m i żyły 30 minut (zob. decyzje 6 i 39 w `api-contract.md`). Użytkownik wybrał generowanie indywidualne dla każdego gracza oraz dokładniejsze sprawdzanie lokalizacji z możliwością jej mockowania w testach.
+
+- [x] 13.1 **Przeciwnicy per gracz:** `game_encounter_cell.user_id` i `game_encounter.user_id` (migracja `0003`), zasiedlanie osobno dla każdego gracza, typy kolejnych przeciwników się nie powtarzają (także względem ostatniego), cudzego przeciwnika nie widać ani nie da się zaatakować (`404`), administrator dostaje pustą listę. API bez zmian. `manage.py prune_encounters` (też przy starcie) czyści zakończonych bez śladu walki po `game.encounters.retention_hours`
+- [x] 13.2 **Jedna weryfikacja pozycji** (`apps/game/location.py`) dla głosu, nowej pinezki, ankiety, odbioru z wydarzenia, walki i `GET /encounters`: źródło, dokładność (≤ 50 m), aktualność odczytu (≤ 30 s, nie z przyszłości), tempo ruchu względem ostatniej zweryfikowanej pozycji (`game_player_location`, > 40 m/s = teleportacja). Osobne kody 422, progi w YAML (`location`), odrzucona pozycja się nie zapamiętuje. Odrzucona próba walki zapisuje się jako `rejected`
+- [x] 13.3 **Mockowanie lokalizacji:** klient oznacza pozycję `source: simulated`, serwer przyjmuje ją tylko przy `location.allow_simulated: true` (`local.example.yaml`, `demo.example.yaml`, testy; w produkcji false); symulacja nie podlega kontroli tempa ani wymogowi dokładności. Frontend: przycisk GPS, WASD, nowy parametr adresu `?gps=lat,lng` (tylko `dev.tools`). Backend: autouse `relaxed_location_checks` w testach, a `tests/test_location.py` sprawdza pełną weryfikację
+- [x] 13.4 **Frontend:** `PlayerPosition` (dokładność, czas odczytu, źródło) we wszystkich akcjach, `GeolocationService.fresh()` prosi przeglądarkę o odczyt nie starszy niż `game.gpsMaxAgeSeconds` przed każdą akcją (nieruchome urządzenie nie odświeża pozycji, a serwer odrzuca stare odczyty)
+- [x] 13.5 Testy: backend 227 ✔ (20 w `test_location.py`, 5 nowych dla przeciwników), frontend 267 ✔, `ng build` ✔, smoke test na serwerze z domyślną ścisłą konfiguracją (dwaj gracze w tym samym miejscu dostają różnych przeciwników, 4 kody odrzucenia pozycji, teleportacja). **Niesprawdzone w przeglądarce** (prawdziwy GPS w przeglądarce, dokładność odczytów na komputerze)
+- **Uwaga praktyczna:** przeglądarki na komputerach (lokalizacja z Wi-Fi) zwykle podają dokładność 100–1000 m, więc przy `max_accuracy_m: 50` akcje będą odrzucane `gps_inaccurate`. Do pokazów na komputerze użyj przycisku GPS (wymaga `allow_simulated`, jest w `demo.example.yaml`) albo poluzuj `location.max_accuracy_m`. Na telefonie z GPS 5-30 m działa bez zmian
+
 ## Etap 4: brakujące operacje backendu (`501`) i ich ekrany
 - [ ] `POST /photos`
 - [x] walka: `GET /encounters`, `POST /encounters/{id}/attack` (Etap 8.8)
@@ -196,9 +223,9 @@ Pięć uwag użytkownika. Decyzje projektowe są przy punktach.
 - [ ] wydarzenia + `check-in` + postać `festival`
 
 ## Etap 5: wdrożenie i jakość
-- [ ] **PWA nie jest skonfigurowane:** w `frontend/public/` nie ma manifestu, a w `angular.json`, `index.html` i `app.config.ts` nie ma service workera (`ng add @angular/pwa` nie było wykonane). Specyfikacja wymaga PWA. Do zrobienia razem z paletą (`theme_color`, ikony)
+- [x] **PWA:** skonfigurowane (pkt 6.7). Do zrobienia przy wdrożeniu: HTTPS (service worker i instalacja działają tylko na `localhost` albo HTTPS, więc pod adresem IP w sieci lokalnej po HTTP przeglądarka ich nie włączy). Service worker nie cache'uje API ani kafelków mapy, więc bez sieci aplikacja się uruchomi, ale nie pokaże danych
 - [x] **Frontend w Dockerze:** `frontend/Dockerfile` (Node → nginx), `frontend/docker/nginx.conf` (fallback SPA, typ JavaScript dla workera MapLibre, konfiguracja bez cache), usługa `frontend` w `docker-compose.yml` (port 4200, konfiguracja montowana z hosta). Sprawdzone na żywo osobnym projektem compose: 3 usługi działają, podstrony bez 404, CORS poprawny. Testy spójności w `test_deployment_files.py`. **Niesprawdzone w przeglądarce**
-- [ ] weryfikacja PWA, `dev.tools: false` w produkcji, HTTPS, CI, `docs/ASSETS.md`
+- [ ] `dev.tools: false` w produkcji, HTTPS, CI, `docs/ASSETS.md` (PWA zweryfikowane)
 
 ## Otwarte decyzje
 

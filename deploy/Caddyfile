@@ -1,0 +1,6 @@
+# HTTPS dla całości (certyfikat Let's Encrypt wystawia się sam). Domena z .env: DOMAIN=twoja-domena.example
+# Caddy dopisuje X-Forwarded-For / X-Forwarded-Proto, a nagłówki przysłane przez klienta nadpisuje.
+{$DOMAIN:localhost} {
+	encode zstd gzip
+	reverse_proxy frontend:80
+}

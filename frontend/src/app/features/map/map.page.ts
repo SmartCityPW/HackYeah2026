@@ -2,6 +2,9 @@ import { RouterLink } from '@angular/router';
 import { Component, ElementRef, computed, effect, inject, input, signal, untracked, viewChild, afterNextRender, DestroyRef } from '@angular/core';
 import { CatalogService } from '../../core/catalog/catalog.service';
 import { EncounterService } from '../../core/encounter.service';
+import { EventService } from '../../core/event.service';
+import { GameEvent } from '../../core/event.model';
+import { Pokemon } from '../../core/pokemon.model';
 import { AppConfigService } from '../../core/config/app-config.service';
 import { Encounter, Position, TYPES } from '../../core/game.model';
 import { distanceMeters } from '../../core/geo.utils';
@@ -19,6 +22,8 @@ import { ToastService } from '../../core/toast.service';
 import { Icon } from '../../shared/icon/icon';
 import { StatusChip } from '../../shared/status-chip/status-chip';
 import { Battle } from './battle/battle';
+import { EventCard } from './event-card/event-card';
+import { RewardOverlay } from './reward-overlay/reward-overlay';
 import { Survey } from './survey/survey';
 import { MapController } from './map.controller';
 import { ReportDraft, ReportPanel } from './report-panel/report-panel';
@@ -26,7 +31,7 @@ import { ReportDraft, ReportPanel } from './report-panel/report-panel';
 /** Ekran mapy ("home"): pinezki, głosowanie, komentarze, zgłoszenia i tryb walki. Logikę MapLibre ma `MapController`. */
 @Component({
   selector: 'app-map-page',
-  imports: [Battle, Survey, ReportPanel, StatusChip, RouterLink, Icon],
+  imports: [Battle, Survey, EventCard, RewardOverlay, ReportPanel, StatusChip, RouterLink, Icon],
   providers: [MapController],
   templateUrl: './map.page.html',
   styleUrl: './map.page.css',
@@ -36,6 +41,8 @@ export class MapPage {
   private readonly mapCtl = inject(MapController);
   private readonly geo = inject(GeolocationService);
   private readonly encounterService = inject(EncounterService);
+  private readonly eventService = inject(EventService);
+  private readonly eventRefreshMs = inject(AppConfigService).config.ui.eventRefreshSeconds * 1000;
   private readonly toast = inject(ToastService);
   private readonly container = viewChild.required<ElementRef<HTMLDivElement>>('mapContainer');
   protected readonly pokemons = inject(PokemonService);
@@ -61,6 +68,8 @@ export class MapPage {
 
   /** Z parametru adresu `?stop=ID`, np. przy przejściu z listy inicjatyw. */
   readonly stop = input<string>();
+  /** Z parametru adresu `?event=ID`, np. przy przejściu z listy wydarzeń organizacji. */
+  readonly eventParam = input<string>(undefined, { alias: 'event' });
 
   protected readonly types = POKESTOP_TYPES;
   protected readonly isTrusted = isTrustedType;
@@ -119,6 +128,13 @@ export class MapPage {
     const stop = this.selected();
     return !!stop && this.pokestops.hasMoreComments(stop);
   });
+  protected readonly selectedEventId = signal<number | null>(null);
+  protected readonly selectedEvent = computed(() => this.eventService.events().find((e) => e.id === this.selectedEventId()) ?? null);
+  protected readonly eventDistance = computed(() => this.distanceTo(this.selectedEvent()));
+  protected readonly collecting = signal(false);
+  /** Nowy pokemon z wydarzenia: pokazujemy ekran nagrody, a zdarzenie ma jeszcze dane do opisu. */
+  protected readonly eventReward = signal<{ pokemon: Pokemon; event: GameEvent } | null>(null);
+  private readonly eventsInRange = computed(() => this.idsInRange(this.eventService.visibleEvents()));
   /** Ankietę zaufanego podmiotu (nagroda: nowy Spryciak) wypełniają mieszkańcy. */
   protected readonly canAnswerSurvey = computed(() => this.session.role() === 'resident');
   private readonly surveyId = signal<number | null>(null);
@@ -143,7 +159,8 @@ export class MapPage {
       if (!this.mapCtl.ready()) return;
       this.mapCtl.showStops(this.pokestops.visibleStops(), (id) => this.select(id));
       this.mapCtl.showEncounters(this.encounterService.encounters(), (id) => this.selectEncounter(id));
-      this.mapCtl.markInRange(this.stopsInRange(), this.encountersInRange());
+      this.mapCtl.showEvents(this.eventService.visibleEvents(), (id) => this.selectEvent(id));
+      this.mapCtl.markInRange(this.stopsInRange(), this.encountersInRange(), this.eventsInRange());
     });
     // Pinezki dociągamy z widocznego obszaru mapy (po każdym jej ruchu, z opóźnieniem z konfiguracji).
     effect(() => {
@@ -155,6 +172,9 @@ export class MapPage {
       });
     });
     inject(DestroyRef).onDestroy(() => clearTimeout(this.reloadTimer));
+    // Czy nagrodę z wydarzenia można już odebrać, zmienia się z czasem (start, godziny dzienne), więc odświeżamy je co jakiś czas.
+    const eventTimer = setInterval(() => void this.run(() => this.eventService.refresh()), this.eventRefreshMs);
+    inject(DestroyRef).onDestroy(() => clearInterval(eventTimer));
     effect(() => {
       const position = this.geo.position();
       if (position && this.mapCtl.ready()) this.mapCtl.showUser(position, this.buddyModel());
@@ -162,6 +182,10 @@ export class MapPage {
     effect(() => {
       const id = Number(this.stop());
       if (id && this.mapCtl.ready()) untracked(() => void this.select(id));
+    });
+    effect(() => {
+      const id = Number(this.eventParam());
+      if (id && this.mapCtl.ready()) untracked(() => void this.eventService.open(id).then((e) => e && this.selectEvent(e.id)));
     });
   }
 
@@ -203,7 +227,10 @@ export class MapPage {
     clearTimeout(this.reloadTimer);
     this.reloadTimer = setTimeout(() => {
       const area = this.mapCtl.bounds();
-      if (area) void this.run(() => this.pokestops.loadArea(area));
+      if (area) {
+        void this.run(() => this.pokestops.loadArea(area));
+        void this.run(() => this.eventService.loadArea(area));
+      }
     }, this.reloadDebounceMs);
   }
 
@@ -213,6 +240,7 @@ export class MapPage {
     if (!stop) return;
     this.panelOpen.set(false);
     this.selectedEncounterId.set(null);
+    this.selectedEventId.set(null);
     this.replyTo.set(null);
     this.commentDraft.set('');
     this.selectedId.set(id);
@@ -222,12 +250,47 @@ export class MapPage {
     this.commentsLoading.set(false);
   }
 
+  /** Karta wydarzenia: opis, okres, nagroda. Podgląd działa z każdej odległości i o każdej porze, odbiór ma własne warunki. */
+  protected selectEvent(id: number): void {
+    const event = this.eventService.events().find((e) => e.id === id);
+    if (!event || this.battleEncounter()) return;
+    this.panelOpen.set(false);
+    this.selectedId.set(null);
+    this.selectedEncounterId.set(null);
+    this.selectedEventId.set(id);
+    this.mapCtl.focus(event.lat, event.lng);
+  }
+
+  protected closeEvent(): void {
+    this.selectedEventId.set(null);
+  }
+
+  /** Odbiór rzadkiego pokemona: serwer sprawdza kółko i godziny, więc błąd (np. za wcześnie) pokazujemy jego komunikatem. */
+  protected async collectEvent(event: GameEvent): Promise<void> {
+    this.collecting.set(true);
+    try {
+      const position = await this.encounterService.freshPosition();
+      if (!position) {
+        this.toast.show('Włącz lokalizację. Nagrodę odbierzesz tylko na miejscu.', '🚶');
+        return;
+      }
+      const result = await this.run(() => this.eventService.checkIn(event.id, position));
+      if (result) {
+        this.selectedEventId.set(null);
+        this.eventReward.set({ pokemon: result.pokemon, event: result.event });
+      }
+    } finally {
+      this.collecting.set(false);
+    }
+  }
+
   /** Przeciwnik w kółku od razu wciąga w tryb walki; dalszy pokazuje tylko kartę z odległością. */
   protected selectEncounter(id: number): void {
     const enc = this.encounterService.encounters().find((e) => e.id === id);
     if (!enc || this.battleEncounter()) return;
     this.panelOpen.set(false);
     this.selectedId.set(null);
+    this.selectedEventId.set(null);
     this.selectedEncounterId.set(id);
     if (this.canAttack()) this.startBattle(enc);
     else this.mapCtl.focus(enc.lat, enc.lng);
@@ -236,6 +299,7 @@ export class MapPage {
   protected startBattle(enc: Encounter): void {
     this.panelOpen.set(false);
     this.selectedId.set(null);
+    this.selectedEventId.set(null);
     this.selectedEncounterId.set(null);
     this.battleEncounter.set(enc);
     this.mapCtl.enterBattle(enc.lat, enc.lng);
@@ -279,11 +343,11 @@ export class MapPage {
   /** Głos wymaga wybranego pokemona (dostaje exp) i pozycji użytkownika (serwer sprawdza, czy jest na miejscu). */
   protected async vote(id: number, vote: 'for' | 'against'): Promise<void> {
     const pokemon = this.pokemons.chosen();
-    const position = this.encounterService.userPosition();
     if (!pokemon) {
       this.toast.show('Nie masz jeszcze pokemona, który mógłby dostać exp.');
       return;
     }
+    const position = await this.encounterService.freshPosition();
     if (!position) {
       this.toast.show('Włącz lokalizację, żeby głosować. Musisz być na miejscu.');
       return;
@@ -319,11 +383,22 @@ export class MapPage {
     this.commentDraft.set((event.target as HTMLInputElement).value);
   }
 
+  /** Środek mapy: tam stawiamy wydarzenie organizacji. */
+  protected readonly centerPosition = this.mapCtl.centerPosition;
+
+  /** Wydarzenie opublikowane: zamykamy panel i pokazujemy jego kartę. */
+  protected onEventCreated(event: GameEvent): void {
+    this.reportPanel()?.reset();
+    this.panelOpen.set(false);
+    this.selectEvent(event.id);
+    this.toast.show('Wydarzenie opublikowane! Mieszkańcy zobaczą je na mapie i odbiorą nagrodę na miejscu, w czasie trwania.', '✅');
+  }
+
   /** Przy błędzie (np. moderacja odrzuciła treść) panel zostaje otwarty z wypełnionym formularzem, żeby można było poprawić i spróbować ponownie. */
   protected async onReportDrafted(draft: ReportDraft): Promise<void> {
     const center = this.mapCtl.centerPosition();
-    const position = this.encounterService.userPosition();
     if (!center) return;
+    const position = await this.encounterService.freshPosition();
     if (!position) {
       this.toast.show('Włącz lokalizację, żeby dodać pinezkę. Możesz ją postawić tylko w swoim kółku.', '🚶');
       return;

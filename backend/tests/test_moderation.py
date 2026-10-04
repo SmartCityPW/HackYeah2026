@@ -257,8 +257,9 @@ def test_gemini_without_key_or_model_is_unavailable(gemini_settings):
         GeminiAgent().review({})
 
 
-def test_default_config_points_at_google_and_keeps_stub_as_default_provider():
+def test_default_config_points_at_google_and_moderates_with_rules_then_ai_by_default():
     default = yaml.safe_load((BASE_DIR / 'config/default.yaml').read_text(encoding='utf-8'))['moderation']  # plik bazowy, bez lokalnych nadpisań
-    assert default['provider'] == 'stub'
+    assert default['provider'] == 'layered'  # prawdziwa moderacja domyślnie; atrapa tylko w testach (config/test.yaml)
+    assert default['layered']['ai'] == 'gemini' and default['layered']['require_ai'] is False
     assert default['gemini']['base_url'].startswith('https://generativelanguage.googleapis.com/')
     assert default['gemini']['model'] and default['gemini']['max_output_tokens'] > 0
