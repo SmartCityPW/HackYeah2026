@@ -43,6 +43,9 @@ users:
   - {email: iga@demo.smartcity.example, name: Iga, role: resident, xp: 210, starter_exp: 100}
   # Drugi zaufany podmiot: urząd miasta publikuje konsultacje społeczne (scenariusz org-consultation).
   - {email: urzad@demo.smartcity.example, name: Wydział Partycypacji, role: org, organization: {name: Urząd Miasta Krakowa, kind: city_office, contact_person: Wydział Partycypacji Społecznej, contact_email: konsultacje@urzad-demo.example}}
+  # Rady dzielnic publikują własne konsultacje (m.in. przy Tauron Arenie, w Czyżynach).
+  - {email: czyzyny@demo.smartcity.example, name: Rada Dzielnicy XIV Czyżyny, role: org, organization: {name: Rada Dzielnicy XIV Czyżyny, kind: district_council, contact_person: Przewodniczący Rady Dzielnicy XIV, contact_email: czyzyny@rada-demo.example}}
+  - {email: podgorze@demo.smartcity.example, name: Rada Dzielnicy XIII Podgórze, role: org, organization: {name: Rada Dzielnicy XIII Podgórze, kind: district_council, contact_person: Przewodnicząca Rady Dzielnicy XIII, contact_email: podgorze@rada-demo.example}}
 
 # Pula głosujących: konta bez hasła, każde z Spryciakiem startowym. Ich głosy i odpowiedzi ankiet przechodzą przez te same funkcje co w grze.
 voters: {count: 100}
@@ -81,7 +84,7 @@ events:
     capacity: 100
     age_min: 8
 
-# Pinezki demo: ok. 40 punktów rozsianych po Krakowie i okolicy (zmyślone zgłoszenia i zgłaszający).
+# Pinezki demo: ok. 50 punktów rozsianych po Krakowie i okolicy (zmyślone zgłoszenia i zgłaszający).
 # Postać na mapie zgłoszenia/pomysłu to gatunek zastawionego pokemona: klucz `character` nadaje autorowi Spryciaka tego gatunku (`exp` = jego poziom).
 # `votes: [za, przeciw]` to liczba PRAWDZIWYCH głosów (wiersze w bazie): oddają je konta z puli `voters` przez funkcję głosowania z gry (exp, zwrot zastawu
 # po progu), więc suma nie może przekroczyć wielkości puli. `votes_by` to głosy wskazanych kont, `survey_responses` liczba odpowiedzi ankiety (losowane wg
@@ -381,6 +384,286 @@ pokestops:
     - {value: heat, label: Ochrona przed upałami}
     - {value: rain, label: Ochrona przed ulewami}
     - {value: green, label: Więcej zieleni}
+- author: czyzyny@demo.smartcity.example
+  scenario: org-consultation
+  title: 'Konsultacje: parkowanie i ruch wokół Tauron Areny w dni wydarzeń'
+  description: 'Rada Dzielnicy pyta mieszkańców, jak uporządkować parkowanie i ruch przy Arenie podczas koncertów i meczów: strefa płatna, parkingi buforowe z dowozem czy twarde egzekwowanie zakazu parkowania na chodnikach.'
+  lat: 50.0675
+  lng: 19.99215
+  votes: [41, 33]
+  survey_responses: 38
+  days_ago: 6
+  details: {topic: Parkowanie i ruch wokół Tauron Areny w dni wydarzeń, decisionBy: Zarząd Dróg Miasta Krakowa, consultationEnd: '2026-11-20', contactPerson: Przewodniczący Rady Dzielnicy XIV, contactEmail: czyzyny@rada-demo.example, rationale: 'Mieszkańcy zgłaszają brak miejsc parkingowych i hałas po wydarzeniach (ul. Dąbska, okolice Areny). Chcemy wspólnie wybrać rozwiązanie, zanim miasto ogłosi własne.'}
+  custom_fields:
+  - {label: Obszar, value: 'ul. Dąbska, Stanisława Lema, al. Pokoju'}
+  - {label: Spotkanie z mieszkańcami, value: '22 października, 18:00, Dom Kultury Czyżyny'}
+  updates:
+  - {title: Spotkanie z mieszkańcami, body: 'W środę o 18:00 w Domu Kultury Czyżyny rozmawiamy o trzech wariantach. Przyjdź i powiedz, co Ci przeszkadza.'}
+  questions:
+  - key: solution
+    label: Które rozwiązanie wolisz?
+    type: choice
+    options:
+    - {value: paid, label: Strefa płatnego parkowania w dni wydarzeń}
+    - {value: buffer, label: Parkingi buforowe i dowóz}
+    - {value: pavement, label: Egzekwowanie zakazu parkowania na chodnikach}
+    weights: [30, 35, 35]
+  - {key: live_near, label: 'Czy mieszkasz w pobliżu Areny?', type: boolean, 'yes': 0.55}
+  - {key: noise, label: 'Jak uciążliwy jest hałas po wydarzeniach?', type: rating, min: 1, max: 5}
+  - key: remarks
+    label: Uwagi do propozycji
+    type: textarea
+    required: false
+    samples: [Po koncertach nie da się wyjechać z osiedla., Przydałby się szybki autobus ze Starego Miasta., Parkingi buforowe tylko z darmowym dowozem., Najgorsze są auta na chodnikach przy Dąbskiej.]
+- author: urzad@demo.smartcity.example
+  scenario: org-consultation
+  title: 'Konsultacje: rozszerzenie strefy płatnego parkowania na Kleparz'
+  description: Czy strefa płatnego parkowania ma objąć Kleparz i okolice ul. Długiej? Pytamy o karty dla mieszkańców i wysokość opłat.
+  lat: 50.07028
+  lng: 19.93689
+  votes: [38, 27]
+  survey_responses: 28
+  days_ago: 14
+  details: {topic: Rozszerzenie strefy płatnego parkowania, decisionBy: Rada Miasta Krakowa, consultationEnd: '2026-12-01', contactPerson: Wydział Partycypacji Społecznej, contactEmail: konsultacje@urzad-demo.example, rationale: 'Brakuje miejsc dla mieszkańców, bo parkują tu dojeżdżający do centrum. Strefa może to zmienić, ale ma swoje koszty.'}
+  custom_fields:
+  - {label: Planowany start strefy, value: czerwiec 2027}
+  questions:
+  - key: zone
+    label: Jaki wariant wybierasz?
+    type: choice
+    options:
+    - {value: extend, label: Rozszerzyć strefę}
+    - {value: residents, label: Strefa z tanimi kartami dla mieszkańców}
+    - {value: keep, label: Zostawić bez zmian}
+    weights: [30, 45, 25]
+  - {key: car, label: 'Czy masz samochód?', type: boolean, 'yes': 0.5}
+  - {key: price, label: 'Ile zł za godzinę byłoby dla Ciebie akceptowalne?', type: number, min: 0, max: 10}
+- author: urzad@demo.smartcity.example
+  scenario: org-consultation
+  title: 'Konsultacje: zasady wejścia na kąpielisko Zakrzówek'
+  description: Latem kolejki do pomostów ciągną się przez ulicę Wyłom. Pytamy, czy mieszkańcy mają mieć pierwszeństwo, czy lepsza będzie rezerwacja online.
+  lat: 50.03856
+  lng: 19.91599
+  votes: [57, 24]
+  survey_responses: 32
+  days_ago: 9
+  details: {topic: Zasady wejścia na kąpielisko Zakrzówek, decisionBy: Zarząd Zieleni Miejskiej, consultationEnd: '2026-11-30', contactPerson: Wydział Partycypacji Społecznej, contactEmail: konsultacje@urzad-demo.example, rationale: 'W upały kąpielisko jest przepełnione, a mieszkańcy okolicy nie mają żadnego pierwszeństwa. Szukamy rozwiązania, które nie wykluczy turystów.'}
+  custom_fields:
+  - {label: Sezon, value: czerwiec–sierpień 2027}
+  questions:
+  - key: rule
+    label: Jaka zasada wejścia najlepsza?
+    type: choice
+    options:
+    - {value: residents, label: Pierwszeństwo dla mieszkańców}
+    - {value: booking, label: Rezerwacja online}
+    - {value: limit, label: Limit osób i wyższe ceny}
+    weights: [45, 35, 20]
+  - {key: visits, label: 'Jak często odwiedzasz kąpielisko latem?', type: rating, min: 1, max: 5}
+  - key: remarks
+    label: Uwagi
+    type: textarea
+    required: false
+    samples: [Kolejka w sobotę to był koszmar., 'Rezerwacja online dla wszystkich, bez wyjątków.', Mieszkańcy powinni mieć osobne wejście.]
+  votes_by: {tester@demo.smartcity.example: for}
+- author: urzad@demo.smartcity.example
+  scenario: org-consultation
+  title: 'Konsultacje: cisza nocna w centrum i godziny ogródków'
+  description: 'Rynek, Szewska, Floriańska, Grodzka i Sławkowska: pytamy o godziny pracy ogródków gastronomicznych i ograniczenie hałasu nocnych turystów.'
+  lat: 50.0617
+  lng: 19.9372
+  votes: [49, 36]
+  survey_responses: 30
+  days_ago: 16
+  details: {topic: Cisza nocna w centrum Krakowa, decisionBy: Rada Miasta Krakowa, consultationEnd: '2026-12-10', contactPerson: Wydział Partycypacji Społecznej, contactEmail: konsultacje@urzad-demo.example, rationale: 'Mieszkańcy centrum skarżą się na hałas i śmieci po nocnych imprezach. Lokale i turyści mają inne potrzeby, więc pytamy wszystkich.'}
+  questions:
+  - key: hours
+    label: Do której mogą działać ogródki?
+    type: choice
+    options:
+    - {value: '22', label: 'Do 22:00'}
+    - {value: '24', label: Do północy}
+    - {value: keep, label: Bez zmian}
+    weights: [40, 25, 35]
+  - {key: live_center, label: 'Czy mieszkasz w centrum?', type: boolean, 'yes': 0.4}
+  - {key: noise, label: 'Jak bardzo przeszkadza Ci hałas po zmroku?', type: rating, min: 1, max: 5}
+- author: urzad@demo.smartcity.example
+  scenario: org-consultation
+  title: 'Konsultacje: więcej zieleni na Rondzie Mogilskim'
+  description: 'Rondo w pełnym słońcu to patelnia. Zbieramy pomysły: drzewa, wiaty z cieniem, a może woda?'
+  lat: 50.06553
+  lng: 19.96016
+  votes: [64, 12]
+  survey_responses: 36
+  days_ago: 11
+  details: {topic: Zazielenienie Ronda Mogilskiego, decisionBy: Zarząd Zieleni Miejskiej, consultationEnd: '2026-11-15', contactPerson: Wydział Partycypacji Społecznej, contactEmail: konsultacje@urzad-demo.example, rationale: 'Latem temperatura przy rondzie jest nie do wytrzymania, a oczekujący na tramwaj nie mają cienia.', estimatedCost: 2400000}
+  custom_fields:
+  - {label: Budżet, value: '2,4 mln zł'}
+  questions:
+  - key: elements
+    label: Co powinno się tu pojawić?
+    type: multiselect
+    options:
+    - {value: trees, label: Drzewa i nasadzenia}
+    - {value: water, label: Fontanny i mgiełki}
+    - {value: benches, label: Ławki}
+    - {value: shelters, label: Wiaty z cieniem}
+  - {key: heat, label: 'Jak oceniasz upał przy rondzie latem?', type: rating, min: 1, max: 5}
+- author: podgorze@demo.smartcity.example
+  scenario: org-consultation
+  title: 'Konsultacje: co dalej z dawnym hotelem Forum i bulwarem Wołyńskim?'
+  description: 'Dawny hotel Forum i bulwar to chaos: budy, tymczasowe zabudowania, brzydota. Rada Dzielnicy pyta, jaka ma być przyszłość tego miejsca.'
+  lat: 50.04503
+  lng: 19.93616
+  votes: [72, 19]
+  survey_responses: 40
+  days_ago: 21
+  details: {topic: Przyszłość terenu dawnego hotelu Forum i bulwaru Wołyńskiego, decisionBy: Prezydent Miasta Krakowa, consultationEnd: '2026-12-20', contactPerson: Przewodnicząca Rady Dzielnicy XIII, contactEmail: podgorze@rada-demo.example, rationale: 'To jedno z najlepiej położonych miejsc nad Wisłą, a od lat stoi niewykorzystane. Zależy nam na decyzji, w której głos mają mieszkańcy.', estimatedCost: 120000000}
+  custom_fields:
+  - {label: Powierzchnia terenu, value: ok. 3 ha}
+  questions:
+  - key: future
+    label: Jaka ma być przyszłość tego miejsca?
+    type: choice
+    options:
+    - {value: culture, label: Centrum kultury i sztuki}
+    - {value: park, label: Park i zieleń nad rzeką}
+    - {value: mixed, label: 'Usługi, gastronomia i mieszkania'}
+    weights: [35, 40, 25]
+  - {key: visit, label: 'Czy bywasz na bulwarach?', type: boolean, 'yes': 0.7}
+  - key: remarks
+    label: Twój pomysł
+    type: textarea
+    required: false
+    samples: [Zostawcie trochę miejsca na koncerty plenerowe., Wystarczy posprzątać i dodać zieleń., 'Najważniejsze: żadnych blaszanych bud.']
+- author: urzad@demo.smartcity.example
+  scenario: org-consultation
+  title: 'Konsultacje: ścieżka rowerowa na al. Pokoju'
+  description: Czy zwęzić jezdnię na al. Pokoju, żeby zmieścić ścieżkę rowerową? Pytamy kierowców, rowerzystów i pasażerów komunikacji.
+  lat: 50.05833
+  lng: 19.96108
+  votes: [44, 39]
+  survey_responses: 33
+  days_ago: 7
+  details: {topic: Ścieżka rowerowa na al. Pokoju, decisionBy: Zarząd Dróg Miasta Krakowa, consultationEnd: '2026-11-25', contactPerson: Wydział Partycypacji Społecznej, contactEmail: konsultacje@urzad-demo.example, rationale: 'Jazda rowerem po tej alei jest niebezpieczna, ale zwężenie jezdni oznacza korki. Szukamy kompromisu.'}
+  questions:
+  - key: lane
+    label: Co wybierasz?
+    type: choice
+    options:
+    - {value: lane, label: Osobna ścieżka kosztem pasa dla aut}
+    - {value: shared, label: Pas wspólny dla rowerów i autobusów}
+    - {value: none, label: Bez zmian}
+    weights: [40, 35, 25]
+  - key: modes
+    label: Jak najczęściej się tu poruszasz?
+    type: multiselect
+    options:
+    - {value: bike, label: Rowerem}
+    - {value: car, label: Samochodem}
+    - {value: tram, label: Komunikacją miejską}
+    - {value: walk, label: Pieszo}
+- author: urzad@demo.smartcity.example
+  scenario: org-consultation
+  title: 'Konsultacje: strefa czystego transportu przy Alei Krasińskiego'
+  description: 'Pilotaż strefy czystego transportu: ograniczenia dla najstarszych aut spalinowych na wybranych ulicach. Pytamy o zakres i okres próbny.'
+  lat: 50.059
+  lng: 19.9257
+  votes: [52, 30]
+  survey_responses: 29
+  days_ago: 13
+  details: {topic: Strefa czystego transportu, decisionBy: Rada Miasta Krakowa, consultationEnd: '2026-12-05', contactPerson: Wydział Partycypacji Społecznej, contactEmail: konsultacje@urzad-demo.example, rationale: 'Duży ruch na Alei Krasińskiego oznacza spaliny i szarość. Strefa może poprawić powietrze, ale uderza w posiadaczy starszych aut.'}
+  custom_fields:
+  - {label: Start pilotażu, value: styczeń 2027}
+  questions:
+  - key: scope
+    label: Jaki zakres strefy?
+    type: choice
+    options:
+    - {value: centre, label: Tylko Śródmieście}
+    - {value: wide, label: Cały obszar wewnątrz obwodnicy}
+    - {value: pilot, label: Pilotaż na rok i ocena skutków}
+    weights: [25, 30, 45]
+  - {key: old_car, label: 'Czy masz samochód spalinowy starszy niż 15 lat?', type: boolean, 'yes': 0.3}
+  - {key: air, label: 'Jak oceniasz jakość powietrza w okolicy?', type: rating, min: 1, max: 5}
+  votes_by: {tester@demo.smartcity.example: for}
+- author: urzad@demo.smartcity.example
+  scenario: org-consultation
+  title: 'Budżet obywatelski 2027: na co w Mistrzejowicach?'
+  description: 'Wybierz, na co mają trafić pieniądze z budżetu obywatelskiego w Mistrzejowicach: ławki, oświetlenie, plac zabaw czy trasy rowerowe.'
+  lat: 50.0898
+  lng: 19.98596
+  votes: [38, 9]
+  survey_responses: 26
+  days_ago: 5
+  details: {topic: Budżet obywatelski 2027 w Mistrzejowicach, decisionBy: Zespół ds. Budżetu Obywatelskiego, consultationEnd: '2026-11-12', contactPerson: Wydział Partycypacji Społecznej, contactEmail: konsultacje@urzad-demo.example, rationale: 'Mieszkańcy zgłosili kilkadziesiąt pomysłów. Zanim zapadną decyzje, pytamy o priorytety.', estimatedCost: 1200000}
+  custom_fields:
+  - {label: Pula środków, value: '1,2 mln zł'}
+  questions:
+  - key: projects
+    label: Na co wydać pieniądze? (wybierz kilka)
+    type: multiselect
+    options:
+    - {value: benches, label: Ławki i kosze}
+    - {value: lighting, label: Oświetlenie ulic}
+    - {value: playground, label: Plac zabaw}
+    - {value: bike, label: Trasy rowerowe}
+  - {key: children, label: 'Czy mieszkasz z dziećmi?', type: boolean, 'yes': 0.45}
+- author: urzad@demo.smartcity.example
+  scenario: org-consultation
+  title: 'Konsultacje metropolitalne: wymiana pieców w gminach wokół Krakowa'
+  description: Smog nie zna granic gmin. Pytamy, czy lepsze będą dopłaty do wymiany pieców, czy zakaz spalania węgla, także w gminach ościennych.
+  lat: 49.97475
+  lng: 19.82657
+  votes: [61, 14]
+  survey_responses: 31
+  days_ago: 18
+  details: {topic: Wymiana pieców i walka ze smogiem w obszarze metropolitalnym, decisionBy: Związek Gmin i Rada Miasta Krakowa, consultationEnd: '2026-12-15', contactPerson: Wydział Partycypacji Społecznej, contactEmail: konsultacje@urzad-demo.example, rationale: Dym z domowych kominów w gminach sąsiednich wpada do Krakowa. Pytamy mieszkańców całej aglomeracji.}
+  status: in_progress
+  status_note: Zebrane opinie analizuje zespół ds. powietrza.
+  questions:
+  - key: policy
+    label: Jakie rozwiązanie jest lepsze?
+    type: choice
+    options:
+    - {value: subsidy, label: Dopłaty do wymiany pieców}
+    - {value: ban, label: Zakaz spalania węgla}
+    - {value: both, label: Dopłaty i zakaz po okresie przejściowym}
+    weights: [30, 15, 55]
+  - key: heating
+    label: Czym ogrzewasz dom?
+    type: choice
+    options:
+    - {value: coal, label: Węgiel lub drewno}
+    - {value: gas, label: Gaz}
+    - {value: district, label: Ciepło sieciowe}
+    - {value: electric, label: Prąd lub pompa ciepła}
+    weights: [20, 30, 35, 15]
+- author: urzad@demo.smartcity.example
+  scenario: org-consultation
+  title: 'Konsultacje: ograniczanie odorów z oczyszczalni ścieków w Płaszowie'
+  description: Przy sprzyjającym wietrze zapach z oczyszczalni dociera na pół Podgórza. Pytamy, jakie działania mieszkańcy uznają za najlepsze.
+  lat: 50.03263
+  lng: 20.02205
+  votes: [78, 6]
+  survey_responses: 34
+  days_ago: 40
+  details: {topic: Ograniczanie odorów z oczyszczalni ścieków Płaszów, decisionBy: Wodociągi Miasta Krakowa, consultationEnd: '2026-10-31', contactPerson: Wydział Partycypacji Społecznej, contactEmail: konsultacje@urzad-demo.example, rationale: 'Spółka przygotowała trzy warianty działań. Wybierzemy ten, który mieszkańcy ocenią najwyżej.'}
+  updates:
+  - {title: Wyniki konsultacji, body: Najwięcej głosów zebrał wariant z zadaszeniem osadników i filtrami. Spółka przedstawi harmonogram prac do końca roku.}
+  status: resolved
+  status_note: Konsultacje zakończone, wyniki przekazano spółce.
+  questions:
+  - key: measure
+    label: Który wariant wybierasz?
+    type: choice
+    options:
+    - {value: covers, label: Zadaszenie osadników i filtry}
+    - {value: sensors, label: Czujniki zapachów i alarmy}
+    - {value: move, label: Przeniesienie części instalacji}
+    weights: [50, 20, 30]
+  - {key: smell, label: 'Jak często czujesz zapach?', type: rating, min: 1, max: 5}
+  - {key: near, label: 'Czy mieszkasz w promieniu 3 km?', type: boolean, 'yes': 0.6}
 - author: bartek@demo.smartcity.example
   scenario: idea-other
   title: Ławki i kosze wzdłuż chodnika na ul. Bronowickiej
