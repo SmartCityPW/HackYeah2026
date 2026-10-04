@@ -109,10 +109,10 @@ Domyślnie wszystko działa na danych w pamięci, więc backend nie jest potrzeb
 
 ### 5. Przegląd ręczny w przeglądarce (checklista)
 
-Przełącznik w lewym górnym rogu (👤 / 🏢 / 🛡️ i 📍 GPS) to narzędzia deweloperskie (`dev.tools` w konfiguracji).
+Przełącznik ról (👤 / 🏢 / 🛡️) to narzędzie deweloperskie (`dev.tools` w konfiguracji). Przycisk 📍 w prawym dolnym rogu prosi przeglądarkę o prawdziwą lokalizację; symulowaną pozycję ustawisz parametrem adresu `?gps=lat,lng` (tylko `dev.tools`).
 
-- **Mieszkaniec 👤:** mapa pokazuje Kraków w 3D z pinezkami i obracającymi się postaciami. Kliknij pinezkę → karta ze szczegółami. Żeby zagłosować, włącz **📍 GPS** (głos działa tylko w promieniu 50 m): wybierz pokemona, który dostanie exp, i kliknij **Potwierdzam** (w zasięgu GPS jest „Zniszczona ławka przy Rynku”). **➕ Zgłoś** → trzy kategorie (problem / inicjatywa / cool miejsce) → formularz (cool miejsce ma gwiazdki, koszt, klimat). Dolne menu: **Spryciaki** (kolekcja i poziom), **Inicjatywy** (moje, z filtrami).
-- **Walka:** włącz **📍 GPS** (symuluje Twoją pozycję na Rynku). Czerwony przeciwnik obok jest w zasięgu, kliknij go → **⚔️ Walcz**. Pozostali są dalej i pokażą „Za daleko”.
+- **Mieszkaniec 👤:** mapa pokazuje Kraków w 3D z pinezkami i obracającymi się postaciami. Kliknij pinezkę → karta ze szczegółami. Żeby zagłosować, miej pozycję (📍 albo `?gps=50.0676,19.9917`; głos działa tylko w promieniu 50 m): wybierz pokemona, który dostanie exp, i kliknij **Potwierdzam** (w zasięgu GPS jest „Zniszczona ławka przy Rynku”). **➕ Zgłoś** → trzy kategorie (problem / inicjatywa / cool miejsce) → formularz (cool miejsce ma gwiazdki, koszt, klimat). Dolne menu: **Spryciaki** (kolekcja i poziom), **Inicjatywy** (moje, z filtrami).
+- **Walka:** ustaw pozycję (📍 albo `?gps=50.0676,19.9917`). Czerwony przeciwnik obok jest w zasięgu, kliknij go → **⚔️ Walcz**. Pozostali są dalej i pokażą „Za daleko”.
 - **Organizacja 🏢:** **🏢 Nowa inicjatywa** → szczegółowe scenariusze (przystanek ze wszystkimi polami, drzewo, mała architektura, szkoda na powierzchni). Zakładki: Inicjatywy (statystyki poparcia), Organizacja (profil).
 - **Administrator 🛡️:** **Moderacja** (zmiana statusu, odrzucone znikają z mapy), **Organizacje** (weryfikacja), **Scenariusze** (podgląd katalogu), **Mapa** (bez przycisku zgłaszania).
 
@@ -134,7 +134,7 @@ upload:
 
 Odśwież stronę. Aplikacja sama założy konto gościa, pobierze rolę z `/me` (przełącznik 👤/🏢/🛡️ znika, bo rolę ustala serwer) i dociągnie pinezki z widocznej części mapy. Działa cała pętla gry:
 
-- **Głos:** włącz 📍 GPS, otwórz pinezkę z Rynku, wybierz pokemona i zagłosuj. Serwer dolicza exp (toast pokazuje nowy poziom). Z innego miejsca dostaniesz „Jesteś za daleko (… m)”.
+- **Głos:** kliknij 📍 (zezwól przeglądarce na lokalizację) albo dopisz do adresu `?gps=50.0676,19.9917` (symulowana pozycja, tylko `dev.tools: true`), otwórz pinezkę, wybierz pokemona i zagłosuj. Serwer dolicza exp (toast pokazuje nowy poziom). Z innego miejsca dostaniesz „Jesteś za daleko (… m)”.
 - **Zgłoszenie:** ➕ Zgłoś → problem → wybierz pokemona do zastawienia. Tytuł z wulgaryzmem, numerem telefonu albo linkiem zostanie odrzucony przez moderację: komunikat serwera, formularz zostaje wypełniony.
 - **Komentarze:** pod pinezką, z odpowiedziami („Odpowiedz”) i „Pokaż starsze komentarze”.
 - Zdjęcia są jeszcze tylko w kontrakcie (`POST /photos`: 501).
@@ -150,6 +150,26 @@ curl -s -X POST http://localhost:8000/api/v1/auth/login -H 'Content-Type: applic
 
 W konsoli przeglądarki: `localStorage.setItem('scgo.access', '<access>'); localStorage.setItem('scgo.refresh', '<refresh>')`, odśwież stronę: rola (🛡️) przyjdzie z `/me`, więc w **Moderacji** zmienisz status pinezki.
 Dla widoku organizacji zaloguj się jako `fundacja@demo.smartcity.example`.
+
+### 6a. Test na telefonie przez Cloudflare Tunnel
+
+Telefon dostaje lokalizację tylko na stronie przez **HTTPS**, a pod adresem `http://<IP-komputera>:4200` Safari i Chrome po cichu ją blokują. Najprościej wystawić lokalną aplikację tunelem (bez konta i domeny):
+
+```bash
+brew install cloudflared                                  # raz
+cd backend && source config/local.env && .venv/bin/python manage.py runserver      # terminal 1: backend na :8000
+cd frontend && npm start                                  # terminal 2: aplikacja na :4200 (przekazuje /api do backendu)
+cloudflared tunnel --url http://localhost:4200            # terminal 3: wypisze adres https://<losowa-nazwa>.trycloudflare.com
+```
+
+Otwórz wypisany adres na telefonie i kliknij przycisk 📍 w prawym dolnym rogu (zezwól na lokalizację). Co warto wiedzieć:
+
+- **Jeden adres dla aplikacji i API.** `baseUrl: /api/v1` w `app-config.yaml` jest względny, a `ng serve` przekazuje `/api` do `localhost:8000` ([`proxy.conf.json`](frontend/proxy.conf.json)), więc nie ma CORS ani adresu API do wpisywania. Hosty `*.trycloudflare.com` są dopuszczone w `angular.json` (`allowedHosts`).
+- **Dokładność.** Telefon ma prawdziwy GPS (kilka metrów). Komputer bez GPS (Mac z Safari) ma pozycję z Wi-Fi o dokładności setek metrów, a serwer odrzuca odczyty gorsze niż `location.max_accuracy_m` (50 m). Do pracy na laptopie podnieś to **tylko lokalnie** w `backend/config/local.yaml`: `location: { max_accuracy_m: 1000 }`.
+- **Symulowana pozycja** (bez wychodzenia z domu): dopisz `?gps=50.0676,19.9917` do adresu, a strzałki i WASD przesuwają gracza (tylko `dev.tools: true` i `location.allow_simulated: true`). Przycisk 📍 kończy symulację i prosi o prawdziwą pozycję.
+- **Adres jest publiczny**, dopóki działa `cloudflared`: każdy, kto go zna, ma dostęp do lokalnego backendu z danymi demo i narzędziami deweloperskimi. Nie udostępniaj go i zatrzymaj tunel (Ctrl+C) po teście. Przy każdym uruchomieniu adres jest inny.
+- **Debugowanie na iPhonie:** Ustawienia → Safari → Zaawansowane → Inspektor stron internetowych, a na Macu Safari → Programowanie → [telefon] daje konsolę i sieć strony z telefonu.
+- Dla stałego adresu i dla graczy służy wdrożenie z kroku 7a (Caddy, certyfikat Let's Encrypt).
 
 ### 7. Docker (cała aplikacja jedną komendą)
 

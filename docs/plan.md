@@ -233,6 +233,8 @@ Powód: ten sam Korek Komunikacyjny w tym samym miejscu. Przeciwnicy były wspó
 - [x] Druga zaufana organizacja demo „Urząd Miasta Krakowa” (3 konsultacje z ankietami, polami własnymi i osią czasu)
 - [x] `manage.py seed_demo --reset` czyści pinezki i zastawy (tylko tryb debug); seed pomija moderację AI
 - [x] Światło modeli 3D słabsze (`features/map/three/lighting.ts`, wspólne dla mapy i miniatur), ikona „Moje Spryciaki” to łapka
+- [x] Test na telefonie przez Cloudflare Tunnel: `/api` przez proxy `ng serve`, względny `baseUrl: /api/v1`, `allowedHosts` dla `*.trycloudflare.com` (README, krok 6a)
+- [x] Przycisk 📍 na mapie prosi przeglądarkę o prawdziwą lokalizację (`GeolocationService.request()`), symulacja tylko przez `?gps=`; `game.simulatedGps` w konfiguracji jest dziś nieużywane
 - [ ] Na środowiskach z `seed.demo_on_start` stare 6 pinezek zostanie obok nowych: jednorazowo `seed_demo --reset` na ich bazie
 - [ ] Współrzędne punktów są przybliżone (geokodowanie OpenStreetMap); skrzyżowanie Mogilska/Lema ustawione orientacyjnie
 

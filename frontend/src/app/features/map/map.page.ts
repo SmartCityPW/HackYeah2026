@@ -55,8 +55,8 @@ export class MapPage {
   protected readonly interactionRadius = inject(AppConfigService).config.game.interactionRangeM;
   protected readonly enemyTypes = TYPES;
   protected readonly devTools = inject(AppConfigService).config.dev.tools;
-  private readonly simulatedGps = inject(AppConfigService).config.game.simulatedGps;
-  protected readonly gpsSimulated = this.geo.isSimulated;
+  /** Przycisk lokalizacji świeci, gdy znamy pozycję (prawdziwą albo symulowaną z `?gps=`). */
+  protected readonly gpsActive = computed(() => this.geo.position() !== null);
   /** Przycisk poziomu prowadzi do profilu gracza. */
   protected readonly profilePath = computed(() => PROFILE_PATH[this.session.role()]);
   /** Na mapie gracza reprezentuje jego najsilniejszy Spryciak (jak towarzysz w Pokémon GO), a nie kropka. */
@@ -207,10 +207,16 @@ export class MapPage {
     });
   }
 
-  /** Tryb deweloperski: symulowana pozycja (domyślnie przy wejściu na Arenę), żeby testować grę bez wychodzenia z domu. */
-  protected toggleSimulatedGps(): void {
-    const { lat, lng } = this.simulatedGps;
-    this.geo.simulate(this.geo.isSimulated() ? null : [lng, lat]);
+  /** Przycisk lokalizacji: prosi przeglądarkę o prawdziwą pozycję (kończy też symulację z `?gps=`) i pokazuje powód, gdy się nie uda. */
+  protected async locate(): Promise<void> {
+    const problem = await this.geo.request();
+    const position = this.geo.latLng();
+    if (!problem && position) {
+      this.mapCtl.focus(position.lat, position.lng);
+      this.toast.show('Znaleziono Twoją pozycję.', '📍');
+      return;
+    }
+    this.toast.show('Nie udało się ustalić pozycji. Powód jest w komunikacie na górze mapy.', '📍');  // szczegóły (locationHint) pokazuje już baner
   }
 
   private distanceTo(target: Position | null): number | null {

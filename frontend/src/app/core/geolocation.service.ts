@@ -71,13 +71,11 @@ export class GeolocationService {
         this.actual.set(this.toFix(pos));
       },
       (error?: GeolocationPositionError) => {
-        const code = error?.code ?? 2;
-        this.locationDetail.set(error?.message ?? '');
-        if (code !== PERMISSION_DENIED && highAccuracy) {
+        if (error?.code !== PERMISSION_DENIED && highAccuracy) {
           this.restart(false);
           return;
         }
-        this.problem.set(code === PERMISSION_DENIED ? 'denied' : code === TIMEOUT ? 'timeout' : 'unavailable');
+        this.reportError(error);
       },
       { enableHighAccuracy: highAccuracy, timeout: highAccuracy ? 15_000 : 30_000, maximumAge: highAccuracy ? 0 : 10_000 },
     );
@@ -101,19 +99,53 @@ export class GeolocationService {
   fresh(): Promise<PlayerPosition | null> {
     if (this.simulated() || !('geolocation' in navigator)) return Promise.resolve(this.latLng());
     const { gpsMaxAgeSeconds, gpsTimeoutSeconds } = this.appConfig.config.game;
-    const read = (enableHighAccuracy: boolean): Promise<GeolocationPosition | null> =>
+    const read = (enableHighAccuracy: boolean): Promise<GeolocationPosition | GeolocationPositionError | undefined> =>
       new Promise((resolve) => {
-        navigator.geolocation.getCurrentPosition((pos) => resolve(pos), () => resolve(null), {
+        navigator.geolocation.getCurrentPosition((pos) => resolve(pos), (error?: GeolocationPositionError) => resolve(error), {
           enableHighAccuracy, maximumAge: gpsMaxAgeSeconds * 1000, timeout: gpsTimeoutSeconds * 1000,
         });
       });
+    const isReading = (result: GeolocationPosition | GeolocationPositionError | undefined): result is GeolocationPosition =>
+      !!result && 'coords' in result;
     // Jak przy obserwowaniu: gdy GPS (wysoka dokładność) zawodzi, pytamy jeszcze raz o pozycję z Wi-Fi/IP.
     return read(true)
-      .then((pos) => pos ?? read(false))
-      .then((pos) => {
-        if (pos) this.actual.set(this.toFix(pos));
+      .then((result) => (isReading(result) || result?.code === PERMISSION_DENIED ? result : read(false)))
+      .then((result) => {
+        if (isReading(result)) {
+          this.problem.set(null);
+          this.actual.set(this.toFix(result));
+        } else {
+          this.reportError(result);
+        }
         return this.latLng();
       });
+  }
+
+  /**
+   * Przycisk "moja lokalizacja": kończy symulację (jeśli była), restartuje obserwowanie i od razu prosi przeglądarkę o pozycję. Wywołana
+   * w obsłudze kliknięcia, więc przeglądarki (Safari) pokazują pytanie o zgodę. Zwraca powód niepowodzenia albo null, gdy pozycję mamy.
+   */
+  async request(): Promise<LocationProblem | null> {
+    this.simulated.set(null);
+    this.problem.set(null);
+    this.locationDetail.set('');
+    if (!('geolocation' in navigator)) return this.fail('unsupported');
+    if (globalThis.isSecureContext === false) return this.fail('insecure');
+    if (this.watchId !== undefined) navigator.geolocation.clearWatch(this.watchId);
+    this.watch(true);
+    const position = await this.fresh();
+    return position ? null : (this.problem() ?? 'unavailable');
+  }
+
+  private fail(problem: LocationProblem): LocationProblem {
+    this.problem.set(problem);
+    return problem;
+  }
+
+  private reportError(error?: GeolocationPositionError): void {
+    const code = error?.code ?? 2;
+    this.locationDetail.set(error?.message ?? '');
+    this.problem.set(code === PERMISSION_DENIED ? 'denied' : code === TIMEOUT ? 'timeout' : 'unavailable');
   }
 
   /** Tryb deweloperski: "spacer" symulowaną pozycją o `dn` metrów na północ i `de` na wschód. */
