@@ -227,6 +227,15 @@ Powód: ten sam Korek Komunikacyjny w tym samym miejscu. Przeciwnicy były wspó
 - [x] **Frontend w Dockerze:** `frontend/Dockerfile` (Node → nginx), `frontend/docker/nginx.conf` (fallback SPA, typ JavaScript dla workera MapLibre, konfiguracja bez cache), usługa `frontend` w `docker-compose.yml` (port 4200, konfiguracja montowana z hosta). Sprawdzone na żywo osobnym projektem compose: 3 usługi działają, podstrony bez 404, CORS poprawny. Testy spójności w `test_deployment_files.py`. **Niesprawdzone w przeglądarce**
 - [ ] `dev.tools: false` w produkcji, HTTPS, CI, `docs/ASSETS.md` (PWA zweryfikowane)
 
+## Etap 12: dane demo w całym Krakowie (2026-10-04)
+- [x] Nowa lista 42 zmyślonych pinezek rozsianych po Krakowie i okolicy (`backend/config/seed/demo.yaml`) zamiast 6 przy Arenie: różni zgłaszający, poparcie za/przeciw (część z ujemnym bilansem), komentarze, statusy, różne modele 3D (klucz `character`, `exp` = poziom zastawionego Spryciaka)
+- [x] Nowe scenariusze: `res-noise`, `res-parking`, `res-air`, `res-heat`, `res-other` (zgłoszenia) i `org-consultation` (konsultacje z ankietą); katalog ma 26 scenariuszy
+- [x] Druga zaufana organizacja demo „Urząd Miasta Krakowa” (3 konsultacje z ankietami, polami własnymi i osią czasu)
+- [x] `manage.py seed_demo --reset` czyści pinezki i zastawy (tylko tryb debug); seed pomija moderację AI
+- [x] Światło modeli 3D słabsze (`features/map/three/lighting.ts`, wspólne dla mapy i miniatur), ikona „Moje Spryciaki” to łapka
+- [ ] Na środowiskach z `seed.demo_on_start` stare 6 pinezek zostanie obok nowych: jednorazowo `seed_demo --reset` na ich bazie
+- [ ] Współrzędne punktów są przybliżone (geokodowanie OpenStreetMap); skrzyżowanie Mogilska/Lema ustawione orientacyjnie
+
 ## Otwarte decyzje
 
 - Nagrody za wygraną walkę

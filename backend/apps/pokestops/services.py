@@ -87,8 +87,9 @@ def _moderate(author: User, scenario: Scenario, data: dict) -> None:
     data['_review'] = (review.model, latency)  # zapis do logu po utworzeniu pinezki (w tej samej transakcji)
 
 
-def create_pokestop(user: User, data: dict, *, verify_location: bool = True) -> Pokestop:
-    """Tworzy pinezkę. `verify_location=False` tylko dla danych demo (`seed_demo`), które powstają bez prawdziwego GPS."""
+def create_pokestop(user: User, data: dict, *, verify_location: bool = True, moderate: bool = True) -> Pokestop:
+    """Tworzy pinezkę. `verify_location=False` i `moderate=False` tylko dla danych demo (`seed_demo`): powstają bez prawdziwego GPS
+    i bez wywołań agenta AI (kilkadziesiąt zgłoszeń naraz kosztowałoby API, a treść demo jest nasza)."""
     if user.role == Role.ADMIN:
         raise _forbidden('forbidden', 'Administrator nie dodaje zgłoszeń')
     scenario = Scenario.objects.select_related('default_character').filter(code=data['scenario_code'], is_active=True).first()
@@ -129,7 +130,7 @@ def create_pokestop(user: User, data: dict, *, verify_location: bool = True) -> 
         if stake.is_staked:
             raise ApiError(http.HTTP_409_CONFLICT, 'pokemon_unavailable', 'Ten pokemon jest już zastawiony')
 
-    if scenario.audience == Audience.RESIDENT:
+    if moderate and scenario.audience == Audience.RESIDENT:
         _moderate(user, scenario, data)
 
     character = stake.character if stake else (Character.objects.filter(code=data.get('character')).first() or scenario.default_character)

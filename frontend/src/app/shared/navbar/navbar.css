@@ -1,6 +1,6 @@
 :host { display: block; flex: none; }
 nav { display: flex; justify-content: space-around; background: var(--surface); border-top: 1px solid var(--border); padding: 6px 6px calc(6px + env(safe-area-inset-bottom)); }
-.item { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 2px; border-radius: 12px; font-size: .72rem; color: var(--text-muted); text-decoration: none; }
+.item { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 2px; border-radius: 12px; font-size: .72rem; text-align: center; color: var(--text-muted); text-decoration: none; }
 .icon { font-size: 1.35rem; }
 .item.active { color: var(--brand-strong); font-weight: 700; }
 .pill { display: inline-flex; padding: 2px 14px; border-radius: 999px; }

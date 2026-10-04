@@ -119,6 +119,24 @@ export class MapPage {
   });
   /** Bez pozycji nie ma kółka ani przeciwników, więc mówimy graczowi, co zrobić. */
   protected readonly needsLocation = computed(() => this.mapCtl.ready() && this.geo.position() === null);
+  /** Konkretny powód braku pozycji (odmowa, błąd przeglądarki, brak HTTPS), żeby nie zgadywać, co poprawić. */
+  protected readonly locationHint = computed(() => {
+    const detail = this.geo.locationDetail();
+    switch (this.geo.locationProblem()) {
+      case 'denied':
+        return 'Przeglądarka blokuje lokalizację dla tej strony. W Safari: Safari → Ustawienia → Strony internetowe → Lokalizacja, a w systemie: Ustawienia → Prywatność i ochrona → Usługi lokalizacyjne → Safari.';
+      case 'unavailable':
+        return `Przeglądarka nie potrafi teraz ustalić pozycji${detail ? ` (${detail})` : ''}. Na komputerze bez GPS bywa to chwilowe: sprawdź Wi-Fi i Usługi lokalizacyjne albo spróbuj za moment.`;
+      case 'timeout':
+        return 'Ustalanie pozycji trwa zbyt długo. Spróbuj za moment albo sprawdź Wi-Fi.';
+      case 'insecure':
+        return 'Lokalizacja działa tylko na stronach HTTPS (lub localhost). Otwórz aplikację bezpiecznym adresem.';
+      case 'unsupported':
+        return 'Ta przeglądarka nie obsługuje lokalizacji.';
+      default:
+        return null;
+    }
+  });
   protected readonly panelOpen = signal(false);
   protected readonly commentDraft = signal('');
   /** Komentarz nadrzędny, na który odpowiadamy (null: piszemy nowy komentarz najwyższego poziomu). */
@@ -409,7 +427,7 @@ export class MapPage {
     this.panelOpen.set(false);
     void this.select(stop.id);
     this.toast.show(
-      draft.type === 'ngo'
+      isTrustedType(draft.type)
         ? 'Inicjatywa opublikowana! Mieszkańcy mogą teraz głosować.'
         : 'Zgłoszenie dodane! Gdy inni je potwierdzą, odzyskasz pokemona z premią exp.',
       '✅',

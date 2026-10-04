@@ -26,6 +26,23 @@ users:
       - {character: flower_pot,      exp: 50}
       - {character: air_conditioner, exp: 20}
     starter_exp: 620
+  # Zmyśleni zgłaszający (dane demo): różne poziomy gracza (xp) i startowego Spryciaka (exp), żeby pinezki miały autorów w różnym stopniu zaawansowania.
+  - {email: bartek@demo.smartcity.example, name: Bartek, role: resident, xp: 180, starter_exp: 150}
+  - {email: agnieszka@demo.smartcity.example, name: Agnieszka, role: resident, xp: 420, starter_exp: 340}
+  - {email: tomek@demo.smartcity.example, name: Tomek, role: resident, xp: 90, starter_exp: 40}
+  - {email: ewa@demo.smartcity.example, name: Ewa, role: resident, xp: 760, starter_exp: 520}
+  - {email: piotr@demo.smartcity.example, name: Piotr, role: resident, xp: 300, starter_exp: 210}
+  - {email: magda@demo.smartcity.example, name: Magda, role: resident, xp: 530, starter_exp: 470}
+  - {email: janusz@demo.smartcity.example, name: Janusz, role: resident, xp: 60, starter_exp: 0}
+  - {email: halina@demo.smartcity.example, name: Pani Halina, role: resident, xp: 880, starter_exp: 690}
+  - {email: oskar@demo.smartcity.example, name: Oskar, role: resident, xp: 240, starter_exp: 130}
+  - {email: weronika@demo.smartcity.example, name: Weronika, role: resident, xp: 650, starter_exp: 580}
+  - {email: szymon@demo.smartcity.example, name: Szymon, role: resident, xp: 130, starter_exp: 70}
+  - {email: natalia@demo.smartcity.example, name: Natalia, role: resident, xp: 380, starter_exp: 260}
+  - {email: filip@demo.smartcity.example, name: Filip, role: resident, xp: 470, starter_exp: 310}
+  - {email: iga@demo.smartcity.example, name: Iga, role: resident, xp: 210, starter_exp: 100}
+  # Drugi zaufany podmiot: urząd miasta publikuje konsultacje społeczne (scenariusz org-consultation).
+  - {email: urzad@demo.smartcity.example, name: Wydział Partycypacji, role: org, organization: {name: Urząd Miasta Krakowa, kind: city_office, contact_person: Wydział Partycypacji Społecznej, contact_email: konsultacje@urzad-demo.example}}
 
 # Wydarzenia "cool thing" fundacji (czasy względem chwili ładowania danych, żeby demo zawsze miało wydarzenie trwające teraz i zapowiedziane).
 events:
@@ -61,44 +78,521 @@ events:
     capacity: 100
     age_min: 8
 
-# Każdy mieszkaniec ma pokemona startowego, więc zgłoszenia problemów mają różnych autorów.
+# Pinezki demo: ok. 40 punktów rozsianych po Krakowie i okolicach (zmyślone zgłoszenia, poparcie i zgłaszający).
+# Postać na mapie zgłoszenia/pomysłu to gatunek zastawionego pokemona: klucz `character` nadaje autorowi Spryciaka tego gatunku (`exp` = jego poziom).
+# `votes: [za, przeciw]` to liczniki poparcia (dane demo, bez kont głosujących), `votes_by` dodaje prawdziwe głosy kont, `days_ago` postarza zgłoszenie.
+# `status` ustawia administrator demo, `comments` to komentarze (z odpowiedziami). Reset i ponowne załadowanie: manage.py seed_demo --reset
 pokestops:
-  - {author: kasia@demo.smartcity.example,  scenario: res-pothole, title: Dziura na przejściu dla pieszych, description: Wyrwa w asfalcie tuż przy krawężniku przy wyjściu z tramwaju., lat: 50.0669, lng: 19.9905}
-  - {author: michal@demo.smartcity.example, scenario: res-bin,     title: Przepełnione kosze po wydarzeniach, description: Po koncertach kosze przy przystanku są pełne, a śmieci rozwiewa wiatr., lat: 50.06835, lng: 19.99305}
-  - {author: ola@demo.smartcity.example,    scenario: res-lamp,    title: Nie świecą latarnie na parkingu, description: Na części parkingu od strony ulicy wieczorem jest całkiem ciemno., lat: 50.0659, lng: 19.9925}
-  - author: kuba@demo.smartcity.example
-    scenario: place-fun
-    title: Boisko do kosza za Areną
-    description: Ogólnodostępne boisko z dobrymi koszami i oświetleniem.
-    lat: 50.0688
-    lng: 19.9945
-    details: {rating: "5", cost: free, vibes: [friends], bestTime: [afternoon, evening], activity: court}
-  - author: marta@demo.smartcity.example
-    scenario: place-food
-    title: Food trucki przy wejściu
-    description: W dni wydarzeń stoi tu kilka food trucków, jest też opcja wege.
-    lat: 50.0679
-    lng: 19.9910
-    details: {rating: "4", cost: cheap, vibes: [friends], offer: streetfood, vegan: true}
-  - author: fundacja@demo.smartcity.example
-    scenario: org-tree
-    title: Szpaler lip wzdłuż ulicy Lema
-    description: Proponujemy posadzenie 20 lip wzdłuż chodnika prowadzącego do Areny. Co o tym myślisz?
-    lat: 50.0690
-    lng: 19.9896
-    character: tree
-    details: {plantingType: new, species: linden, count: 20, rationale: Cień i mniej hałasu przy drodze do Areny, contactPerson: Anna Kowalska, contactEmail: kontakt@zielonemiasto.example}
-    custom_fields:      # pola własne organizatora (widoczne na rozwiniętej karcie inicjatywy)
-      - {label: Liczba drzew, value: 20 lip}
-      - {label: Budżet, value: "18 000 zł (grant dzielnicy)"}
-    updates:            # wpisy organizatora na osi czasu (od najstarszego)
-      - {title: "Dziś rada dzielnicy zajęła się sprawą", body: "Radni jednogłośnie poparli projekt i przyznali grant na zakup sadzonek."}
-      - {title: "Jutro sadzimy pierwsze drzewko", body: "Spotkajmy się o 10:00 przy ul. Lema. Sadzonki dostarczy dzielnica, łopaty mamy my."}
-    questions:          # ankieta: za wypełnienie mieszkaniec dostaje nowego Spryciaka (tu: drzewko)
-      - {key: support, label: "Czy chcesz więcej drzew przy ulicy Lema?", type: boolean}
-      - key: priorities
-        label: "Co jest dla Ciebie najważniejsze?"
-        type: multiselect
-        required: false
-        options: [{value: shade, label: Cień}, {value: noise, label: Mniej hałasu}, {value: air, label: Czystsze powietrze}]
-      - {key: volunteer, label: "Ile godzin możesz pomóc przy sadzeniu?", type: number, required: false, min: 0, max: 40}
+- author: tester@demo.smartcity.example
+  scenario: res-parking
+  title: Brak miejsc parkingowych przy ul. Dąbskiej
+  description: Nawet w dni, gdy nie ma wydarzeń na Tauron Arenie, nie da się tu zaparkować. Mieszkańcy krążą po kilkanaście minut.
+  lat: 50.06744
+  lng: 19.98817
+  character: small_car
+  votes: [87, 9]
+  exp: 240
+  days_ago: 12
+  comments:
+  - author: agnieszka@demo.smartcity.example
+    text: Mieszkam obok, potwierdzam. Po 17 to loteria.
+    replies:
+    - {author: tester@demo.smartcity.example, text: Dzięki! Dlatego to zgłosiłam.}
+- author: bartek@demo.smartcity.example
+  scenario: res-noise
+  title: Hałas podczas wydarzeń w Tauron Arenie
+  description: Koncerty i mecze słychać do późnej nocy, a po wydarzeniach przez godzinę trąbią samochody.
+  lat: 50.0679
+  lng: 19.99125
+  character: billboard
+  votes: [34, 58]
+  exp: 70
+  days_ago: 9
+  comments:
+  - {author: janusz@demo.smartcity.example, text: Mieszkam tu dłużej niż Arena. Da się wytrzymać.}
+  - {author: magda@demo.smartcity.example, text: 'Raz w miesiącu można, ale nie co weekend.'}
+  votes_by: {tester@demo.smartcity.example: against}
+- author: piotr@demo.smartcity.example
+  scenario: res-transport
+  title: Remonty na skrzyżowaniu Mogilska/Lema bez końca
+  description: Remonty ciągu ulic trwają i trwają. Objazdy zmieniają się co tydzień, a nikt nie mówi, kiedy to się skończy.
+  lat: 50.0694
+  lng: 19.984
+  character: cone
+  votes: [63, 4]
+  exp: 330
+  days_ago: 40
+  status: in_progress
+  status_note: Zarząd Dróg wskazał nowy harmonogram prac.
+  votes_by: {tester@demo.smartcity.example: for}
+- author: ewa@demo.smartcity.example
+  scenario: res-air
+  title: Zapach z oczyszczalni ścieków w Płaszowie
+  description: Przy sprzyjającym wietrze smród dociera na pół Podgórza. Nie da się otworzyć okna.
+  lat: 50.03263
+  lng: 20.02205
+  character: air_conditioner
+  votes: [121, 15]
+  exp: 510
+  days_ago: 21
+  comments:
+  - author: weronika@demo.smartcity.example
+    text: W lato jest nie do zniesienia. Dzieci nie wychodzą na podwórko.
+    replies:
+    - {author: ewa@demo.smartcity.example, text: 'U nas to samo, zgłosiłam też do miasta.'}
+- author: oskar@demo.smartcity.example
+  scenario: res-air
+  title: Dymiące kopciuchy w sąsiedniej gminie
+  description: Wieczorami dym z domowych pieców w Wieliczce idzie na Kraków, a rano mamy smog. Granica miasta nie zatrzymuje powietrza.
+  lat: 49.98238
+  lng: 20.06021
+  character: van
+  votes: [58, 21]
+  exp: 110
+  days_ago: 15
+- author: natalia@demo.smartcity.example
+  scenario: res-air
+  title: 'Skawina: smród z kopciuchów i smog w Krakowie'
+  description: Zimą smog z kominów w Skawinie wpada do Krakowa. Aplikacja pokazuje, że alarmy smogowe nie mają związku z granicą miasta.
+  lat: 49.97475
+  lng: 19.82657
+  character: fire_hydrant
+  votes: [74, 9]
+  exp: 360
+  days_ago: 30
+  votes_by: {tester@demo.smartcity.example: for}
+- author: filip@demo.smartcity.example
+  scenario: res-air
+  title: Zanieczyszczenia przy Alei Krasińskiego
+  description: 'Duży ruch samochodowy na Alei Krasińskiego: spaliny, hałas i szarość. Przejście przez ulicę to wyzwanie dla płuc.'
+  lat: 50.059
+  lng: 19.9257
+  character: suv
+  votes: [95, 11]
+  exp: 410
+  days_ago: 26
+  votes_by: {tester@demo.smartcity.example: for}
+- author: iga@demo.smartcity.example
+  scenario: res-heat
+  title: 'Rondo Mogilskie: za mało zieleni, upał jak na patelni'
+  description: W pełnym słońcu temperatura przy rondzie jest nie do wytrzymania. Brakuje drzew i cienia, a przystanek nie ma wiaty.
+  lat: 50.06553
+  lng: 19.96016
+  character: flower_pot
+  votes: [142, 7]
+  exp: 180
+  days_ago: 18
+  comments:
+  - {author: kasia@demo.smartcity.example, text: Tak! Czekam tu na tramwaj w upale i kręci mi się w głowie.}
+- author: magda@demo.smartcity.example
+  scenario: res-heat
+  title: 'Rynek Główny: brak cienia i upał'
+  description: Latem na płycie Rynku nie ma gdzie się schować przed słońcem. Kilka drzew w donicach by pomogło.
+  lat: 50.0615
+  lng: 19.93711
+  character: potted_tree
+  votes: [76, 12]
+  exp: 290
+  days_ago: 35
+  votes_by: {tester@demo.smartcity.example: for}
+- author: janusz@demo.smartcity.example
+  scenario: res-noise
+  title: 'Ul. Szewska: nocni turyści i hałas'
+  description: Do późna głośne grupy turystów pod oknami, a rano znowu słychać hałas.
+  lat: 50.06205
+  lng: 19.93621
+  character: sports_car
+  votes: [64, 17]
+  exp: 40
+  days_ago: 7
+- author: halina@demo.smartcity.example
+  scenario: res-bin
+  title: 'Ul. Floriańska: śmieci na ulicy'
+  description: Po nocy na ulicy leżą butelki i opakowania. Kosze są pełne już o 22.
+  lat: 50.06342
+  lng: 19.94027
+  character: trash_can
+  votes: [51, 6]
+  exp: 620
+  days_ago: 14
+  comments:
+  - {author: michal@demo.smartcity.example, text: 'Tak, rano ekipa sprząta, ale w nocy jest tragedia.'}
+- author: weronika@demo.smartcity.example
+  scenario: res-noise
+  title: 'Ul. Grodzka: hałas po nocy'
+  description: Imprezowicze wracają w środku nocy i krzyczą pod oknami. Nie ma kogo wezwać.
+  lat: 50.05653
+  lng: 19.93818
+  character: bicycle
+  votes: [39, 22]
+  exp: 470
+  days_ago: 11
+- author: szymon@demo.smartcity.example
+  scenario: res-bin
+  title: 'Ul. Sławkowska: śmieci po nocnych imprezach'
+  description: Rano chodnik zasłany kubkami i puszkami, a kontenery stoją pełne od poprzedniego dnia.
+  lat: 50.06392
+  lng: 19.93775
+  character: dumpster
+  votes: [47, 8]
+  exp: 90
+  days_ago: 6
+- author: agnieszka@demo.smartcity.example
+  scenario: res-parking
+  title: 'Ul. Długa: brak miejsc parkingowych dla mieszkańców'
+  description: Strefa płatnego parkowania jest, a miejsc dla mieszkańców brak. Samochody turystów blokują zatoki.
+  lat: 50.07028
+  lng: 19.93689
+  character: car
+  votes: [68, 14]
+  exp: 350
+  days_ago: 22
+- author: tomek@demo.smartcity.example
+  scenario: res-other
+  title: 'Zakrzówek: kolejki na kąpielisko w upał'
+  description: W upalne dni kolejka do pomostów ciągnie się przez pół ulicy Wyłom. Mieszkańcy okolicy nie mają żadnego priorytetu.
+  lat: 50.03856
+  lng: 19.91599
+  character: bench
+  votes: [118, 8]
+  exp: 30
+  days_ago: 10
+  comments:
+  - author: ola@demo.smartcity.example
+    text: Stałam tu 90 minut. Nigdy więcej w sobotę.
+    replies:
+    - {author: tomek@demo.smartcity.example, text: Dlatego proponuję bilety dla mieszkańców.}
+  votes_by: {tester@demo.smartcity.example: for}
+- author: kuba@demo.smartcity.example
+  scenario: res-other
+  title: 'Dawny hotel Forum i bulwar: chaos urbanistyczny'
+  description: Budy, tymczasowe zabudowania i brzydota przy samym bulwarze. Takie miejsce zasługuje na plan, a nie na szyldy.
+  lat: 50.04503
+  lng: 19.93616
+  character: floor_hole
+  votes: [92, 18]
+  exp: 160
+  days_ago: 45
+  details: {}
+  votes_by: {tester@demo.smartcity.example: for}
+- author: marta@demo.smartcity.example
+  scenario: place-chill
+  title: Kładka Kazimierz–Ludwinów
+  description: 'Ładna architektura: lekka konstrukcja nad Wisłą i widok na bulwary. Warto przejść wieczorem.'
+  lat: 50.04656
+  lng: 19.9475
+  character: tree
+  votes: [156, 3]
+  details:
+    rating: '5'
+    cost: free
+    vibes: [photo, date, calm]
+    bestTime: [evening]
+    accessible: true
+    spotType: view
+    shade: false
+    dogsOk: true
+    tips: Zachód słońca widać stąd najlepiej.
+  days_ago: 50
+- author: urzad@demo.smartcity.example
+  scenario: org-consultation
+  title: 'Konsultacje: Płaszów, przemysł czy dzielnica 15-minutowa?'
+  description: 'Miasto pyta, co zrobić z dzielnicą przemysłową w Płaszowie: zostawić ją taką, jaka jest, czy zamienić w dzielnicę mieszkaniową, w której wszystko jest w 15 minut pieszo.'
+  lat: 50.03998
+  lng: 19.99262
+  votes: [212, 168]
+  days_ago: 20
+  details: {topic: Przyszłość terenów przemysłowych w Płaszowie, decisionBy: Rada Miasta Krakowa, consultationEnd: '2026-12-15', contactPerson: Wydział Partycypacji Społecznej, contactEmail: konsultacje@urzad-demo.example, rationale: 'Zależy nam na decyzji opartej na głosie mieszkańców, a nie tylko na planach inwestorów.'}
+  custom_fields:
+  - {label: Obszar, value: ok. 120 ha}
+  - {label: Planowany horyzont, value: '2035'}
+  updates:
+  - {title: Ruszyły konsultacje, body: Do 15 grudnia zbieramy opinie mieszkańców. Wyniki ankiet trafią do Rady Miasta.}
+  questions:
+  - key: vision
+    label: Jaką dzielnicą ma być Płaszów?
+    type: choice
+    options:
+    - {value: industrial, label: Zostawić przemysł}
+    - {value: residential, label: Dzielnica mieszkaniowa 15-minutowa}
+    - {value: mixed, label: 'Mieszanka: mieszkania i praca'}
+  - {key: live_nearby, label: 'Czy mieszkasz w okolicy Płaszowa?', type: boolean}
+  - {key: remarks, label: Uwagi do planu, type: textarea, required: false}
+  votes_by: {tester@demo.smartcity.example: for}
+- author: urzad@demo.smartcity.example
+  scenario: org-consultation
+  title: 'Konsultacje: tramwaj do Mistrzejowic czy zostawić drzewa?'
+  description: Linia tramwajowa do Mistrzejowic wymaga wycinki drzew wzdłuż trasy. Pytamy, czy zbudować tramwaj, czy zostawić drzewa i poprawić autobusy.
+  lat: 50.09743
+  lng: 20.0096
+  votes: [340, 295]
+  days_ago: 8
+  details: {topic: Trasa tramwaju do Mistrzejowic i wycinka drzew, decisionBy: Zarząd Transportu Publicznego, consultationEnd: '2026-11-30', estimatedCost: 480000000, contactPerson: Wydział Partycypacji Społecznej, contactEmail: konsultacje@urzad-demo.example, rationale: 'Tramwaj skróci dojazd do centrum, ale kosztem zieleni. Chcemy poznać Wasze priorytety.'}
+  custom_fields:
+  - {label: Drzewa do wycinki, value: ok. 900}
+  - {label: Czas przejazdu do centrum, value: 22 min zamiast 40}
+  questions:
+  - key: choice
+    label: Co wybierasz?
+    type: choice
+    options:
+    - {value: tram, label: Zbudować tramwaj}
+    - {value: trees, label: Zostawić drzewa}
+    - {value: compromise, label: 'Tramwaj, ale z nasadzeniami zastępczymi'}
+  - {key: daily_commute, label: 'Jak często dojeżdżasz do centrum?', type: rating, min: 1, max: 5}
+  votes_by: {tester@demo.smartcity.example: for}
+- author: urzad@demo.smartcity.example
+  scenario: org-consultation
+  title: Zmiana Planu Adaptacji Krakowa do zmian klimatu do 2030
+  description: 'Konsultacje zmiany Planu Adaptacji Miasta Krakowa do zmian klimatu do 2030 roku: upały, ulewy, zieleń i woda w mieście.'
+  lat: 50.05889
+  lng: 19.93673
+  votes: [1, 0]
+  days_ago: 25
+  status: resolved
+  status_note: Konsultacje zakończone.
+  details: {topic: Plan Adaptacji Krakowa do zmian klimatu do 2030, decisionBy: Prezydent Miasta Krakowa, contactPerson: Wydział Partycypacji Społecznej, contactEmail: konsultacje@urzad-demo.example, rationale: Plan ma przygotować miasto na upały i nawalne deszcze.}
+  custom_fields:
+  - {label: Uczestnicy konsultacji, value: 1 mieszkaniec}
+  - {label: Pisma, value: '2'}
+  - {label: Zgłoszone uwagi, value: '0'}
+  updates:
+  - {title: Konsultacje zakończone, body: 'Na spotkanie przyszedł jeden mieszkaniec, który nie zgłosił uwag. Wpłynęły dwa pisma.'}
+  questions:
+  - key: priority
+    label: Co powinno być w planie najpilniejsze?
+    type: choice
+    options:
+    - {value: heat, label: Ochrona przed upałami}
+    - {value: rain, label: Ochrona przed ulewami}
+    - {value: green, label: Więcej zieleni}
+- author: bartek@demo.smartcity.example
+  scenario: idea-other
+  title: Ławki i kosze wzdłuż chodnika na ul. Bronowickiej
+  description: Chodnik jest długi, a nie ma na nim gdzie usiąść ani wyrzucić śmieci. Przydałyby się ławki i kosze co kilkaset metrów.
+  lat: 50.07835
+  lng: 19.89944
+  character: bench
+  votes: [44, 13]
+  exp: 200
+  days_ago: 19
+- author: ola@demo.smartcity.example
+  scenario: idea-other
+  title: Ławki i kosze na ul. Kalwaryjskiej
+  description: Seniorzy wracający z zakupów nie mają gdzie odpocząć. Prosimy o ławki i kosze wzdłuż chodnika.
+  lat: 50.04091
+  lng: 19.94278
+  character: bench
+  votes: [29, 31]
+  exp: 60
+  days_ago: 17
+- author: natalia@demo.smartcity.example
+  scenario: res-bin
+  title: Brak koszy na ul. Dobrego Pasterza
+  description: Wzdłuż długiego chodnika nie ma ani jednego kosza, więc śmieci lądują w trawie.
+  lat: 50.0898
+  lng: 19.98596
+  character: trash_can
+  votes: [6, 1]
+  exp: 140
+  days_ago: 5
+- author: weronika@demo.smartcity.example
+  scenario: idea-other
+  title: Ławki i kosze w alei Róż
+  description: Aleja Róż to spacerowa oś osiedla, a nie ma tu miejsca, żeby przysiąść. Proponuję ławki i kosze.
+  lat: 50.08007
+  lng: 20.03992
+  character: bench
+  votes: [52, 6]
+  exp: 520
+  days_ago: 29
+- author: kasia@demo.smartcity.example
+  scenario: idea-bus-stop
+  title: Przystanek przy Czerwonych Makach
+  description: Z osiedla do przystanku jest daleko, a ludzie stoją na poboczu. Potrzebny przystanek z wiatą.
+  lat: 50.01636
+  lng: 19.88925
+  character: small_car
+  votes: [67, 5]
+  exp: 100
+  days_ago: 33
+- author: janusz@demo.smartcity.example
+  scenario: idea-bus-stop
+  title: Nowy przystanek na ul. Zakopiańskiej
+  description: Trasa przejeżdża tu bez zatrzymania, a okolica jest gęsto zamieszkana. Przystanek skróciłby drogę do domu.
+  lat: 50.00171
+  lng: 19.92216
+  character: van
+  votes: [31, 18]
+  exp: 20
+  days_ago: 13
+- author: filip@demo.smartcity.example
+  scenario: idea-bus-stop
+  title: Przystanek przy ul. Chełmońskiego
+  description: Brakuje przystanku na tym odcinku, a najbliższy jest ponad kilometr dalej.
+  lat: 50.09703
+  lng: 19.89436
+  character: suv
+  votes: [55, 7]
+  exp: 270
+  days_ago: 24
+- author: michal@demo.smartcity.example
+  scenario: idea-shop
+  title: Zieleniak na osiedlu Złotej Jesieni
+  description: W centrum warzywniaki zamieniły się w butiki dla turystów, a na osiedlu nie ma gdzie kupić świeżych warzyw. Proponuję zieleniak.
+  lat: 50.0911
+  lng: 20.02566
+  character: potted_tree
+  votes: [12, 47]
+  exp: 80
+  days_ago: 16
+  comments:
+  - author: halina@demo.smartcity.example
+    text: Warzywniak w bloku by się przydał, ale czynsz zabije każdego.
+    replies:
+    - {author: michal@demo.smartcity.example, text: Właśnie dlatego proszę miasto o lokal.}
+  votes_by: {tester@demo.smartcity.example: against}
+- author: piotr@demo.smartcity.example
+  scenario: res-transport
+  title: Auta parkują na chodniku przy ul. Karmelickiej
+  description: Samochody stoją na całej szerokości chodnika, z wózkiem trzeba schodzić na jezdnię.
+  lat: 50.0649
+  lng: 19.93148
+  character: suv
+  votes: [38, 5]
+  exp: 330
+  days_ago: 8
+- author: agnieszka@demo.smartcity.example
+  scenario: res-transport
+  title: Parkowanie na chodniku przy ul. Wielickiej
+  description: Piesi wchodzą na jezdnię, bo chodnik zajmują auta. Nikt nie reaguje.
+  lat: 50.04128
+  lng: 19.96209
+  character: small_car
+  votes: [22, 9]
+  exp: 400
+  days_ago: 14
+- author: oskar@demo.smartcity.example
+  scenario: res-transport
+  title: Samochody na chodniku przy ul. Bieżanowskiej
+  description: Wąski chodnik i auta pod każdym budynkiem. Dla wózków i osób z niepełnosprawnościami nie ma przejścia.
+  lat: 50.02113
+  lng: 20.01685
+  character: van
+  votes: [47, 3]
+  exp: 50
+  days_ago: 27
+- author: tomek@demo.smartcity.example
+  scenario: res-transport
+  title: Chodnik zastawiony autami na ul. Opolskiej
+  description: Kierowcy parkują na chodniku jak na parkingu. Straż miejska zjawia się tylko po interwencji.
+  lat: 50.09121
+  lng: 19.92869
+  character: sports_car
+  votes: [7, 9]
+  exp: 30
+  days_ago: 4
+- author: iga@demo.smartcity.example
+  scenario: res-lamp
+  title: Ciemno w nocy na ul. Tynieckiej
+  description: Na długim odcinku nie ma ani jednej latarni. Wracanie po zmroku jest niebezpieczne.
+  lat: 50.02947
+  lng: 19.85941
+  character: billboard
+  votes: [73, 4]
+  exp: 130
+  days_ago: 36
+  status: in_progress
+  status_note: Zlecono montaż lamp.
+- author: magda@demo.smartcity.example
+  scenario: res-lamp
+  title: Brak oświetlenia na ul. Radzikowskiego
+  description: Latarnie nie świecą od tygodni. Ciemno przy przystanku.
+  lat: 50.08985
+  lng: 19.88362
+  character: fire_hydrant
+  votes: [41, 2]
+  exp: 450
+  days_ago: 9
+- author: szymon@demo.smartcity.example
+  scenario: res-lamp
+  title: 'Ul. Igołomska: ciemno po zmroku'
+  description: Przy drodze rowerowej i chodniku nie ma latarni. Rowerzyści nie widzą pieszych.
+  lat: 50.08012
+  lng: 20.18228
+  character: air_conditioner
+  votes: [26, 11]
+  exp: 70
+  days_ago: 31
+- author: ewa@demo.smartcity.example
+  scenario: res-lamp
+  title: Ciemna ul. Księcia Józefa
+  description: Wieczorem nie widać chodnika, a drzewa dodatkowo zasłaniają światło.
+  lat: 50.0491
+  lng: 19.90508
+  character: cone
+  votes: [33, 7]
+  exp: 550
+  days_ago: 23
+- author: halina@demo.smartcity.example
+  scenario: res-pothole
+  title: Dziury w chodniku na ul. Wadowickiej
+  description: Kostka zapadnięta w kilku miejscach, łatwo skręcić kostkę. Zgłaszam od miesięcy.
+  lat: 50.03278
+  lng: 19.93852
+  character: floor_hole
+  votes: [58, 4]
+  exp: 730
+  days_ago: 60
+  status: resolved
+  status_note: Chodnik naprawiony.
+- author: kuba@demo.smartcity.example
+  scenario: res-pothole
+  title: Wyrwy w chodniku na ul. Sławka
+  description: Dziury z wodą po deszczu, a obok przystanek.
+  lat: 50.02322
+  lng: 19.96037
+  character: cone
+  votes: [36, 5]
+  exp: 210
+  days_ago: 18
+- author: natalia@demo.smartcity.example
+  scenario: res-pothole
+  title: Dziura w chodniku przy al. Bora-Komorowskiego
+  description: Wyrwa przy samym przejściu dla pieszych, rowerzyści ją omijają po jezdni.
+  lat: 50.08739
+  lng: 19.99711
+  character: floor_hole
+  votes: [19, 12]
+  exp: 170
+  days_ago: 10
+- author: bartek@demo.smartcity.example
+  scenario: res-pothole
+  title: Nierówny chodnik na ul. Nowohuckiej
+  description: Dziury i wystające płyty. Wózek ugrzązł dziś rano.
+  lat: 50.06416
+  lng: 20.00381
+  character: bicycle
+  votes: [3, 0]
+  exp: 190
+  days_ago: 3
+- author: weronika@demo.smartcity.example
+  scenario: idea-bike
+  title: Czy chcemy ścieżkę rowerową wzdłuż al. Pokoju?
+  description: Jazda rowerem po tej alei to wyzwanie. Proponuję ścieżkę rowerową, ale kosztem jednego pasa dla aut. Co o tym myślicie?
+  lat: 50.05833
+  lng: 19.96108
+  character: bicycle
+  votes: [83, 61]
+  exp: 300
+  days_ago: 21
+- author: filip@demo.smartcity.example
+  scenario: idea-bike
+  title: Ścieżka rowerowa na ul. Conrada? Co o tym myślicie?
+  description: Droga rowerowa skróciłaby dojazd do pracy, ale wymaga zwężenia jezdni.
+  lat: 50.08724
+  lng: 19.90212
+  character: cone
+  votes: [21, 34]
+  exp: 120
+  days_ago: 12

@@ -57,9 +57,54 @@ INSERT INTO scenarios_field (scenario_id, section_id, field_key, label, field_ty
   ((SELECT id FROM scenarios_scenario WHERE code = 'res-bike'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'res-bike') AND sort_order = 0), 'description', 'Opis (opcjonalnie)', 'textarea', false, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1),
   ((SELECT id FROM scenarios_scenario WHERE code = 'res-bike'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'res-bike') AND sort_order = 0), 'photos', 'Zdjęcie', 'photos', false, 'Do 3 zdjęć', NULL, NULL, NULL, NULL, NULL, NULL, 2);
 
+-- Hałas
+INSERT INTO scenarios_scenario (code, audience, category, pokestop_type, label, description, emoji, default_character_id, default_title, sort_order) VALUES
+  ('res-noise', 'resident', 'problem', 'report', 'Hałas', 'Głośne wydarzenia, nocne imprezy, ruch uliczny.', '🔊', (SELECT id FROM collection_character WHERE code = 'sports_car'), 'Uciążliwy hałas', 6);
+INSERT INTO scenarios_section (scenario_id, title, sort_order) VALUES ((SELECT id FROM scenarios_scenario WHERE code = 'res-noise'), 'Zgłoszenie', 0);
+INSERT INTO scenarios_field (scenario_id, section_id, field_key, label, field_type, required, hint, placeholder, unit, min_value, max_value, show_if_key, show_if_value, sort_order) VALUES
+  ((SELECT id FROM scenarios_scenario WHERE code = 'res-noise'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'res-noise') AND sort_order = 0), 'title', 'Tytuł', 'text', true, NULL, 'Uciążliwy hałas', NULL, NULL, NULL, NULL, NULL, 0),
+  ((SELECT id FROM scenarios_scenario WHERE code = 'res-noise'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'res-noise') AND sort_order = 0), 'description', 'Opis (opcjonalnie)', 'textarea', false, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1),
+  ((SELECT id FROM scenarios_scenario WHERE code = 'res-noise'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'res-noise') AND sort_order = 0), 'photos', 'Zdjęcie', 'photos', false, 'Do 3 zdjęć', NULL, NULL, NULL, NULL, NULL, NULL, 2);
+
+-- Parkowanie
+INSERT INTO scenarios_scenario (code, audience, category, pokestop_type, label, description, emoji, default_character_id, default_title, sort_order) VALUES
+  ('res-parking', 'resident', 'problem', 'report', 'Parkowanie', 'Brak miejsc postojowych, auta na chodniku lub trawniku.', '🅿️', (SELECT id FROM collection_character WHERE code = 'car'), 'Problem z parkowaniem', 7);
+INSERT INTO scenarios_section (scenario_id, title, sort_order) VALUES ((SELECT id FROM scenarios_scenario WHERE code = 'res-parking'), 'Zgłoszenie', 0);
+INSERT INTO scenarios_field (scenario_id, section_id, field_key, label, field_type, required, hint, placeholder, unit, min_value, max_value, show_if_key, show_if_value, sort_order) VALUES
+  ((SELECT id FROM scenarios_scenario WHERE code = 'res-parking'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'res-parking') AND sort_order = 0), 'title', 'Tytuł', 'text', true, NULL, 'Problem z parkowaniem', NULL, NULL, NULL, NULL, NULL, 0),
+  ((SELECT id FROM scenarios_scenario WHERE code = 'res-parking'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'res-parking') AND sort_order = 0), 'description', 'Opis (opcjonalnie)', 'textarea', false, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1),
+  ((SELECT id FROM scenarios_scenario WHERE code = 'res-parking'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'res-parking') AND sort_order = 0), 'photos', 'Zdjęcie', 'photos', false, 'Do 3 zdjęć', NULL, NULL, NULL, NULL, NULL, NULL, 2);
+
+-- Smród i smog
+INSERT INTO scenarios_scenario (code, audience, category, pokestop_type, label, description, emoji, default_character_id, default_title, sort_order) VALUES
+  ('res-air', 'resident', 'problem', 'report', 'Smród i smog', 'Zapach, dym z kominów, zanieczyszczone powietrze.', '🌫️', (SELECT id FROM collection_character WHERE code = 'air_conditioner'), 'Smród lub smog', 8);
+INSERT INTO scenarios_section (scenario_id, title, sort_order) VALUES ((SELECT id FROM scenarios_scenario WHERE code = 'res-air'), 'Zgłoszenie', 0);
+INSERT INTO scenarios_field (scenario_id, section_id, field_key, label, field_type, required, hint, placeholder, unit, min_value, max_value, show_if_key, show_if_value, sort_order) VALUES
+  ((SELECT id FROM scenarios_scenario WHERE code = 'res-air'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'res-air') AND sort_order = 0), 'title', 'Tytuł', 'text', true, NULL, 'Smród lub smog', NULL, NULL, NULL, NULL, NULL, 0),
+  ((SELECT id FROM scenarios_scenario WHERE code = 'res-air'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'res-air') AND sort_order = 0), 'description', 'Opis (opcjonalnie)', 'textarea', false, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1),
+  ((SELECT id FROM scenarios_scenario WHERE code = 'res-air'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'res-air') AND sort_order = 0), 'photos', 'Zdjęcie', 'photos', false, 'Do 3 zdjęć', NULL, NULL, NULL, NULL, NULL, NULL, 2);
+
+-- Upał i brak cienia
+INSERT INTO scenarios_scenario (code, audience, category, pokestop_type, label, description, emoji, default_character_id, default_title, sort_order) VALUES
+  ('res-heat', 'resident', 'problem', 'report', 'Upał i brak cienia', 'Za mało zieleni i cienia, nagrzany beton.', '☀️', (SELECT id FROM collection_character WHERE code = 'potted_tree'), 'Brak cienia i zieleni', 9);
+INSERT INTO scenarios_section (scenario_id, title, sort_order) VALUES ((SELECT id FROM scenarios_scenario WHERE code = 'res-heat'), 'Zgłoszenie', 0);
+INSERT INTO scenarios_field (scenario_id, section_id, field_key, label, field_type, required, hint, placeholder, unit, min_value, max_value, show_if_key, show_if_value, sort_order) VALUES
+  ((SELECT id FROM scenarios_scenario WHERE code = 'res-heat'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'res-heat') AND sort_order = 0), 'title', 'Tytuł', 'text', true, NULL, 'Brak cienia i zieleni', NULL, NULL, NULL, NULL, NULL, 0),
+  ((SELECT id FROM scenarios_scenario WHERE code = 'res-heat'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'res-heat') AND sort_order = 0), 'description', 'Opis (opcjonalnie)', 'textarea', false, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1),
+  ((SELECT id FROM scenarios_scenario WHERE code = 'res-heat'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'res-heat') AND sort_order = 0), 'photos', 'Zdjęcie', 'photos', false, 'Do 3 zdjęć', NULL, NULL, NULL, NULL, NULL, NULL, 2);
+
+-- Inny problem
+INSERT INTO scenarios_scenario (code, audience, category, pokestop_type, label, description, emoji, default_character_id, default_title, sort_order) VALUES
+  ('res-other', 'resident', 'problem', 'report', 'Inny problem', 'Coś, co psuje to miejsce, a nie pasuje do pozostałych kategorii.', '📌', (SELECT id FROM collection_character WHERE code = 'cone'), 'Inny problem w mieście', 10);
+INSERT INTO scenarios_section (scenario_id, title, sort_order) VALUES ((SELECT id FROM scenarios_scenario WHERE code = 'res-other'), 'Zgłoszenie', 0);
+INSERT INTO scenarios_field (scenario_id, section_id, field_key, label, field_type, required, hint, placeholder, unit, min_value, max_value, show_if_key, show_if_value, sort_order) VALUES
+  ((SELECT id FROM scenarios_scenario WHERE code = 'res-other'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'res-other') AND sort_order = 0), 'title', 'Tytuł', 'text', true, NULL, 'Inny problem w mieście', NULL, NULL, NULL, NULL, NULL, 0),
+  ((SELECT id FROM scenarios_scenario WHERE code = 'res-other'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'res-other') AND sort_order = 0), 'description', 'Opis (opcjonalnie)', 'textarea', false, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 1),
+  ((SELECT id FROM scenarios_scenario WHERE code = 'res-other'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'res-other') AND sort_order = 0), 'photos', 'Zdjęcie', 'photos', false, 'Do 3 zdjęć', NULL, NULL, NULL, NULL, NULL, NULL, 2);
+
 -- Przystanek autobusowy
 INSERT INTO scenarios_scenario (code, audience, category, pokestop_type, label, description, emoji, default_character_id, default_title, sort_order) VALUES
-  ('idea-bus-stop', 'resident', 'initiative', 'idea', 'Przystanek autobusowy', 'Tu przydałby się nowy przystanek.', '🚏', (SELECT id FROM collection_character WHERE code = 'small_car'), 'Nowy przystanek', 6);
+  ('idea-bus-stop', 'resident', 'initiative', 'idea', 'Przystanek autobusowy', 'Tu przydałby się nowy przystanek.', '🚏', (SELECT id FROM collection_character WHERE code = 'small_car'), 'Nowy przystanek', 11);
 INSERT INTO scenarios_section (scenario_id, title, sort_order) VALUES ((SELECT id FROM scenarios_scenario WHERE code = 'idea-bus-stop'), 'Zgłoszenie', 0);
 INSERT INTO scenarios_field (scenario_id, section_id, field_key, label, field_type, required, hint, placeholder, unit, min_value, max_value, show_if_key, show_if_value, sort_order) VALUES
   ((SELECT id FROM scenarios_scenario WHERE code = 'idea-bus-stop'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'idea-bus-stop') AND sort_order = 0), 'title', 'Tytuł', 'text', true, NULL, 'Nowy przystanek', NULL, NULL, NULL, NULL, NULL, 0),
@@ -77,7 +122,7 @@ INSERT INTO scenarios_field_option (field_id, value, label, sort_order) VALUES
 
 -- Sklep lub usługa na osiedlu
 INSERT INTO scenarios_scenario (code, audience, category, pokestop_type, label, description, emoji, default_character_id, default_title, sort_order) VALUES
-  ('idea-shop', 'resident', 'initiative', 'idea', 'Sklep lub usługa na osiedlu', 'Warzywniak, piekarnia, apteka, punkt usługowy.', '🥕', (SELECT id FROM collection_character WHERE code = 'van'), 'Sklep warzywny na osiedlu', 7);
+  ('idea-shop', 'resident', 'initiative', 'idea', 'Sklep lub usługa na osiedlu', 'Warzywniak, piekarnia, apteka, punkt usługowy.', '🥕', (SELECT id FROM collection_character WHERE code = 'van'), 'Sklep warzywny na osiedlu', 12);
 INSERT INTO scenarios_section (scenario_id, title, sort_order) VALUES ((SELECT id FROM scenarios_scenario WHERE code = 'idea-shop'), 'Zgłoszenie', 0);
 INSERT INTO scenarios_field (scenario_id, section_id, field_key, label, field_type, required, hint, placeholder, unit, min_value, max_value, show_if_key, show_if_value, sort_order) VALUES
   ((SELECT id FROM scenarios_scenario WHERE code = 'idea-shop'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'idea-shop') AND sort_order = 0), 'title', 'Tytuł', 'text', true, NULL, 'Sklep warzywny na osiedlu', NULL, NULL, NULL, NULL, NULL, 0),
@@ -103,7 +148,7 @@ INSERT INTO scenarios_field_option (field_id, value, label, sort_order) VALUES
 
 -- Plac zabaw lub boisko
 INSERT INTO scenarios_scenario (code, audience, category, pokestop_type, label, description, emoji, default_character_id, default_title, sort_order) VALUES
-  ('idea-playground', 'resident', 'initiative', 'idea', 'Plac zabaw lub boisko', 'Miejsce do zabawy i sportu.', '🛝', (SELECT id FROM collection_character WHERE code = 'bench'), 'Nowy plac zabaw', 8);
+  ('idea-playground', 'resident', 'initiative', 'idea', 'Plac zabaw lub boisko', 'Miejsce do zabawy i sportu.', '🛝', (SELECT id FROM collection_character WHERE code = 'bench'), 'Nowy plac zabaw', 13);
 INSERT INTO scenarios_section (scenario_id, title, sort_order) VALUES ((SELECT id FROM scenarios_scenario WHERE code = 'idea-playground'), 'Zgłoszenie', 0);
 INSERT INTO scenarios_field (scenario_id, section_id, field_key, label, field_type, required, hint, placeholder, unit, min_value, max_value, show_if_key, show_if_value, sort_order) VALUES
   ((SELECT id FROM scenarios_scenario WHERE code = 'idea-playground'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'idea-playground') AND sort_order = 0), 'title', 'Tytuł', 'text', true, NULL, 'Nowy plac zabaw', NULL, NULL, NULL, NULL, NULL, 0),
@@ -121,7 +166,7 @@ INSERT INTO scenarios_field_option (field_id, value, label, sort_order) VALUES
 
 -- Zieleń, drzewa, skwer
 INSERT INTO scenarios_scenario (code, audience, category, pokestop_type, label, description, emoji, default_character_id, default_title, sort_order) VALUES
-  ('idea-greenery', 'resident', 'initiative', 'idea', 'Zieleń, drzewa, skwer', 'Tu mogłoby być zielono.', '🌿', (SELECT id FROM collection_character WHERE code = 'potted_tree'), 'Więcej zieleni', 9);
+  ('idea-greenery', 'resident', 'initiative', 'idea', 'Zieleń, drzewa, skwer', 'Tu mogłoby być zielono.', '🌿', (SELECT id FROM collection_character WHERE code = 'potted_tree'), 'Więcej zieleni', 14);
 INSERT INTO scenarios_section (scenario_id, title, sort_order) VALUES ((SELECT id FROM scenarios_scenario WHERE code = 'idea-greenery'), 'Zgłoszenie', 0);
 INSERT INTO scenarios_field (scenario_id, section_id, field_key, label, field_type, required, hint, placeholder, unit, min_value, max_value, show_if_key, show_if_value, sort_order) VALUES
   ((SELECT id FROM scenarios_scenario WHERE code = 'idea-greenery'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'idea-greenery') AND sort_order = 0), 'title', 'Tytuł', 'text', true, NULL, 'Więcej zieleni', NULL, NULL, NULL, NULL, NULL, 0),
@@ -139,7 +184,7 @@ INSERT INTO scenarios_field_option (field_id, value, label, sort_order) VALUES
 
 -- Rowery: stojaki, ścieżka
 INSERT INTO scenarios_scenario (code, audience, category, pokestop_type, label, description, emoji, default_character_id, default_title, sort_order) VALUES
-  ('idea-bike', 'resident', 'initiative', 'idea', 'Rowery: stojaki, ścieżka', 'Infrastruktura dla rowerzystów.', '🚲', (SELECT id FROM collection_character WHERE code = 'bicycle'), 'Stojaki lub ścieżka rowerowa', 10);
+  ('idea-bike', 'resident', 'initiative', 'idea', 'Rowery: stojaki, ścieżka', 'Infrastruktura dla rowerzystów.', '🚲', (SELECT id FROM collection_character WHERE code = 'bicycle'), 'Stojaki lub ścieżka rowerowa', 15);
 INSERT INTO scenarios_section (scenario_id, title, sort_order) VALUES ((SELECT id FROM scenarios_scenario WHERE code = 'idea-bike'), 'Zgłoszenie', 0);
 INSERT INTO scenarios_field (scenario_id, section_id, field_key, label, field_type, required, hint, placeholder, unit, min_value, max_value, show_if_key, show_if_value, sort_order) VALUES
   ((SELECT id FROM scenarios_scenario WHERE code = 'idea-bike'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'idea-bike') AND sort_order = 0), 'title', 'Tytuł', 'text', true, NULL, 'Stojaki lub ścieżka rowerowa', NULL, NULL, NULL, NULL, NULL, 0),
@@ -157,7 +202,7 @@ INSERT INTO scenarios_field_option (field_id, value, label, sort_order) VALUES
 
 -- Inny pomysł
 INSERT INTO scenarios_scenario (code, audience, category, pokestop_type, label, description, emoji, default_character_id, default_title, sort_order) VALUES
-  ('idea-other', 'resident', 'initiative', 'idea', 'Inny pomysł', 'Coś, czego tu brakuje.', '💭', (SELECT id FROM collection_character WHERE code = 'cone'), 'Mój pomysł dla miasta', 11);
+  ('idea-other', 'resident', 'initiative', 'idea', 'Inny pomysł', 'Coś, czego tu brakuje.', '💭', (SELECT id FROM collection_character WHERE code = 'cone'), 'Mój pomysł dla miasta', 16);
 INSERT INTO scenarios_section (scenario_id, title, sort_order) VALUES ((SELECT id FROM scenarios_scenario WHERE code = 'idea-other'), 'Zgłoszenie', 0);
 INSERT INTO scenarios_field (scenario_id, section_id, field_key, label, field_type, required, hint, placeholder, unit, min_value, max_value, show_if_key, show_if_value, sort_order) VALUES
   ((SELECT id FROM scenarios_scenario WHERE code = 'idea-other'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'idea-other') AND sort_order = 0), 'title', 'Tytuł', 'text', true, NULL, 'Mój pomysł dla miasta', NULL, NULL, NULL, NULL, NULL, 0),
@@ -175,7 +220,7 @@ INSERT INTO scenarios_field_option (field_id, value, label, sort_order) VALUES
 
 -- Jedzenie i kawa
 INSERT INTO scenarios_scenario (code, audience, category, pokestop_type, label, description, emoji, default_character_id, default_title, sort_order) VALUES
-  ('place-food', 'resident', 'place', 'place', 'Jedzenie i kawa', 'Kawiarnia, street food, bar, cukiernia.', '☕', (SELECT id FROM collection_character WHERE code = 'bench'), '', 12);
+  ('place-food', 'resident', 'place', 'place', 'Jedzenie i kawa', 'Kawiarnia, street food, bar, cukiernia.', '☕', (SELECT id FROM collection_character WHERE code = 'bench'), '', 17);
 INSERT INTO scenarios_section (scenario_id, title, sort_order) VALUES ((SELECT id FROM scenarios_scenario WHERE code = 'place-food'), 'O miejscu', 0);
 INSERT INTO scenarios_field (scenario_id, section_id, field_key, label, field_type, required, hint, placeholder, unit, min_value, max_value, show_if_key, show_if_value, sort_order) VALUES
   ((SELECT id FROM scenarios_scenario WHERE code = 'place-food'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'place-food') AND sort_order = 0), 'title', 'Nazwa miejsca', 'text', true, NULL, 'np. Kawiarnia pod żyrandolem', NULL, NULL, NULL, NULL, NULL, 0),
@@ -222,7 +267,7 @@ INSERT INTO scenarios_field_option (field_id, value, label, sort_order) VALUES
 
 -- Zieleń i chillout
 INSERT INTO scenarios_scenario (code, audience, category, pokestop_type, label, description, emoji, default_character_id, default_title, sort_order) VALUES
-  ('place-chill', 'resident', 'place', 'place', 'Zieleń i chillout', 'Park, skwer, widok, miejsce nad wodą.', '🌇', (SELECT id FROM collection_character WHERE code = 'flower_pot'), '', 13);
+  ('place-chill', 'resident', 'place', 'place', 'Zieleń i chillout', 'Park, skwer, widok, miejsce nad wodą.', '🌇', (SELECT id FROM collection_character WHERE code = 'flower_pot'), '', 18);
 INSERT INTO scenarios_section (scenario_id, title, sort_order) VALUES ((SELECT id FROM scenarios_scenario WHERE code = 'place-chill'), 'O miejscu', 0);
 INSERT INTO scenarios_field (scenario_id, section_id, field_key, label, field_type, required, hint, placeholder, unit, min_value, max_value, show_if_key, show_if_value, sort_order) VALUES
   ((SELECT id FROM scenarios_scenario WHERE code = 'place-chill'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'place-chill') AND sort_order = 0), 'title', 'Nazwa miejsca', 'text', true, NULL, 'np. Skwer z hamakami', NULL, NULL, NULL, NULL, NULL, 0),
@@ -268,7 +313,7 @@ INSERT INTO scenarios_field_option (field_id, value, label, sort_order) VALUES
 
 -- Rozrywka i sport
 INSERT INTO scenarios_scenario (code, audience, category, pokestop_type, label, description, emoji, default_character_id, default_title, sort_order) VALUES
-  ('place-fun', 'resident', 'place', 'place', 'Rozrywka i sport', 'Skatepark, boisko, arcade, tor rowerowy.', '🛹', (SELECT id FROM collection_character WHERE code = 'sports_car'), '', 14);
+  ('place-fun', 'resident', 'place', 'place', 'Rozrywka i sport', 'Skatepark, boisko, arcade, tor rowerowy.', '🛹', (SELECT id FROM collection_character WHERE code = 'sports_car'), '', 19);
 INSERT INTO scenarios_section (scenario_id, title, sort_order) VALUES ((SELECT id FROM scenarios_scenario WHERE code = 'place-fun'), 'O miejscu', 0);
 INSERT INTO scenarios_field (scenario_id, section_id, field_key, label, field_type, required, hint, placeholder, unit, min_value, max_value, show_if_key, show_if_value, sort_order) VALUES
   ((SELECT id FROM scenarios_scenario WHERE code = 'place-fun'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'place-fun') AND sort_order = 0), 'title', 'Nazwa miejsca', 'text', true, NULL, 'np. Skatepark pod mostem', NULL, NULL, NULL, NULL, NULL, 0),
@@ -314,7 +359,7 @@ INSERT INTO scenarios_field_option (field_id, value, label, sort_order) VALUES
 
 -- Kultura i hobby
 INSERT INTO scenarios_scenario (code, audience, category, pokestop_type, label, description, emoji, default_character_id, default_title, sort_order) VALUES
-  ('place-culture', 'resident', 'place', 'place', 'Kultura i hobby', 'Mural, galeria, biblioteka, księgarnia, koncerty.', '🎨', (SELECT id FROM collection_character WHERE code = 'billboard'), '', 15);
+  ('place-culture', 'resident', 'place', 'place', 'Kultura i hobby', 'Mural, galeria, biblioteka, księgarnia, koncerty.', '🎨', (SELECT id FROM collection_character WHERE code = 'billboard'), '', 20);
 INSERT INTO scenarios_section (scenario_id, title, sort_order) VALUES ((SELECT id FROM scenarios_scenario WHERE code = 'place-culture'), 'O miejscu', 0);
 INSERT INTO scenarios_field (scenario_id, section_id, field_key, label, field_type, required, hint, placeholder, unit, min_value, max_value, show_if_key, show_if_value, sort_order) VALUES
   ((SELECT id FROM scenarios_scenario WHERE code = 'place-culture'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'place-culture') AND sort_order = 0), 'title', 'Nazwa miejsca', 'text', true, NULL, 'np. Mural na starej kamienicy', NULL, NULL, NULL, NULL, NULL, 0),
@@ -360,7 +405,7 @@ INSERT INTO scenarios_field_option (field_id, value, label, sort_order) VALUES
 
 -- Nowy przystanek autobusowy
 INSERT INTO scenarios_scenario (code, audience, category, pokestop_type, label, description, emoji, default_character_id, default_title, sort_order) VALUES
-  ('org-bus-stop', 'org', NULL, 'ngo', 'Nowy przystanek autobusowy', 'Propozycja nowego przystanku wraz ze zmianami w liniach.', '🚏', (SELECT id FROM collection_character WHERE code = 'small_car'), 'Nowy przystanek autobusowy', 16);
+  ('org-bus-stop', 'org', NULL, 'ngo', 'Nowy przystanek autobusowy', 'Propozycja nowego przystanku wraz ze zmianami w liniach.', '🚏', (SELECT id FROM collection_character WHERE code = 'small_car'), 'Nowy przystanek autobusowy', 21);
 INSERT INTO scenarios_section (scenario_id, title, sort_order) VALUES ((SELECT id FROM scenarios_scenario WHERE code = 'org-bus-stop'), 'Podstawowe informacje', 0);
 INSERT INTO scenarios_field (scenario_id, section_id, field_key, label, field_type, required, hint, placeholder, unit, min_value, max_value, show_if_key, show_if_value, sort_order) VALUES
   ((SELECT id FROM scenarios_scenario WHERE code = 'org-bus-stop'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'org-bus-stop') AND sort_order = 0), 'character', 'Postać na mapie', 'character', false, 'Jak ta inicjatywa wyświetli się mieszkańcom', NULL, NULL, NULL, NULL, NULL, NULL, 0),
@@ -409,7 +454,7 @@ INSERT INTO scenarios_field (scenario_id, section_id, field_key, label, field_ty
 
 -- Nowe drzewo w danym miejscu
 INSERT INTO scenarios_scenario (code, audience, category, pokestop_type, label, description, emoji, default_character_id, default_title, sort_order) VALUES
-  ('org-tree', 'org', NULL, 'ngo', 'Nowe drzewo w danym miejscu', 'Propozycja nasadzenia drzewa lub grupy drzew.', '🌳', (SELECT id FROM collection_character WHERE code = 'tree'), 'Nowe nasadzenie drzew', 17);
+  ('org-tree', 'org', NULL, 'ngo', 'Nowe drzewo w danym miejscu', 'Propozycja nasadzenia drzewa lub grupy drzew.', '🌳', (SELECT id FROM collection_character WHERE code = 'tree'), 'Nowe nasadzenie drzew', 22);
 INSERT INTO scenarios_section (scenario_id, title, sort_order) VALUES ((SELECT id FROM scenarios_scenario WHERE code = 'org-tree'), 'Podstawowe informacje', 0);
 INSERT INTO scenarios_field (scenario_id, section_id, field_key, label, field_type, required, hint, placeholder, unit, min_value, max_value, show_if_key, show_if_value, sort_order) VALUES
   ((SELECT id FROM scenarios_scenario WHERE code = 'org-tree'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'org-tree') AND sort_order = 0), 'character', 'Postać na mapie', 'character', false, 'Jak ta inicjatywa wyświetli się mieszkańcom', NULL, NULL, NULL, NULL, NULL, NULL, 0),
@@ -458,7 +503,7 @@ INSERT INTO scenarios_field (scenario_id, section_id, field_key, label, field_ty
 
 -- Uszkodzona mała architektura
 INSERT INTO scenarios_scenario (code, audience, category, pokestop_type, label, description, emoji, default_character_id, default_title, sort_order) VALUES
-  ('org-small-architecture', 'org', NULL, 'ngo', 'Uszkodzona mała architektura', 'Zgłoszenie uszkodzonej ławki, kosza, placu zabaw, wiaty itp.', '🪑', (SELECT id FROM collection_character WHERE code = 'bench'), 'Uszkodzona mała architektura', 18);
+  ('org-small-architecture', 'org', NULL, 'ngo', 'Uszkodzona mała architektura', 'Zgłoszenie uszkodzonej ławki, kosza, placu zabaw, wiaty itp.', '🪑', (SELECT id FROM collection_character WHERE code = 'bench'), 'Uszkodzona mała architektura', 23);
 INSERT INTO scenarios_section (scenario_id, title, sort_order) VALUES ((SELECT id FROM scenarios_scenario WHERE code = 'org-small-architecture'), 'Podstawowe informacje', 0);
 INSERT INTO scenarios_field (scenario_id, section_id, field_key, label, field_type, required, hint, placeholder, unit, min_value, max_value, show_if_key, show_if_value, sort_order) VALUES
   ((SELECT id FROM scenarios_scenario WHERE code = 'org-small-architecture'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'org-small-architecture') AND sort_order = 0), 'character', 'Postać na mapie', 'character', false, 'Jak ta inicjatywa wyświetli się mieszkańcom', NULL, NULL, NULL, NULL, NULL, NULL, 0),
@@ -510,7 +555,7 @@ INSERT INTO scenarios_field (scenario_id, section_id, field_key, label, field_ty
 
 -- Szkoda na powierzchni
 INSERT INTO scenarios_scenario (code, audience, category, pokestop_type, label, description, emoji, default_character_id, default_title, sort_order) VALUES
-  ('org-surface-damage', 'org', NULL, 'ngo', 'Szkoda na powierzchni', 'Dziury, zapadnięcia i uszkodzenia nawierzchni.', '🚧', (SELECT id FROM collection_character WHERE code = 'cone'), 'Uszkodzenie nawierzchni', 19);
+  ('org-surface-damage', 'org', NULL, 'ngo', 'Szkoda na powierzchni', 'Dziury, zapadnięcia i uszkodzenia nawierzchni.', '🚧', (SELECT id FROM collection_character WHERE code = 'cone'), 'Uszkodzenie nawierzchni', 24);
 INSERT INTO scenarios_section (scenario_id, title, sort_order) VALUES ((SELECT id FROM scenarios_scenario WHERE code = 'org-surface-damage'), 'Podstawowe informacje', 0);
 INSERT INTO scenarios_field (scenario_id, section_id, field_key, label, field_type, required, hint, placeholder, unit, min_value, max_value, show_if_key, show_if_value, sort_order) VALUES
   ((SELECT id FROM scenarios_scenario WHERE code = 'org-surface-damage'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'org-surface-damage') AND sort_order = 0), 'character', 'Postać na mapie', 'character', false, 'Jak ta inicjatywa wyświetli się mieszkańcom', NULL, NULL, NULL, NULL, NULL, NULL, 0),
@@ -550,5 +595,27 @@ INSERT INTO scenarios_field (scenario_id, section_id, field_key, label, field_ty
   ((SELECT id FROM scenarios_scenario WHERE code = 'org-surface-damage'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'org-surface-damage') AND sort_order = 2), 'contactEmail', 'E-mail kontaktowy', 'text', true, NULL, 'osoba@organizacja.pl', NULL, NULL, NULL, NULL, NULL, 1),
   ((SELECT id FROM scenarios_scenario WHERE code = 'org-surface-damage'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'org-surface-damage') AND sort_order = 2), 'contactPhone', 'Telefon', 'text', false, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 2),
   ((SELECT id FROM scenarios_scenario WHERE code = 'org-surface-damage'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'org-surface-damage') AND sort_order = 2), 'rationale', 'Uzasadnienie i korzyści dla mieszkańców', 'textarea', true, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 3);
+
+-- Konsultacje społeczne
+INSERT INTO scenarios_scenario (code, audience, category, pokestop_type, label, description, emoji, default_character_id, default_title, sort_order) VALUES
+  ('org-consultation', 'org', NULL, 'consultation', 'Konsultacje społeczne', 'Pytamy mieszkańców o zdanie w sprawie planowanej zmiany. Ankieta z pytaniami dodawana jest do inicjatywy.', '🗳️', (SELECT id FROM collection_character WHERE code = 'bicycle'), 'Konsultacje społeczne', 25);
+INSERT INTO scenarios_section (scenario_id, title, sort_order) VALUES ((SELECT id FROM scenarios_scenario WHERE code = 'org-consultation'), 'Podstawowe informacje', 0);
+INSERT INTO scenarios_field (scenario_id, section_id, field_key, label, field_type, required, hint, placeholder, unit, min_value, max_value, show_if_key, show_if_value, sort_order) VALUES
+  ((SELECT id FROM scenarios_scenario WHERE code = 'org-consultation'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'org-consultation') AND sort_order = 0), 'character', 'Postać na mapie', 'character', false, 'Jak ta inicjatywa wyświetli się mieszkańcom', NULL, NULL, NULL, NULL, NULL, NULL, 0),
+  ((SELECT id FROM scenarios_scenario WHERE code = 'org-consultation'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'org-consultation') AND sort_order = 0), 'title', 'Tytuł inicjatywy', 'text', true, NULL, 'Konsultacje społeczne', NULL, NULL, NULL, NULL, NULL, 1),
+  ((SELECT id FROM scenarios_scenario WHERE code = 'org-consultation'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'org-consultation') AND sort_order = 0), 'description', 'Krótki opis dla mieszkańców', 'textarea', true, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 2),
+  ((SELECT id FROM scenarios_scenario WHERE code = 'org-consultation'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'org-consultation') AND sort_order = 0), 'photos', 'Zdjęcia, wizualizacje', 'photos', false, 'Do 3 zdjęć', NULL, NULL, NULL, NULL, NULL, NULL, 3);
+INSERT INTO scenarios_section (scenario_id, title, sort_order) VALUES ((SELECT id FROM scenarios_scenario WHERE code = 'org-consultation'), 'Przebieg konsultacji', 1);
+INSERT INTO scenarios_field (scenario_id, section_id, field_key, label, field_type, required, hint, placeholder, unit, min_value, max_value, show_if_key, show_if_value, sort_order) VALUES
+  ((SELECT id FROM scenarios_scenario WHERE code = 'org-consultation'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'org-consultation') AND sort_order = 1), 'topic', 'Czego dotyczą konsultacje', 'text', true, NULL, 'np. przyszłość terenów poprzemysłowych', NULL, NULL, NULL, NULL, NULL, 0),
+  ((SELECT id FROM scenarios_scenario WHERE code = 'org-consultation'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'org-consultation') AND sort_order = 1), 'decisionBy', 'Kto podejmie decyzję', 'text', false, NULL, 'np. Rada Miasta Krakowa', NULL, NULL, NULL, NULL, NULL, 1),
+  ((SELECT id FROM scenarios_scenario WHERE code = 'org-consultation'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'org-consultation') AND sort_order = 1), 'consultationEnd', 'Konsultacje trwają do', 'date', false, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 2),
+  ((SELECT id FROM scenarios_scenario WHERE code = 'org-consultation'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'org-consultation') AND sort_order = 1), 'estimatedCost', 'Szacowany koszt przedsięwzięcia', 'number', false, NULL, NULL, 'zł', 0, NULL, NULL, NULL, 3);
+INSERT INTO scenarios_section (scenario_id, title, sort_order) VALUES ((SELECT id FROM scenarios_scenario WHERE code = 'org-consultation'), 'Kontakt i odpowiedzialność', 2);
+INSERT INTO scenarios_field (scenario_id, section_id, field_key, label, field_type, required, hint, placeholder, unit, min_value, max_value, show_if_key, show_if_value, sort_order) VALUES
+  ((SELECT id FROM scenarios_scenario WHERE code = 'org-consultation'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'org-consultation') AND sort_order = 2), 'contactPerson', 'Osoba kontaktowa', 'text', true, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0),
+  ((SELECT id FROM scenarios_scenario WHERE code = 'org-consultation'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'org-consultation') AND sort_order = 2), 'contactEmail', 'E-mail kontaktowy', 'text', true, NULL, 'osoba@organizacja.pl', NULL, NULL, NULL, NULL, NULL, 1),
+  ((SELECT id FROM scenarios_scenario WHERE code = 'org-consultation'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'org-consultation') AND sort_order = 2), 'contactPhone', 'Telefon', 'text', false, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 2),
+  ((SELECT id FROM scenarios_scenario WHERE code = 'org-consultation'), (SELECT id FROM scenarios_section WHERE scenario_id = (SELECT id FROM scenarios_scenario WHERE code = 'org-consultation') AND sort_order = 2), 'rationale', 'Uzasadnienie i korzyści dla mieszkańców', 'textarea', true, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 3);
 
 COMMIT;

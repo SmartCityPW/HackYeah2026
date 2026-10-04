@@ -3,7 +3,7 @@ import { Component, computed, input } from '@angular/core';
 /** Ikony liniowe 24×24 (kreska w kolorze tekstu). Zamiast emoji w nawigacji i przyciskach. */
 const PATHS = {
   map: 'M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14',
-  spryciaki: 'M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8zM18.5 15l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z',
+  spryciaki: 'M12 12.5c-3 0-5.5 3-5.5 5.2 0 1.8 1.5 2.3 3 2 .9-.2 1.6-.5 2.5-.5s1.6.3 2.5.5c1.5.3 3-.2 3-2 0-2.2-2.5-5.2-5.5-5.2zM3.5 11a1.5 2 0 1 0 3 0 1.5 2 0 1 0-3 0zM7.5 6.5a1.5 2 0 1 0 3 0 1.5 2 0 1 0-3 0zM13.5 6.5a1.5 2 0 1 0 3 0 1.5 2 0 1 0-3 0zM17.5 11a1.5 2 0 1 0 3 0 1.5 2 0 1 0-3 0z',  // łapka
   list: 'M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01',
   user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21c0-4 3.6-6 8-6s8 2 8 6',
   plus: 'M12 5v14M5 12h14',

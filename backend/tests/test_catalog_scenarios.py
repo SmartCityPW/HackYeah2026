@@ -16,8 +16,8 @@ def test_residents_and_orgs_get_their_own_catalogs(resident, make_org):
     user, _ = make_org()
     residents = client_for(resident).get('/api/v1/scenarios').data
     orgs = client_for(user).get('/api/v1/scenarios').data
-    assert {s['audience'] for s in residents} == {'resident'} and len(residents) == 16
-    assert {s['audience'] for s in orgs} == {'org'} and len(orgs) == 4
+    assert {s['audience'] for s in residents} == {'resident'} and len(residents) == 21
+    assert {s['audience'] for s in orgs} == {'org'} and len(orgs) == 5
 
 
 def test_category_filter_and_nested_field_shape(resident):

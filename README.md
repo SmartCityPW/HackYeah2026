@@ -23,7 +23,7 @@ narzędzie do konsultacji, ankiet i wydarzeń. Wymagania źródłowe: [`docs/opi
 
 | Mechanika | Jak działa |
 |---|---|
-| **Pinezki** | Zgłoszenie problemu, pomysł mieszkańca, cool miejsce, inicjatywa NGO, konsultacje. Formularze to dane (katalog 20 scenariuszy), nie kod. |
+| **Pinezki** | Zgłoszenie problemu, pomysł mieszkańca, cool miejsce, inicjatywa NGO, konsultacje. Formularze to dane (katalog 26 scenariuszy), nie kod. |
 | **Zastaw** | Zgłaszając problem lub pomysł zostawiasz na nim jednego swojego pokemona. Wraca z premią exp, gdy zgłoszenie zbierze próg głosów lub zostanie rozwiązane, a bez premii po odrzuceniu lub wycofaniu. |
 | **Głosowanie z bliska** | Głos „za/przeciw” działa tylko w promieniu 50 m od pinezki (liczy serwer). Za głos wybrany pokemon dostaje exp. Autor nie głosuje na własną pinezkę. |
 | **Moderacja** | Dwie warstwy (`moderation.provider: layered`, domyślnie). 1) **Reguły** (`config/moderation_rules.yaml`, bez sieci i klucza): wulgaryzmy, mowa nienawiści, groźby, dane osobowe (telefon, e-mail, PESEL, karta), spam i linki, próby wstrzyknięcia instrukcji do AI; obejmują też warianty typu `k u r w a`, `ku*wa`, `kurwaaa`. 2) **Google Gemini** (klucz `AI_API_KEY`): ocenia, czy zgłoszenie dotyczy miasta. Bez klucza działają same reguły. Moderowane są: zgłoszenia mieszkańców (reguły + AI), komentarze, odpowiedzi tekstowe w ankietach i nazwy (konto, organizacja) (reguły). Odrzucone nie powstają i trafiają do logu z kategorią (`vulgar`, `spam`, `injection`, `ai`…). Awaria Gemini nie przepuszcza treści (zmienisz to w `moderation.layered.on_ai_error`). |
@@ -74,7 +74,7 @@ Terminal 1, serwer:
 
 ```bash
 .venv/bin/python manage.py bootstrap     # migracje + słowniki + 20 scenariuszy
-.venv/bin/python manage.py seed_demo     # 8 kont, zweryfikowana fundacja, 6 pinezek w Krakowie
+.venv/bin/python manage.py seed_demo     # 23 konta, 2 zweryfikowane organizacje, 42 pinezki w Krakowie (świeże dane: seed_demo --reset)
 .venv/bin/python manage.py runserver     # http://localhost:8000/api/v1/
 ```
 

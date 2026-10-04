@@ -3,28 +3,36 @@ from datetime import datetime, timedelta
 import yaml
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
+from django.db.models import F
 from django.utils import timezone
 
 from apps.accounts.models import MemberRole, Organization, OrganizationMember, User, VerificationStatus
-from apps.collection.models import Character, PokemonOrigin
+from apps.collection.models import Character, Pokemon, PokemonOrigin
 from apps.collection.services import grant_pokemon, grant_starter
 from apps.events.models import Event
 from apps.game.models import PlayerProgress
-from apps.pokestops.models import Pokestop, Update
-from apps.pokestops.services import create_pokestop
+from apps.pokestops.models import Comment, Pokestop, Update, Vote
+from apps.pokestops.services import create_pokestop, release_stake, set_status
 from core.secrets import secret
 
 
 class Command(BaseCommand):
     help = 'Dane demo (tylko tryb debug): konta, zweryfikowana organizacja i pinezki z <seed.dir>/demo.yaml. Idempotentne.'
 
+    def add_arguments(self, parser):
+        parser.add_argument('--reset', action='store_true',
+                            help='Najpierw usuwa WSZYSTKIE pinezki (z głosami, komentarzami i ankietami) i zdejmuje zastawy pokemonów. Konta i wydarzenia zostają.')
+
     def handle(self, *args, **options):
         if not settings.APP.app.debug:
             raise CommandError('Dane demo można ładować tylko w trybie debug (app.debug: true)')
         password = secret('DEMO_PASSWORD')
         data = yaml.safe_load((settings.APP.path(settings.APP.seed.dir) / 'demo.yaml').read_text(encoding='utf-8'))
+        if options['reset']:
+            self._reset()
 
         users = {row['email']: self._user(row, password) for row in data['users']}
+        admin = next((u for u in users.values() if u.role == 'admin'), None)
         created = 0
         for row in data['pokestops']:
             author = users[row['author']]
@@ -37,21 +45,62 @@ class Command(BaseCommand):
             }
             if row.get('questions'):
                 payload['questions'] = row['questions']
-            if author.pokemons.exists() and row['scenario'].startswith(('res-', 'idea-')):
-                free = author.pokemons.filter(is_staked=False).first()
-                if free is None:  # np. stara baza lokalna, w której autor zastawił już wszystkie pokemony
+            if row['scenario'].startswith(('res-', 'idea-')):
+                stake = self._stake(author, row)
+                if stake is None:  # np. stara baza lokalna, w której autor zastawił już wszystkie pokemony
                     self.stdout.write(f'Pominięto "{row["title"]}": autor nie ma wolnego pokemona do zastawu')
                     continue
-                payload['staked_pokemon_id'] = free.id
-            stop = create_pokestop(author, payload, verify_location=False)
-            if row.get('custom_fields'):
-                stop.custom_fields = row['custom_fields']
-                stop.save(update_fields=['custom_fields', 'updated_at'])
-            for update in row.get('updates', []):
-                Update.objects.create(pokestop=stop, author=author, title=update['title'], body=update.get('body', ''))
+                payload['staked_pokemon_id'] = stake.id
+            stop = create_pokestop(author, payload, verify_location=False, moderate=False)
+            self._finish(stop, row, author, users, admin)
             created += 1
         events = self._events(data.get('events', []))
         self.stdout.write(f'Konta demo: {len(users)}, nowe pinezki: {created}, nowe wydarzenia: {events} (hasło kont z DEMO_PASSWORD)')
+
+    def _reset(self) -> None:
+        """Czyści pinezki demo: zastawy wracają do właścicieli, reszta (głosy, komentarze, ankiety) znika kaskadowo."""
+        removed = Pokestop.objects.count()
+        Pokemon.objects.filter(is_staked=True).update(is_staked=False)
+        Pokestop.objects.all().delete()
+        self.stdout.write(f'Usunięto pinezki: {removed}')
+
+    def _stake(self, author: User, row: dict) -> Pokemon | None:
+        """Pokemon do zastawu. Z kluczem `character` autor dostaje nowego Spryciaka tego gatunku (postać pinezki to gatunek zastawionego
+        pokemona), a `exp` ustawia jego poziom. Bez `character` zastawiamy pierwszego wolnego."""
+        if row.get('character'):
+            pokemon = grant_pokemon(author, Character.objects.get(code=row['character']), PokemonOrigin.ENCOUNTER)
+            if row.get('exp'):
+                pokemon.exp = row['exp']
+                pokemon.save(update_fields=['exp'])
+            return pokemon
+        return author.pokemons.filter(is_staked=False).first()
+
+    def _finish(self, stop: Pokestop, row: dict, author: User, users: dict[str, User], admin: User | None) -> None:
+        """Dopełnia pinezkę danymi z wiersza: pola własne, oś czasu, wiek, głosy, komentarze i status."""
+        if row.get('custom_fields'):
+            stop.custom_fields = row['custom_fields']
+            stop.save(update_fields=['custom_fields', 'updated_at'])
+        for update in row.get('updates', []):
+            Update.objects.create(pokestop=stop, author=author, title=update['title'], body=update.get('body', ''))
+        if row.get('days_ago'):
+            Pokestop.objects.filter(pk=stop.pk).update(created_at=timezone.now() - timedelta(days=row['days_ago']))
+        # Liczniki głosów to dane demo ("zmyślone" poparcie); prawdziwe głosy konkretnych kont (`votes_by`) dochodzą do nich.
+        votes_for, votes_against = row.get('votes', (0, 0))
+        Pokestop.objects.filter(pk=stop.pk).update(votes_for=votes_for, votes_against=votes_against)
+        for email, value in (row.get('votes_by') or {}).items():
+            voter = users[email]
+            pokemon = voter.pokemons.first()
+            Vote.objects.create(pokestop=stop, user=voter, vote=value, rewarded_pokemon=pokemon, exp_granted=0, lat=stop.lat, lng=stop.lng, distance_m=10)
+            Pokestop.objects.filter(pk=stop.pk).update(**{'votes_for' if value == 'for' else 'votes_against': F('votes_for' if value == 'for' else 'votes_against') + 1})
+        stop.refresh_from_db()
+        if stop.staked_pokemon_id and stop.votes_for >= stop.votes_required:  # próg poparcia osiągnięty: zastaw wraca z premią
+            release_stake(stop, settings.APP.game.exp.stake_release_bonus)
+        for item in row.get('comments', []):
+            parent = Comment.objects.create(pokestop=stop, author=users[item['author']], body=item['text'])
+            for reply in item.get('replies', []):
+                Comment.objects.create(pokestop=stop, author=users[reply['author']], parent=parent, body=reply['text'])
+        if row.get('status') and admin is not None:
+            set_status(admin, stop.pk, row['status'], row.get('status_note'))
 
     def _events(self, rows: list[dict]) -> int:
         """Wydarzenia fundacji; czasy względem chwili ładowania (starts_in_hours), więc demo zawsze ma wydarzenie trwające i zapowiedziane."""
