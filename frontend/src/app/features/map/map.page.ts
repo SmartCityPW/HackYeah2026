@@ -107,16 +107,6 @@ export class MapPage {
   });
   private readonly stopsInRange = computed(() => this.idsInRange(this.pokestops.visibleStops()));
   private readonly encountersInRange = computed(() => this.idsInRange(this.encounterService.encounters()));
-  /** Najbliższy przeciwnik w kółku (do szybkiego startu walki z paska); null, gdy nikogo nie ma w zasięgu. */
-  protected readonly nearestEnemy = computed(() => {
-    const inRange = this.encountersInRange();
-    return (
-      this.encounterService
-        .encounters()
-        .filter((e) => inRange.has(e.id))
-        .sort((a, b) => (this.distanceTo(a) ?? 0) - (this.distanceTo(b) ?? 0))[0] ?? null
-    );
-  });
   /** Bez pozycji nie ma kółka ani przeciwników, więc mówimy graczowi, co zrobić. */
   protected readonly needsLocation = computed(() => this.mapCtl.ready() && this.geo.position() === null);
   /** Gracz zamknął komunikat o braku pozycji. Wraca, gdy sam poprosi o lokalizację (przycisk GPS) albo gdy pozycję uda się ustalić i znów zniknie. */
