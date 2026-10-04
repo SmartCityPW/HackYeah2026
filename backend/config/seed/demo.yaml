@@ -86,7 +86,8 @@ events:
 # `votes: [za, przeciw]` to liczba PRAWDZIWYCH głosów (wiersze w bazie): oddają je konta z puli `voters` przez funkcję głosowania z gry (exp, zwrot zastawu
 # po progu), więc suma nie może przekroczyć wielkości puli. `votes_by` to głosy wskazanych kont, `survey_responses` liczba odpowiedzi ankiety (losowane wg
 # `weights`, `yes`, `samples` w pytaniach), `days_ago` postarza zgłoszenie, `status` ustawia administrator demo, `comments` to komentarze z odpowiedziami.
-# Reset i ponowne załadowanie: manage.py seed_demo --reset. Pomijane są tylko moderacja AI i sprawdzanie GPS.
+# Reset i ponowne załadowanie: manage.py seed_demo --reset. Zgłoszenia mieszkańców przechodzą moderację (reguły i AI, jak w grze; --skip-moderation ją pomija),
+# pomijane jest tylko sprawdzanie GPS.
 pokestops:
 - author: tester@demo.smartcity.example
   scenario: res-parking

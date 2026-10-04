@@ -15,6 +15,7 @@ from apps.game.models import PlayerProgress
 from apps.pokestops import survey
 from apps.pokestops.models import Pokestop, Update
 from apps.pokestops.services import add_comment, create_pokestop, set_status, vote
+from core.errors import ApiError
 from core.secrets import secret
 
 
@@ -33,6 +34,10 @@ class Command(BaseCommand):
         parser.add_argument('--reset', action='store_true',
                             help='Najpierw usuwa WSZYSTKIE pinezki (z głosami, komentarzami i ankietami) i zdejmuje zastawy pokemonów. Konta i wydarzenia zostają.')
 
+        parser.add_argument('--skip-moderation', action='store_true',
+                            help='Pomija moderację AI zgłoszeń mieszkańców (tylko do testów i pracy bez klucza AI_API_KEY): domyślnie każde zgłoszenie przechodzi '
+                                 'przez skonfigurowanego agenta (reguły i AI), tak jak w grze, a odrzucone nie powstają.')
+
     def handle(self, *args, **options):
         if not settings.APP.app.debug:
             raise CommandError('Dane demo można ładować tylko w trybie debug (app.debug: true)')
@@ -44,7 +49,8 @@ class Command(BaseCommand):
         users = {row['email']: self._user(row, password) for row in data['users']}
         admin = next((u for u in users.values() if u.role == 'admin'), None)
         voters = self._voters(data.get('voters', {}).get('count', 0))
-        created = 0
+        moderate = not options['skip_moderation']
+        created, rejected = 0, []
         for row in data['pokestops']:
             author = users[row['author']]
             if Pokestop.objects.filter(author=author, title=row['title']).exists():
@@ -56,17 +62,31 @@ class Command(BaseCommand):
             }
             if row.get('questions'):
                 payload['questions'] = [{k: v for k, v in q.items() if k in QUESTION_FIELDS} for q in row['questions']]
+            stake = None
             if row['scenario'].startswith(('res-', 'idea-')):
                 stake = self._stake(author, row)
                 if stake is None:  # np. stara baza lokalna, w której autor zastawił już wszystkie pokemony
                     self.stdout.write(f'Pominięto "{row["title"]}": autor nie ma wolnego pokemona do zastawu')
                     continue
                 payload['staked_pokemon_id'] = stake.id
-            stop = create_pokestop(author, payload, verify_location=False, moderate=False)
+            try:
+                stop = create_pokestop(author, payload, verify_location=False, moderate=moderate)
+            except ApiError as exc:
+                if row.get('character') and stake is not None:
+                    stake.delete()  # Spryciak nadany tylko pod ten zastaw
+                if exc.code == 'moderation_rejected':  # tak jak w grze: odrzucone zgłoszenie nie powstaje
+                    rejected.append(row['title'])
+                    self.stderr.write(f'ODRZUCONE przez moderację: "{row["title"]}"')
+                    continue
+                if exc.code == 'moderation_unavailable':
+                    raise CommandError(f'Moderacja niedostępna ({exc.message}). Ustaw AI_API_KEY (np. w config/local.env) albo uruchom z --skip-moderation.') from exc
+                raise
             self._finish(stop, row, author, users, admin, voters)
             created += 1
         events = self._events(data.get('events', []))
         self.stdout.write(f'Konta demo: {len(users)}, nowe pinezki: {created}, nowe wydarzenia: {events} (hasło kont z DEMO_PASSWORD)')
+        if rejected:
+            self.stdout.write(f'Odrzucone przez moderację ({len(rejected)}): ' + '; '.join(rejected) + '. Zmień ich treść w demo.yaml i uruchom seed_demo ponownie.')
 
     def _reset(self) -> None:
         """Czyści dane pinezek demo: pinezki (głosy, komentarze i ankiety znikają kaskadowo), konta głosujących i Spryciaki, które konta demo

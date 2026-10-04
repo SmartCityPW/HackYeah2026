@@ -132,3 +132,54 @@ def test_demo_has_a_running_and_an_upcoming_event_with_rare_rewards(monkeypatch)
     assert services.is_active_now(cleanup) and cleanup.daily_from is None  # zawsze do odebrania, niezależnie od pory dnia
     assert picnic.daily_from is not None and festival.capacity == 100
     assert all(e.reward_character.is_event_exclusive for e in Event.objects.all())
+
+
+def test_demo_resident_pins_go_through_moderation_like_in_the_game(monkeypatch):
+    from apps.pokestops.models import ModerationLog
+
+    monkeypatch.setenv('DEMO_PASSWORD', 'demo-haslo-1234')
+    call_command('seed_demo')
+    residents = Pokestop.objects.filter(type__in=['report', 'idea', 'place']).count()
+    assert ModerationLog.objects.filter(verdict='approved', pokestop__isnull=False).count() == residents  # każde zgłoszenie ma werdykt w logu
+    assert not ModerationLog.objects.filter(pokestop__type='consultation').exists()  # inicjatywy organizacji nie są moderowane (jak w grze)
+
+
+def test_skip_moderation_flag_bypasses_the_agent(monkeypatch):
+    from apps.pokestops.models import ModerationLog
+
+    monkeypatch.setenv('DEMO_PASSWORD', 'demo-haslo-1234')
+    call_command('seed_demo', '--skip-moderation')
+    assert Pokestop.objects.count() == 42 and not ModerationLog.objects.exists()
+
+
+def test_a_pin_rejected_by_moderation_is_not_created_and_leaves_no_stray_pokemon(monkeypatch):
+    from apps.collection.models import Pokemon
+    from apps.moderation.agent import Review
+    from apps.pokestops import services
+    from apps.pokestops.models import ModerationLog
+
+    class RejectSzewska:
+        def review(self, submission):
+            return Review(approved='Szewska' not in submission['title'], model='test', reason='nie na temat')
+
+    monkeypatch.setattr(services, 'get_agent', lambda: RejectSzewska())
+    monkeypatch.setenv('DEMO_PASSWORD', 'demo-haslo-1234')
+    call_command('seed_demo')
+    assert Pokestop.objects.count() == 41 and not Pokestop.objects.filter(title__contains='Szewska').exists()
+    assert ModerationLog.objects.filter(verdict='rejected').count() == 1
+    author = User.objects.get(email='janusz@demo.smartcity.example')
+    assert not Pokemon.objects.filter(user=author, character__code='sports_car').exists()  # Spryciak nadany pod odrzucony zastaw znika
+
+
+def test_unavailable_moderation_stops_the_seed_with_a_clear_message(monkeypatch):
+    from apps.moderation.agent import ModerationUnavailable
+    from apps.pokestops import services
+
+    class Down:
+        def review(self, submission):
+            raise ModerationUnavailable('AI_API_KEY nie jest ustawiony')
+
+    monkeypatch.setattr(services, 'get_agent', lambda: Down())
+    monkeypatch.setenv('DEMO_PASSWORD', 'demo-haslo-1234')
+    with pytest.raises(CommandError, match='AI_API_KEY'):
+        call_command('seed_demo')
