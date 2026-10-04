@@ -29,7 +29,7 @@ INSERT INTO collection_character (code, label, emoji, category_label, model_path
     ('cone', 'Pachołek', '🚧', 'Roboty drogowe', 'models/spryciaki/cone.glb', (SELECT id FROM collection_type WHERE code = 'infra'), 12, 3, false, false),
     ('fire_hydrant', 'Hydrant', '🧯', 'Sieć wodna', 'models/spryciaki/fire_hydrant.glb', (SELECT id FROM collection_type WHERE code = 'infra'), 19, 4, false, false),
     ('floor_hole', 'Dziura w chodniku', '🕳️', 'Chodniki', 'models/spryciaki/floor_hole.glb', (SELECT id FROM collection_type WHERE code = 'infra'), 16, 4, false, false),
-    ('gold_bike', 'Złoty Rower', '🥇', 'Wydarzenia rowerowe', NULL, (SELECT id FROM collection_type WHERE code = 'transport'), 40, 6, false, true),
+    ('gold_bike', 'Złoty Rower', '🥇', 'Wydarzenia rowerowe', 'models/spryciaki/bicycle.glb', (SELECT id FROM collection_type WHERE code = 'transport'), 40, 6, false, true),
     ('shiny_bin', 'Błyszczący Kosz', '✨', 'Wydarzenia sprzątające', NULL, (SELECT id FROM collection_type WHERE code = 'clean'), 36, 6, false, true),
     ('giant_tree', 'Zielony Gigant', '🌲', 'Wydarzenia zielone', NULL, (SELECT id FROM collection_type WHERE code = 'green'), 42, 6, false, true),
     ('lantern', 'Lampion Festiwalowy', '🏮', 'Festiwale i koncerty', NULL, (SELECT id FROM collection_type WHERE code = 'energy'), 38, 6, false, true),

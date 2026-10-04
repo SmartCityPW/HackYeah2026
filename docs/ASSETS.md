@@ -26,7 +26,7 @@ Każdy plik z `frontend/public/` (modele 3D, tekstury, ikony, dźwięki, czcionk
 
 ## Modele do uzupełnienia
 
-Rzadkie Spryciaki wyłączne dla wydarzeń (`is_event_exclusive` w `backend/config/seed/reference.yaml`) nie mają jeszcze modeli 3D: `gold_bike`, `shiny_bin`, `giant_tree`, `lantern`, `cloud_kite`, `mural_beast`. Do czasu ich dodania aplikacja rysuje postać zastępczą w barwie z palety. Każdy nowy plik wpisz do tabeli powyżej.
+Rzadkie Spryciaki wyłączne dla wydarzeń (`is_event_exclusive` w `backend/config/seed/reference.yaml`) `gold_bike` pokazuje model zwykłego roweru (`bicycle.glb`), a `shiny_bin`, `giant_tree`, `lantern`, `cloud_kite` i `mural_beast` nie mają jeszcze modeli 3D: do czasu ich dodania aplikacja rysuje postać zastępczą w barwie z palety. Każdy nowy plik wpisz do tabeli powyżej.
 
 ## Biblioteki i dane
 
