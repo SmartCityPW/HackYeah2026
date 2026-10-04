@@ -16,8 +16,8 @@ def test_demo_data_is_created_once_and_has_a_verified_org(monkeypatch):
     monkeypatch.setenv('DEMO_PASSWORD', 'demo-haslo-1234')
     call_command('seed_demo')
     users, pins = User.objects.count(), Pokestop.objects.count()
-    assert pins == 42 and Organization.objects.count() == 2 and all(o.is_verified for o in Organization.objects.all())
-    assert Pokestop.objects.filter(type='consultation').count() == 3 and Pokestop.objects.filter(type='place').count() == 1
+    assert pins == 53 and Organization.objects.count() == 4 and all(o.is_verified for o in Organization.objects.all())
+    assert Pokestop.objects.filter(type='consultation').count() == 14 and Pokestop.objects.filter(type='place').count() == 1
     call_command('seed_demo')  # drugi raz nic nie dubluje
     assert (User.objects.count(), Pokestop.objects.count()) == (users, pins)
     assert User.objects.get(email='admin@demo.smartcity.example').check_password('demo-haslo-1234')
@@ -87,7 +87,7 @@ def test_demo_consultations_have_real_survey_answers(monkeypatch):
     monkeypatch.setenv('DEMO_PASSWORD', 'demo-haslo-1234')
     call_command('seed_demo')
     counts = {s.title[:20]: s.survey_responses.count() for s in Pokestop.objects.filter(type='consultation')}
-    assert sorted(counts.values()) == [1, 30, 40]  # Plan Adaptacji: jeden uczestnik
+    assert min(counts.values()) == 1 and sum(counts.values()) == 1 + 40 + 30 + 38 + 28 + 32 + 30 + 36 + 40 + 33 + 29 + 26 + 31 + 34  # Plan Adaptacji: jeden uczestnik
     assert SurveyAnswer.objects.count() > 150
     assert all(r.reward_pokemon.user_id == r.user_id for r in SurveyResponse.objects.select_related('reward_pokemon')[:20])  # nagroda jak w grze
     plaszow = Pokestop.objects.get(title__startswith='Konsultacje: Płaszów')
@@ -113,7 +113,7 @@ def test_reset_replaces_existing_pins_and_frees_stakes(monkeypatch):
     assert Pokestop.objects.exclude(staked_pokemon=None).filter(stake_released_at=None).exists()  # świeże zgłoszenia z niewielkim poparciem trzymają zastaw
     Pokestop.objects.filter(title__startswith='Dziury w chodniku').update(title='Stara pinezka')  # zmieniony tytuł: bez resetu powstałby duplikat
     call_command('seed_demo', '--reset')
-    assert Pokestop.objects.count() == 42 and not Pokestop.objects.filter(title='Stara pinezka').exists()
+    assert Pokestop.objects.count() == 53 and not Pokestop.objects.filter(title='Stara pinezka').exists()
     staked = Pokemon.objects.filter(is_staked=True).count()
     assert staked == Pokestop.objects.exclude(staked_pokemon=None).filter(stake_released_at=None).count()  # zastawy tylko pod istniejące pinezki
 
@@ -149,7 +149,7 @@ def test_skip_moderation_flag_bypasses_the_agent(monkeypatch):
 
     monkeypatch.setenv('DEMO_PASSWORD', 'demo-haslo-1234')
     call_command('seed_demo', '--skip-moderation')
-    assert Pokestop.objects.count() == 42 and not ModerationLog.objects.exists()
+    assert Pokestop.objects.count() == 53 and not ModerationLog.objects.exists()
 
 
 def test_a_pin_rejected_by_moderation_is_not_created_and_leaves_no_stray_pokemon(monkeypatch):
@@ -165,7 +165,7 @@ def test_a_pin_rejected_by_moderation_is_not_created_and_leaves_no_stray_pokemon
     monkeypatch.setattr(services, 'get_agent', lambda: RejectSzewska())
     monkeypatch.setenv('DEMO_PASSWORD', 'demo-haslo-1234')
     call_command('seed_demo')
-    assert Pokestop.objects.count() == 41 and not Pokestop.objects.filter(title__contains='Szewska').exists()
+    assert Pokestop.objects.count() == 52 and not Pokestop.objects.filter(title__contains='Szewska').exists()
     assert ModerationLog.objects.filter(verdict='rejected').count() == 1
     author = User.objects.get(email='janusz@demo.smartcity.example')
     assert not Pokemon.objects.filter(user=author, character__code='sports_car').exists()  # Spryciak nadany pod odrzucony zastaw znika
@@ -206,7 +206,7 @@ def test_a_rate_limited_agent_is_retried_and_the_pin_is_created(monkeypatch):
     monkeypatch.setattr('apps.accounts.management.commands.seed_demo.time.sleep', sleeps.append)
     monkeypatch.setenv('DEMO_PASSWORD', 'demo-haslo-1234')
     call_command('seed_demo')
-    assert Pokestop.objects.count() == 42 and sleeps.count(30.0) == 1
+    assert Pokestop.objects.count() == 53 and sleeps.count(30.0) == 1
 
 
 def test_network_agents_get_a_pause_between_requests_and_the_stub_does_not(monkeypatch):
@@ -229,3 +229,16 @@ def test_network_agents_get_a_pause_between_requests_and_the_stub_does_not(monke
     monkeypatch.setattr(settings, 'APP', replace(settings.APP, moderation=replace(settings.APP.moderation, provider='gemini')))
     call_command('seed_demo')
     assert len(sleeps) == 39 and set(sleeps) == {5.0}  # po każdym zgłoszeniu mieszkańca
+
+
+def test_demo_has_many_consultations_and_one_within_reach_near_tauron_arena(monkeypatch):
+    from core.geo import distance_m
+
+    monkeypatch.setenv('DEMO_PASSWORD', 'demo-haslo-1234')
+    call_command('seed_demo')
+    consultations = Pokestop.objects.filter(type='consultation')
+    assert consultations.count() >= 10 and {c.organization.name for c in consultations} >= {'Urząd Miasta Krakowa', 'Rada Dzielnicy XIV Czyżyny', 'Rada Dzielnicy XIII Podgórze'}
+    assert all(c.questions.exists() and c.survey_responses.exists() and c.votes_for + c.votes_against > 0 for c in consultations)
+    arena = settings.APP.game.interaction_range_m, 50.0676, 19.9917  # domyślna pozycja z prezentacji (?gps=50.0676,19.9917)
+    near = [c for c in consultations if distance_m(arena[1], arena[2], c.lat, c.lng) <= arena[0] - 10]
+    assert [c.title for c in near] == ['Konsultacje: parkowanie i ruch wokół Tauron Areny w dni wydarzeń']  # w zasięgu głosu i ankiety, z zapasem 10 m
