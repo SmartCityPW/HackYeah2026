@@ -99,3 +99,40 @@ describe('authInterceptor', () => {
     expect(auth.accessToken).toBeNull();
   });
 });
+
+
+describe('AuthService.refresh with a dead session', () => {
+  function setupDead(autoGuest = true) {
+    sessionStorage.clear();
+    const ctx = setup('http', autoGuest);
+    const reload = vi.spyOn(ctx.auth as unknown as { reloadPage(): void }, 'reloadPage').mockImplementation(() => undefined);
+    return { ...ctx, reload };
+  }
+
+  it('reloads the page once so a fresh guest account is created when there is no refresh token (stale access token)', async () => {
+    const { auth, reload } = setupDead();
+    localStorage.setItem(ACCESS, 'stale');
+    expect(await auth.refresh()).toBe(false);
+    expect(auth.accessToken).toBeNull();
+    expect(reload).toHaveBeenCalledTimes(1);
+    await auth.refresh();
+    expect(reload).toHaveBeenCalledTimes(1); // druga próba w 15 s nie zapętla przeładowań
+  });
+
+  it('reloads when the backend rejects the refresh token', async () => {
+    const { http, auth, reload } = setupDead();
+    localStorage.setItem(ACCESS, 'stale');
+    localStorage.setItem(REFRESH, 'stale-refresh');
+    const done = auth.refresh();
+    http.expectOne(`${BASE}/auth/refresh`).flush({ code: 'unauthorized' }, { status: 401, statusText: 'Unauthorized' });
+    expect(await done).toBe(false);
+    expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not reload when auto guest accounts are off', async () => {
+    const { auth, reload } = setupDead(false);
+    localStorage.setItem(ACCESS, 'stale');
+    await auth.refresh();
+    expect(reload).not.toHaveBeenCalled();
+  });
+});
