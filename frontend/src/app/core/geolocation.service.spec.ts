@@ -97,6 +97,42 @@ describe('GeolocationService (pozycja z danymi do weryfikacji przez serwer)', ()
     expect(await geo.fresh()).toBeNull();
   });
 
+  describe('przycisk "moja lokalizacja" (request)', () => {
+    it('ends the simulation and asks the browser for a real position', async () => {
+      const geo = setup();
+      geo.simulate([19.99, 50.07]);
+      nextFresh = reading(50.0617, 19.9373, 25, Date.now());
+      expect(await geo.request()).toBeNull();
+      expect(geo.isSimulated()).toBe(false);
+      expect(geo.latLng()).toMatchObject({ lat: 50.0617, lng: 19.9373, source: 'gps' });
+    });
+
+    it('reports why it failed when the browser gives no position', async () => {
+      const geo = setup();
+      nextFresh = null;
+      expect(await geo.request()).toBe('unavailable');
+      expect(geo.latLng()).toBeNull();
+    });
+
+    it('reports a refusal without asking again with lower accuracy', async () => {
+      const calls: PositionOptions[] = [];
+      Object.defineProperty(navigator, 'geolocation', {
+        configurable: true,
+        value: {
+          watchPosition: () => 1,
+          clearWatch: () => undefined,
+          getCurrentPosition: (_ok: PositionCallback, fail: (e: Partial<GeolocationPositionError>) => void, options: PositionOptions) => {
+            calls.push(options);
+            fail({ code: 1, message: 'denied' });
+          },
+        },
+      });
+      const geo = setup();
+      expect(await geo.request()).toBe('denied');
+      expect(calls).toHaveLength(1);
+    });
+  });
+
   describe('błędy lokalizacji', () => {
     /** Atrapa, w której `watchPosition` zapamiętuje oba callbacki i opcje kolejnych wywołań. */
     const stubWatch = () => {

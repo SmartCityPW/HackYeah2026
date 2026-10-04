@@ -74,13 +74,13 @@ własnych tłumaczeń kodów. Własny tekst jest tylko dla braku połączenia i 
 
 `MockPokestopApi` egzekwuje te same reguły co serwer: zasięg głosu (z `game.interactionRangeM`), jeden głos na pinezkę, zakaz głosu na własną,
 exp dla wybranego pokemona, zastaw przy zgłoszeniu, odpowiedzi tylko pod komentarzem nadrzędnym tej samej pinezki. Dzięki temu logika ekranów
-jest ta sama w obu trybach. **Konsekwencja dla demo na atrapach:** żeby zagłosować, włącz 📍 GPS (pozycja na Rynku); w zasięgu jest pinezka
+jest ta sama w obu trybach. **Konsekwencja dla demo na atrapach:** żeby zagłosować, ustaw pozycję (`?gps=50.0617,19.9373`, Rynek); w zasięgu jest pinezka
 „Zniszczona ławka przy Rynku”.
 
 ## Lokalizacja gracza i jej mockowanie
 
 Każda akcja związana z miejscem wysyła `PlayerPosition` (`lat`, `lng`, `accuracyM`, `takenAt`, `source`), a serwer sprawdza, czy można jej wierzyć (decyzja 38 w `api-contract.md`). Przed akcją `GeolocationService.fresh()` prosi przeglądarkę o odczyt nie starszy niż `game.gpsMaxAgeSeconds`.
-Do testów (`dev.tools: true`): przycisk 📍 GPS, strzałki/WASD albo parametr adresu **`?gps=50.0676,19.9917`** ustawiają pozycję symulowaną (`source: simulated`). Backend przyjmie ją tylko przy `location.allow_simulated: true` (lokalnie, `demo.example.yaml`).
+Do testów (`dev.tools: true`): parametr adresu **`?gps=50.0676,19.9917`** ustawia pozycję symulowaną (strzałki/WASD ją przesuwają); przycisk 📍 prosi o prawdziwą pozycję i kończy symulację. Symulowana pozycja ma `source: simulated` (`source: simulated`). Backend przyjmie ją tylko przy `location.allow_simulated: true` (lokalnie, `demo.example.yaml`).
 Przeciwnicy są indywidualni: dwa konta w tym samym miejscu widzą różnych.
 
 ## Dostosowanie jednej operacji (wzór)

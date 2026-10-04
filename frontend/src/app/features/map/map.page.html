@@ -14,12 +14,10 @@
   </button>
 }
 
-@if (devTools) {
-  <button class="gps" [class.on]="gpsSimulated()" (click)="toggleSimulatedGps()"
-    [attr.aria-pressed]="gpsSimulated()" title="Tryb deweloperski: symulowana pozycja GPS (chodzenie: strzałki lub WASD, Shift = dłuższy krok)">
-    <app-icon name="locate" />
-  </button>
-}
+<button class="gps" [class.on]="gpsActive()" (click)="locate()" aria-label="Pokaż moją lokalizację"
+  title="Moja lokalizacja: poprosi przeglądarkę o dostęp do pozycji (z `?gps=` w adresie w trybie deweloperskim pozycja jest symulowana)">
+  <app-icon name="locate" />
+</button>
 
 @if (canParticipate() && !panelOpen() && !selected() && !selectedEncounter() && !battleEncounter() && !surveyStop() && !selectedEvent()) {
   @if (session.canPublishInitiatives()) {
@@ -33,7 +31,7 @@
   <p class="locate" role="status">
     Nie znamy Twojej pozycji, więc nie widać kółka interakcji ani przeciwników.
     @if (locationHint(); as hint) { {{ hint }} } @else { Zezwól przeglądarce na dostęp do lokalizacji. }
-    @if (devTools) { Możesz też włączyć symulowany GPS przyciskiem w prawym dolnym rogu. }
+    Spróbuj przycisku lokalizacji w prawym dolnym rogu.@if (devTools) { Do testów możesz dopisać do adresu <code>?gps=50.0676,19.9917</code>. }
   </p>
 }
 

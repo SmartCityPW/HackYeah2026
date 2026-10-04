@@ -3,7 +3,7 @@
 # a w środowisku produkcyjnym wystarczy podmienić plik przy wdrożeniu. SEKRETÓW tu nie ma.
 
 api:
-  baseUrl: http://localhost:8000/api/v1   # adres backendu (patrz backend/config/default.yaml: server, app.api_prefix)
+  baseUrl: /api/v1   # ten sam adres co aplikacja: `ng serve` przekazuje /api do backendu (proxy.conf.json), nginx w Dockerze też; dzięki temu działa pod każdą domeną i przez tunel
   # Źródło danych per obszar. Sposób przechodzenia z atrap na backend: docs/frontend-adaptation.md
   #   mock = dane w pamięci (src/app/core/api/*.mock.ts), http = prawdziwy backend
   mode:
