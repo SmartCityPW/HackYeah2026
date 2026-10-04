@@ -228,7 +228,8 @@ Powód: ten sam Korek Komunikacyjny w tym samym miejscu. Przeciwnicy były wspó
 - [ ] `dev.tools: false` w produkcji, HTTPS, CI, `docs/ASSETS.md` (PWA zweryfikowane)
 
 ## Etap 12: dane demo w całym Krakowie (2026-10-04)
-- [x] Nowa lista 42 zmyślonych pinezek rozsianych po Krakowie i okolicy (`backend/config/seed/demo.yaml`) zamiast 6 przy Arenie: różni zgłaszający, poparcie za/przeciw (część z ujemnym bilansem), komentarze, statusy, różne modele 3D (klucz `character`, `exp` = poziom zastawionego Spryciaka)
+- [x] Nowa lista 42 zmyślonych pinezek rozsianych po Krakowie i okolicy (`backend/config/seed/demo.yaml`) zamiast 6 przy Arenie: różni zgłaszający, komentarze, statusy, różne modele 3D (klucz `character`, `exp` = poziom zastawionego Spryciaka)
+- [x] Poparcie jest prawdziwe: 100 kont głosujących oddaje głosy funkcją `vote()` z gry (ok. 1500 głosów, liczniki = wiersze w bazie), konsultacje mają prawdziwe odpowiedzi ankiet (`answer_survey()`), komentarze idą przez `add_comment()`; pominięte tylko moderacja AI i GPS (`verify_location=False`, `moderate=False`), `days_ago` postarza daty
 - [x] Nowe scenariusze: `res-noise`, `res-parking`, `res-air`, `res-heat`, `res-other` (zgłoszenia) i `org-consultation` (konsultacje z ankietą); katalog ma 26 scenariuszy
 - [x] Druga zaufana organizacja demo „Urząd Miasta Krakowa” (3 konsultacje z ankietami, polami własnymi i osią czasu)
 - [x] `manage.py seed_demo --reset` czyści pinezki i zastawy (tylko tryb debug); seed pomija moderację AI

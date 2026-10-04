@@ -44,6 +44,9 @@ users:
   # Drugi zaufany podmiot: urząd miasta publikuje konsultacje społeczne (scenariusz org-consultation).
   - {email: urzad@demo.smartcity.example, name: Wydział Partycypacji, role: org, organization: {name: Urząd Miasta Krakowa, kind: city_office, contact_person: Wydział Partycypacji Społecznej, contact_email: konsultacje@urzad-demo.example}}
 
+# Pula głosujących: konta bez hasła, każde z Spryciakiem startowym. Ich głosy i odpowiedzi ankiet przechodzą przez te same funkcje co w grze.
+voters: {count: 100}
+
 # Wydarzenia "cool thing" fundacji (czasy względem chwili ładowania danych, żeby demo zawsze miało wydarzenie trwające teraz i zapowiedziane).
 events:
   - title: "Piknik rowerowy przy Arenie"
@@ -78,10 +81,12 @@ events:
     capacity: 100
     age_min: 8
 
-# Pinezki demo: ok. 40 punktów rozsianych po Krakowie i okolicach (zmyślone zgłoszenia, poparcie i zgłaszający).
+# Pinezki demo: ok. 40 punktów rozsianych po Krakowie i okolicy (zmyślone zgłoszenia i zgłaszający).
 # Postać na mapie zgłoszenia/pomysłu to gatunek zastawionego pokemona: klucz `character` nadaje autorowi Spryciaka tego gatunku (`exp` = jego poziom).
-# `votes: [za, przeciw]` to liczniki poparcia (dane demo, bez kont głosujących), `votes_by` dodaje prawdziwe głosy kont, `days_ago` postarza zgłoszenie.
-# `status` ustawia administrator demo, `comments` to komentarze (z odpowiedziami). Reset i ponowne załadowanie: manage.py seed_demo --reset
+# `votes: [za, przeciw]` to liczba PRAWDZIWYCH głosów (wiersze w bazie): oddają je konta z puli `voters` przez funkcję głosowania z gry (exp, zwrot zastawu
+# po progu), więc suma nie może przekroczyć wielkości puli. `votes_by` to głosy wskazanych kont, `survey_responses` liczba odpowiedzi ankiety (losowane wg
+# `weights`, `yes`, `samples` w pytaniach), `days_ago` postarza zgłoszenie, `status` ustawia administrator demo, `comments` to komentarze z odpowiedziami.
+# Reset i ponowne załadowanie: manage.py seed_demo --reset. Pomijane są tylko moderacja AI i sprawdzanie GPS.
 pokestops:
 - author: tester@demo.smartcity.example
   scenario: res-parking
@@ -90,7 +95,7 @@ pokestops:
   lat: 50.06744
   lng: 19.98817
   character: small_car
-  votes: [87, 9]
+  votes: [44, 4]
   exp: 240
   days_ago: 12
   comments:
@@ -105,7 +110,7 @@ pokestops:
   lat: 50.0679
   lng: 19.99125
   character: billboard
-  votes: [34, 58]
+  votes: [17, 29]
   exp: 70
   days_ago: 9
   comments:
@@ -119,7 +124,7 @@ pokestops:
   lat: 50.0694
   lng: 19.984
   character: cone
-  votes: [63, 4]
+  votes: [32, 2]
   exp: 330
   days_ago: 40
   status: in_progress
@@ -132,7 +137,7 @@ pokestops:
   lat: 50.03263
   lng: 20.02205
   character: air_conditioner
-  votes: [121, 15]
+  votes: [60, 8]
   exp: 510
   days_ago: 21
   comments:
@@ -147,7 +152,7 @@ pokestops:
   lat: 49.98238
   lng: 20.06021
   character: van
-  votes: [58, 21]
+  votes: [29, 10]
   exp: 110
   days_ago: 15
 - author: natalia@demo.smartcity.example
@@ -157,7 +162,7 @@ pokestops:
   lat: 49.97475
   lng: 19.82657
   character: fire_hydrant
-  votes: [74, 9]
+  votes: [37, 4]
   exp: 360
   days_ago: 30
   votes_by: {tester@demo.smartcity.example: for}
@@ -168,7 +173,7 @@ pokestops:
   lat: 50.059
   lng: 19.9257
   character: suv
-  votes: [95, 11]
+  votes: [48, 6]
   exp: 410
   days_ago: 26
   votes_by: {tester@demo.smartcity.example: for}
@@ -179,7 +184,7 @@ pokestops:
   lat: 50.06553
   lng: 19.96016
   character: flower_pot
-  votes: [142, 7]
+  votes: [71, 4]
   exp: 180
   days_ago: 18
   comments:
@@ -191,7 +196,7 @@ pokestops:
   lat: 50.0615
   lng: 19.93711
   character: potted_tree
-  votes: [76, 12]
+  votes: [38, 6]
   exp: 290
   days_ago: 35
   votes_by: {tester@demo.smartcity.example: for}
@@ -202,7 +207,7 @@ pokestops:
   lat: 50.06205
   lng: 19.93621
   character: sports_car
-  votes: [64, 17]
+  votes: [32, 8]
   exp: 40
   days_ago: 7
 - author: halina@demo.smartcity.example
@@ -212,7 +217,7 @@ pokestops:
   lat: 50.06342
   lng: 19.94027
   character: trash_can
-  votes: [51, 6]
+  votes: [26, 3]
   exp: 620
   days_ago: 14
   comments:
@@ -224,7 +229,7 @@ pokestops:
   lat: 50.05653
   lng: 19.93818
   character: bicycle
-  votes: [39, 22]
+  votes: [20, 11]
   exp: 470
   days_ago: 11
 - author: szymon@demo.smartcity.example
@@ -234,7 +239,7 @@ pokestops:
   lat: 50.06392
   lng: 19.93775
   character: dumpster
-  votes: [47, 8]
+  votes: [24, 4]
   exp: 90
   days_ago: 6
 - author: agnieszka@demo.smartcity.example
@@ -244,7 +249,7 @@ pokestops:
   lat: 50.07028
   lng: 19.93689
   character: car
-  votes: [68, 14]
+  votes: [34, 7]
   exp: 350
   days_ago: 22
 - author: tomek@demo.smartcity.example
@@ -254,7 +259,7 @@ pokestops:
   lat: 50.03856
   lng: 19.91599
   character: bench
-  votes: [118, 8]
+  votes: [59, 4]
   exp: 30
   days_ago: 10
   comments:
@@ -270,7 +275,7 @@ pokestops:
   lat: 50.04503
   lng: 19.93616
   character: floor_hole
-  votes: [92, 18]
+  votes: [46, 9]
   exp: 160
   days_ago: 45
   details: {}
@@ -282,7 +287,7 @@ pokestops:
   lat: 50.04656
   lng: 19.9475
   character: tree
-  votes: [156, 3]
+  votes: [78, 2]
   details:
     rating: '5'
     cost: free
@@ -300,7 +305,8 @@ pokestops:
   description: 'Miasto pyta, co zrobić z dzielnicą przemysłową w Płaszowie: zostawić ją taką, jaka jest, czy zamienić w dzielnicę mieszkaniową, w której wszystko jest w 15 minut pieszo.'
   lat: 50.03998
   lng: 19.99262
-  votes: [212, 168]
+  votes: [56, 44]
+  survey_responses: 40
   days_ago: 20
   details: {topic: Przyszłość terenów przemysłowych w Płaszowie, decisionBy: Rada Miasta Krakowa, consultationEnd: '2026-12-15', contactPerson: Wydział Partycypacji Społecznej, contactEmail: konsultacje@urzad-demo.example, rationale: 'Zależy nam na decyzji opartej na głosie mieszkańców, a nie tylko na planach inwestorów.'}
   custom_fields:
@@ -316,8 +322,13 @@ pokestops:
     - {value: industrial, label: Zostawić przemysł}
     - {value: residential, label: Dzielnica mieszkaniowa 15-minutowa}
     - {value: mixed, label: 'Mieszanka: mieszkania i praca'}
-  - {key: live_nearby, label: 'Czy mieszkasz w okolicy Płaszowa?', type: boolean}
-  - {key: remarks, label: Uwagi do planu, type: textarea, required: false}
+    weights: [20, 45, 35]
+  - {key: live_nearby, label: 'Czy mieszkasz w okolicy Płaszowa?', type: boolean, 'yes': 0.45}
+  - key: remarks
+    label: Uwagi do planu
+    type: textarea
+    required: false
+    samples: ['Potrzebne są szkoły i przychodnie, nie same bloki.', Zostawcie trochę miejsc pracy w mieście., Szkoda terenów zielonych przy Wiśle., 'Wolę mieszkania blisko pracy, ale z zielenią.']
   votes_by: {tester@demo.smartcity.example: for}
 - author: urzad@demo.smartcity.example
   scenario: org-consultation
@@ -325,7 +336,8 @@ pokestops:
   description: Linia tramwajowa do Mistrzejowic wymaga wycinki drzew wzdłuż trasy. Pytamy, czy zbudować tramwaj, czy zostawić drzewa i poprawić autobusy.
   lat: 50.09743
   lng: 20.0096
-  votes: [340, 295]
+  votes: [53, 47]
+  survey_responses: 30
   days_ago: 8
   details: {topic: Trasa tramwaju do Mistrzejowic i wycinka drzew, decisionBy: Zarząd Transportu Publicznego, consultationEnd: '2026-11-30', estimatedCost: 480000000, contactPerson: Wydział Partycypacji Społecznej, contactEmail: konsultacje@urzad-demo.example, rationale: 'Tramwaj skróci dojazd do centrum, ale kosztem zieleni. Chcemy poznać Wasze priorytety.'}
   custom_fields:
@@ -339,6 +351,7 @@ pokestops:
     - {value: tram, label: Zbudować tramwaj}
     - {value: trees, label: Zostawić drzewa}
     - {value: compromise, label: 'Tramwaj, ale z nasadzeniami zastępczymi'}
+    weights: [40, 30, 30]
   - {key: daily_commute, label: 'Jak często dojeżdżasz do centrum?', type: rating, min: 1, max: 5}
   votes_by: {tester@demo.smartcity.example: for}
 - author: urzad@demo.smartcity.example
@@ -348,6 +361,7 @@ pokestops:
   lat: 50.05889
   lng: 19.93673
   votes: [1, 0]
+  survey_responses: 1
   days_ago: 25
   status: resolved
   status_note: Konsultacje zakończone.
@@ -373,7 +387,7 @@ pokestops:
   lat: 50.07835
   lng: 19.89944
   character: bench
-  votes: [44, 13]
+  votes: [22, 6]
   exp: 200
   days_ago: 19
 - author: ola@demo.smartcity.example
@@ -383,7 +397,7 @@ pokestops:
   lat: 50.04091
   lng: 19.94278
   character: bench
-  votes: [29, 31]
+  votes: [14, 16]
   exp: 60
   days_ago: 17
 - author: natalia@demo.smartcity.example
@@ -393,7 +407,7 @@ pokestops:
   lat: 50.0898
   lng: 19.98596
   character: trash_can
-  votes: [6, 1]
+  votes: [3, 0]
   exp: 140
   days_ago: 5
 - author: weronika@demo.smartcity.example
@@ -403,7 +417,7 @@ pokestops:
   lat: 50.08007
   lng: 20.03992
   character: bench
-  votes: [52, 6]
+  votes: [26, 3]
   exp: 520
   days_ago: 29
 - author: kasia@demo.smartcity.example
@@ -413,7 +427,7 @@ pokestops:
   lat: 50.01636
   lng: 19.88925
   character: small_car
-  votes: [67, 5]
+  votes: [34, 2]
   exp: 100
   days_ago: 33
 - author: janusz@demo.smartcity.example
@@ -423,7 +437,7 @@ pokestops:
   lat: 50.00171
   lng: 19.92216
   character: van
-  votes: [31, 18]
+  votes: [16, 9]
   exp: 20
   days_ago: 13
 - author: filip@demo.smartcity.example
@@ -433,7 +447,7 @@ pokestops:
   lat: 50.09703
   lng: 19.89436
   character: suv
-  votes: [55, 7]
+  votes: [28, 4]
   exp: 270
   days_ago: 24
 - author: michal@demo.smartcity.example
@@ -443,7 +457,7 @@ pokestops:
   lat: 50.0911
   lng: 20.02566
   character: potted_tree
-  votes: [12, 47]
+  votes: [6, 24]
   exp: 80
   days_ago: 16
   comments:
@@ -459,7 +473,7 @@ pokestops:
   lat: 50.0649
   lng: 19.93148
   character: suv
-  votes: [38, 5]
+  votes: [19, 2]
   exp: 330
   days_ago: 8
 - author: agnieszka@demo.smartcity.example
@@ -469,7 +483,7 @@ pokestops:
   lat: 50.04128
   lng: 19.96209
   character: small_car
-  votes: [22, 9]
+  votes: [11, 4]
   exp: 400
   days_ago: 14
 - author: oskar@demo.smartcity.example
@@ -479,7 +493,7 @@ pokestops:
   lat: 50.02113
   lng: 20.01685
   character: van
-  votes: [47, 3]
+  votes: [24, 2]
   exp: 50
   days_ago: 27
 - author: tomek@demo.smartcity.example
@@ -489,7 +503,7 @@ pokestops:
   lat: 50.09121
   lng: 19.92869
   character: sports_car
-  votes: [7, 9]
+  votes: [4, 4]
   exp: 30
   days_ago: 4
 - author: iga@demo.smartcity.example
@@ -499,7 +513,7 @@ pokestops:
   lat: 50.02947
   lng: 19.85941
   character: billboard
-  votes: [73, 4]
+  votes: [36, 2]
   exp: 130
   days_ago: 36
   status: in_progress
@@ -511,7 +525,7 @@ pokestops:
   lat: 50.08985
   lng: 19.88362
   character: fire_hydrant
-  votes: [41, 2]
+  votes: [20, 1]
   exp: 450
   days_ago: 9
 - author: szymon@demo.smartcity.example
@@ -521,7 +535,7 @@ pokestops:
   lat: 50.08012
   lng: 20.18228
   character: air_conditioner
-  votes: [26, 11]
+  votes: [13, 6]
   exp: 70
   days_ago: 31
 - author: ewa@demo.smartcity.example
@@ -531,7 +545,7 @@ pokestops:
   lat: 50.0491
   lng: 19.90508
   character: cone
-  votes: [33, 7]
+  votes: [16, 4]
   exp: 550
   days_ago: 23
 - author: halina@demo.smartcity.example
@@ -541,7 +555,7 @@ pokestops:
   lat: 50.03278
   lng: 19.93852
   character: floor_hole
-  votes: [58, 4]
+  votes: [29, 2]
   exp: 730
   days_ago: 60
   status: resolved
@@ -553,7 +567,7 @@ pokestops:
   lat: 50.02322
   lng: 19.96037
   character: cone
-  votes: [36, 5]
+  votes: [18, 2]
   exp: 210
   days_ago: 18
 - author: natalia@demo.smartcity.example
@@ -563,7 +577,7 @@ pokestops:
   lat: 50.08739
   lng: 19.99711
   character: floor_hole
-  votes: [19, 12]
+  votes: [10, 6]
   exp: 170
   days_ago: 10
 - author: bartek@demo.smartcity.example
@@ -573,7 +587,7 @@ pokestops:
   lat: 50.06416
   lng: 20.00381
   character: bicycle
-  votes: [3, 0]
+  votes: [2, 0]
   exp: 190
   days_ago: 3
 - author: weronika@demo.smartcity.example
@@ -583,7 +597,7 @@ pokestops:
   lat: 50.05833
   lng: 19.96108
   character: bicycle
-  votes: [83, 61]
+  votes: [42, 30]
   exp: 300
   days_ago: 21
 - author: filip@demo.smartcity.example
@@ -593,6 +607,6 @@ pokestops:
   lat: 50.08724
   lng: 19.90212
   character: cone
-  votes: [21, 34]
+  votes: [10, 17]
   exp: 120
   days_ago: 12

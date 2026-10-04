@@ -178,11 +178,13 @@ def _claim_photos(user: User, ids: list[int]) -> list[Photo]:
 
 # ───────────────────────── głosowanie ─────────────────────────
 
-def vote(*, user: User, pokestop_id: int, value: str, pokemon_id: int, fix: Fix) -> tuple[Pokestop, Pokemon]:
+def vote(*, user: User, pokestop_id: int, value: str, pokemon_id: int, fix: Fix, verify_location: bool = True) -> tuple[Pokestop, Pokemon]:
+    """Głos oddany z bliska. `verify_location=False` tylko dla danych demo (`seed_demo`): głosujący nie mają prawdziwego GPS, a reszta reguł
+    (zasięg względem podanej pozycji, jeden głos, exp, zwrot zastawu po progu) działa jak w grze."""
     cfg = settings.APP.game
     if user.role == Role.ADMIN:
         raise _forbidden('forbidden', 'Administrator nie głosuje')
-    verified = location.verify(user, fix)
+    verified = location.verify(user, fix) if verify_location else fix
     lat, lng = verified.lat, verified.lng
     with transaction.atomic():
         stop = Pokestop.objects.select_for_update().filter(pk=pokestop_id).exclude(status=Status.REJECTED).first()

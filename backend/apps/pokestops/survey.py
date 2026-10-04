@@ -101,7 +101,8 @@ def _survey_stop(pokestop_id: int) -> Pokestop:
     return stop
 
 
-def answer_survey(*, user: User, pokestop_id: int, fix: Fix, answers: dict) -> tuple[Pokestop, Pokemon]:
+def answer_survey(*, user: User, pokestop_id: int, fix: Fix, answers: dict, verify_location: bool = True) -> tuple[Pokestop, Pokemon]:
+    """Odpowiedź na ankietę z bliska. `verify_location=False` tylko dla danych demo (`seed_demo`), reszta reguł działa jak w grze."""
     if user.role != Role.RESIDENT:
         raise services._forbidden('forbidden', 'Ankiety wypełniają mieszkańcy')
     stop = _survey_stop(pokestop_id)
@@ -109,7 +110,7 @@ def answer_survey(*, user: User, pokestop_id: int, fix: Fix, answers: dict) -> t
         raise ApiError(http.HTTP_409_CONFLICT, 'survey_closed', 'Ta ankieta jest już zamknięta')
     if SurveyResponse.objects.filter(pokestop=stop, user=user).exists():
         raise ApiError(http.HTTP_409_CONFLICT, 'already_answered', 'Już wypełniłeś tę ankietę')
-    verified = location.verify(user, fix)
+    verified = location.verify(user, fix) if verify_location else fix
     lat, lng = verified.lat, verified.lng
     radius = settings.APP.game.interaction_range_m
     distance = distance_m(lat, lng, stop.lat, stop.lng)

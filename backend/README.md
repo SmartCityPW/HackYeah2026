@@ -45,8 +45,8 @@ Odrzucenia moderacji AI widzi administrator w aplikacji (karta „Odrzucenia AI�
 
 Konto administratora IT zakłada `bootstrap` (a ręcznie `manage.py ensure_admin`) z adresu `admin.email` w YAML i hasła `ADMIN_PASSWORD` ze środowiska.
 
-Dane demo (23 konta, dwie zweryfikowane organizacje i 42 zmyślone pinezki rozsiane po Krakowie i okolicy; tylko tryb debug, hasło z `DEMO_PASSWORD`):
-`DEMO_PASSWORD=... .venv/bin/python manage.py seed_demo`. Seed jest idempotentny i niczego nie kasuje, więc po zmianie `config/seed/demo.yaml` użyj `manage.py seed_demo --reset`: usuwa wszystkie pinezki (z głosami, komentarzami i ankietami), zdejmuje zastawy i ładuje listę od nowa (konta i wydarzenia zostają). Seed pomija moderację AI i liczy poparcie wprost z pliku (`votes: [za, przeciw]`). Test "z zewnątrz" na działającym serwerze: `.venv/bin/python scripts/api_walkthrough.py`.
+Dane demo (23 konta + 100 głosujących, dwie zweryfikowane organizacje i 42 zmyślone pinezki rozsiane po Krakowie i okolicy; tylko tryb debug, hasło z `DEMO_PASSWORD`):
+`DEMO_PASSWORD=... .venv/bin/python manage.py seed_demo`. Seed jest idempotentny i niczego nie kasuje, więc po zmianie `config/seed/demo.yaml` użyj `manage.py seed_demo --reset`: usuwa wszystkie pinezki (z głosami, komentarzami i ankietami), zdejmuje zastawy i ładuje listę od nowa (konta i wydarzenia zostają). Głosy (`votes: [za, przeciw]`), odpowiedzi ankiet (`survey_responses`), komentarze i statusy powstają **prawdziwymi funkcjami gry** (konta z puli `voters`, exp za głos, zwrot zastawu po progu, walidacja odpowiedzi), więc liczniki zgadzają się z wierszami w bazie, a suma głosów na pinezce nie przekroczy wielkości puli. Pominięte są tylko moderacja AI i sprawdzanie GPS (`verify_location=False`, `moderate=False`), a daty zgłoszeń są postarzane (`days_ago`). Test "z zewnątrz" na działającym serwerze: `.venv/bin/python scripts/api_walkthrough.py`.
 
 Testy: `.venv/bin/python -m pytest` (117 testów, SQLite w pamięci, bez zewnętrznych usług).
 
