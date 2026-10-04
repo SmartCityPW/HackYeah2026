@@ -36,7 +36,7 @@ narzędzie do konsultacji, ankiet i wydarzeń. Wymagania źródłowe: [`docs/opi
 
 | Część | Co działa | Czego brakuje |
 |---|---|---|
-| **Backend** (`backend/`) | **39 z 41 operacji** kontraktu: konta i logowanie, gość, organizacje, katalog i scenariusze, pinezki (tworzenie, głos z bliska, wycofanie, status, komentarze, oś czasu, pola własne), ankiety, wydarzenia, kolekcja, walka z przeciwnikami, moderacja warstwowa (reguły + AI). 300 testów | 2 operacje odpowiadają jawnym `501`: wgrywanie zdjęć (`POST /photos`) i edycja scenariusza (`PUT /admin/scenarios/{code}`) |
+| **Backend** (`backend/`) | **39 z 41 operacji** kontraktu: konta i logowanie, gość, organizacje, katalog i scenariusze, pinezki (tworzenie, głos z bliska, wycofanie, status, komentarze, oś czasu, pola własne), ankiety, wydarzenia, kolekcja, walka z przeciwnikami, moderacja warstwowa (reguły + AI). 301 testów | 2 operacje odpowiadają jawnym `501`: wgrywanie zdjęć (`POST /photos`) i edycja scenariusza (`PUT /admin/scenarios/{code}`) |
 | **Frontend** (`frontend/`) | Aplikacja PWA (Angular 22, mapa 3D) w trzech widokach według roli; wszystkie obszary na prawdziwym backendzie (`api.mode: http`), atrapy zostają do pracy bez backendu. 281 testów | Zdjęcia (czekają na backend), edycja scenariuszy z poziomu administratora |
 | **Kontrakt i baza** (`docs/`) | `openapi.yaml` (41 operacji), schemat bazy, seedy; migracje działają na PostgreSQL w Dockerze, a testy lecą na SQLite | Polityka prywatności i zgoda rodziców dla osób poniżej 16 lat |
 
