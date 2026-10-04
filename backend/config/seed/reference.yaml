@@ -30,8 +30,8 @@ characters:
   - {code: floor_hole,      label: Dziura w chodniku,  emoji: "🕳️", category_label: Chodniki,          type: infra,     base_power: 16, power_growth: 4, model_path: models/spryciaki/floor_hole.glb}
 
   # Rzadkie Spryciaki wyłączne dla wydarzeń (is_event_exclusive): nie wypadają z walk ani ankiet, dostaje się je tylko za obecność na wydarzeniu
-  # zaufanego podmiotu. Organizator wybiera nagrodę z tej listy. Bez modeli 3D (postać zastępcza), więc moc to placeholder jak wyżej.
-  - {code: gold_bike,   label: Złoty Rower,         emoji: "🥇", category_label: Wydarzenia rowerowe,    type: transport, base_power: 40, power_growth: 6, is_event_exclusive: true}
+  # zaufanego podmiotu. Organizator wybiera nagrodę z tej listy. Złoty Rower pokazuje model zwykłego roweru, pozostałe nie mają jeszcze modeli 3D (postać zastępcza), a moc to placeholder jak wyżej.
+  - {code: gold_bike,   label: Złoty Rower,         emoji: "🥇", category_label: Wydarzenia rowerowe,    type: transport, base_power: 40, power_growth: 6, model_path: models/spryciaki/bicycle.glb, is_event_exclusive: true}
   - {code: shiny_bin,   label: Błyszczący Kosz,     emoji: "✨", category_label: Wydarzenia sprzątające, type: clean,     base_power: 36, power_growth: 6, is_event_exclusive: true}
   - {code: giant_tree,  label: Zielony Gigant,      emoji: "🌲", category_label: Wydarzenia zielone,     type: green,     base_power: 42, power_growth: 6, is_event_exclusive: true}
   - {code: lantern,     label: Lampion Festiwalowy, emoji: "🏮", category_label: Festiwale i koncerty,   type: energy,    base_power: 38, power_growth: 6, is_event_exclusive: true}

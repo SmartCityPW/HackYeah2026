@@ -210,7 +210,7 @@
       "emoji": "🥇",
       "categoryLabel": "Wydarzenia rowerowe",
       "typeCode": "transport",
-      "modelPath": null,
+      "modelPath": "models/spryciaki/bicycle.glb",
       "isStarter": false,
       "isEventExclusive": true,
       "basePower": 40,
