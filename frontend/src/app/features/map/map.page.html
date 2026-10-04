@@ -31,8 +31,9 @@
 
 @if (needsLocation()) {
   <p class="locate" role="status">
-    Nie znamy Twojej pozycji, więc nie widać kółka interakcji ani przeciwników. Zezwól przeglądarce na dostęp do lokalizacji@if (devTools) {
-    albo włącz symulowany GPS przyciskiem w prawym dolnym rogu}.
+    Nie znamy Twojej pozycji, więc nie widać kółka interakcji ani przeciwników.
+    @if (locationHint(); as hint) { {{ hint }} } @else { Zezwól przeglądarce na dostęp do lokalizacji. }
+    @if (devTools) { Możesz też włączyć symulowany GPS przyciskiem w prawym dolnym rogu. }
   </p>
 }
 

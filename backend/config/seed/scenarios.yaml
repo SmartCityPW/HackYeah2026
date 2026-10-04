@@ -97,6 +97,86 @@ scenarios:
           - {"key":"title","label":"Tytuł","type":"text","required":true,"placeholder":"Problem dla rowerzystów"}
           - {"key":"description","label":"Opis (opcjonalnie)","type":"textarea","required":false}
           - {"key":"photos","label":"Zdjęcie","type":"photos","required":false,"hint":"Do 3 zdjęć"}
+  - code: "res-noise"
+    audience: "resident"
+    category: "problem"
+    pokestop_type: "report"
+    label: "Hałas"
+    description: "Głośne wydarzenia, nocne imprezy, ruch uliczny."
+    emoji: "🔊"
+    character: "sports_car"
+    default_title: "Uciążliwy hałas"
+    sort_order: 6
+    sections:
+      - title: "Zgłoszenie"
+        fields:
+          - {"key":"title","label":"Tytuł","type":"text","required":true,"placeholder":"Uciążliwy hałas"}
+          - {"key":"description","label":"Opis (opcjonalnie)","type":"textarea","required":false}
+          - {"key":"photos","label":"Zdjęcie","type":"photos","required":false,"hint":"Do 3 zdjęć"}
+  - code: "res-parking"
+    audience: "resident"
+    category: "problem"
+    pokestop_type: "report"
+    label: "Parkowanie"
+    description: "Brak miejsc postojowych, auta na chodniku lub trawniku."
+    emoji: "🅿️"
+    character: "car"
+    default_title: "Problem z parkowaniem"
+    sort_order: 7
+    sections:
+      - title: "Zgłoszenie"
+        fields:
+          - {"key":"title","label":"Tytuł","type":"text","required":true,"placeholder":"Problem z parkowaniem"}
+          - {"key":"description","label":"Opis (opcjonalnie)","type":"textarea","required":false}
+          - {"key":"photos","label":"Zdjęcie","type":"photos","required":false,"hint":"Do 3 zdjęć"}
+  - code: "res-air"
+    audience: "resident"
+    category: "problem"
+    pokestop_type: "report"
+    label: "Smród i smog"
+    description: "Zapach, dym z kominów, zanieczyszczone powietrze."
+    emoji: "🌫️"
+    character: "air_conditioner"
+    default_title: "Smród lub smog"
+    sort_order: 8
+    sections:
+      - title: "Zgłoszenie"
+        fields:
+          - {"key":"title","label":"Tytuł","type":"text","required":true,"placeholder":"Smród lub smog"}
+          - {"key":"description","label":"Opis (opcjonalnie)","type":"textarea","required":false}
+          - {"key":"photos","label":"Zdjęcie","type":"photos","required":false,"hint":"Do 3 zdjęć"}
+  - code: "res-heat"
+    audience: "resident"
+    category: "problem"
+    pokestop_type: "report"
+    label: "Upał i brak cienia"
+    description: "Za mało zieleni i cienia, nagrzany beton."
+    emoji: "☀️"
+    character: "potted_tree"
+    default_title: "Brak cienia i zieleni"
+    sort_order: 9
+    sections:
+      - title: "Zgłoszenie"
+        fields:
+          - {"key":"title","label":"Tytuł","type":"text","required":true,"placeholder":"Brak cienia i zieleni"}
+          - {"key":"description","label":"Opis (opcjonalnie)","type":"textarea","required":false}
+          - {"key":"photos","label":"Zdjęcie","type":"photos","required":false,"hint":"Do 3 zdjęć"}
+  - code: "res-other"
+    audience: "resident"
+    category: "problem"
+    pokestop_type: "report"
+    label: "Inny problem"
+    description: "Coś, co psuje to miejsce, a nie pasuje do pozostałych kategorii."
+    emoji: "📌"
+    character: "cone"
+    default_title: "Inny problem w mieście"
+    sort_order: 10
+    sections:
+      - title: "Zgłoszenie"
+        fields:
+          - {"key":"title","label":"Tytuł","type":"text","required":true,"placeholder":"Inny problem w mieście"}
+          - {"key":"description","label":"Opis (opcjonalnie)","type":"textarea","required":false}
+          - {"key":"photos","label":"Zdjęcie","type":"photos","required":false,"hint":"Do 3 zdjęć"}
   - code: "idea-bus-stop"
     audience: "resident"
     category: "initiative"
@@ -106,7 +186,7 @@ scenarios:
     emoji: "🚏"
     character: "small_car"
     default_title: "Nowy przystanek"
-    sort_order: 6
+    sort_order: 11
     sections:
       - title: "Zgłoszenie"
         fields:
@@ -123,7 +203,7 @@ scenarios:
     emoji: "🥕"
     character: "van"
     default_title: "Sklep warzywny na osiedlu"
-    sort_order: 7
+    sort_order: 12
     sections:
       - title: "Zgłoszenie"
         fields:
@@ -141,7 +221,7 @@ scenarios:
     emoji: "🛝"
     character: "bench"
     default_title: "Nowy plac zabaw"
-    sort_order: 8
+    sort_order: 13
     sections:
       - title: "Zgłoszenie"
         fields:
@@ -158,7 +238,7 @@ scenarios:
     emoji: "🌿"
     character: "potted_tree"
     default_title: "Więcej zieleni"
-    sort_order: 9
+    sort_order: 14
     sections:
       - title: "Zgłoszenie"
         fields:
@@ -175,7 +255,7 @@ scenarios:
     emoji: "🚲"
     character: "bicycle"
     default_title: "Stojaki lub ścieżka rowerowa"
-    sort_order: 10
+    sort_order: 15
     sections:
       - title: "Zgłoszenie"
         fields:
@@ -192,7 +272,7 @@ scenarios:
     emoji: "💭"
     character: "cone"
     default_title: "Mój pomysł dla miasta"
-    sort_order: 11
+    sort_order: 16
     sections:
       - title: "Zgłoszenie"
         fields:
@@ -209,7 +289,7 @@ scenarios:
     emoji: "☕"
     character: "bench"
     default_title: ""
-    sort_order: 12
+    sort_order: 17
     sections:
       - title: "O miejscu"
         fields:
@@ -236,7 +316,7 @@ scenarios:
     emoji: "🌇"
     character: "flower_pot"
     default_title: ""
-    sort_order: 13
+    sort_order: 18
     sections:
       - title: "O miejscu"
         fields:
@@ -263,7 +343,7 @@ scenarios:
     emoji: "🛹"
     character: "sports_car"
     default_title: ""
-    sort_order: 14
+    sort_order: 19
     sections:
       - title: "O miejscu"
         fields:
@@ -289,7 +369,7 @@ scenarios:
     emoji: "🎨"
     character: "billboard"
     default_title: ""
-    sort_order: 15
+    sort_order: 20
     sections:
       - title: "O miejscu"
         fields:
@@ -315,7 +395,7 @@ scenarios:
     emoji: "🚏"
     character: "small_car"
     default_title: "Nowy przystanek autobusowy"
-    sort_order: 16
+    sort_order: 21
     sections:
       - title: "Podstawowe informacje"
         fields:
@@ -362,7 +442,7 @@ scenarios:
     emoji: "🌳"
     character: "tree"
     default_title: "Nowe nasadzenie drzew"
-    sort_order: 17
+    sort_order: 22
     sections:
       - title: "Podstawowe informacje"
         fields:
@@ -399,7 +479,7 @@ scenarios:
     emoji: "🪑"
     character: "bench"
     default_title: "Uszkodzona mała architektura"
-    sort_order: 18
+    sort_order: 23
     sections:
       - title: "Podstawowe informacje"
         fields:
@@ -432,7 +512,7 @@ scenarios:
     emoji: "🚧"
     character: "cone"
     default_title: "Uszkodzenie nawierzchni"
-    sort_order: 19
+    sort_order: 24
     sections:
       - title: "Podstawowe informacje"
         fields:
@@ -448,6 +528,35 @@ scenarios:
           - {"key":"depthCm","label":"Głębokość","type":"number","required":false,"unit":"cm","min":0}
           - {"key":"blocksPassage","label":"Szkoda blokuje przejście lub przejazd","type":"boolean","required":false}
           - {"key":"affected","label":"Kogo to dotyczy","type":"multiselect","required":false,"options":[{"value":"pedestrians","label":"Piesi"},{"value":"wheelchairs","label":"Wózki i osoby z niepełnosprawnościami"},{"value":"visually","label":"Osoby niewidome"},{"value":"bikes","label":"Rowerzyści"},{"value":"cars","label":"Kierowcy"}]}
+      - title: "Kontakt i odpowiedzialność"
+        fields:
+          - {"key":"contactPerson","label":"Osoba kontaktowa","type":"text","required":true}
+          - {"key":"contactEmail","label":"E-mail kontaktowy","type":"text","required":true,"placeholder":"osoba@organizacja.pl"}
+          - {"key":"contactPhone","label":"Telefon","type":"text","required":false}
+          - {"key":"rationale","label":"Uzasadnienie i korzyści dla mieszkańców","type":"textarea","required":true}
+  - code: "org-consultation"
+    audience: "org"
+    category: null
+    pokestop_type: "consultation"
+    label: "Konsultacje społeczne"
+    description: "Pytamy mieszkańców o zdanie w sprawie planowanej zmiany. Ankieta z pytaniami dodawana jest do inicjatywy."
+    emoji: "🗳️"
+    character: "bicycle"
+    default_title: "Konsultacje społeczne"
+    sort_order: 25
+    sections:
+      - title: "Podstawowe informacje"
+        fields:
+          - {"key":"character","label":"Postać na mapie","type":"character","required":false,"hint":"Jak ta inicjatywa wyświetli się mieszkańcom"}
+          - {"key":"title","label":"Tytuł inicjatywy","type":"text","required":true,"placeholder":"Konsultacje społeczne"}
+          - {"key":"description","label":"Krótki opis dla mieszkańców","type":"textarea","required":true}
+          - {"key":"photos","label":"Zdjęcia, wizualizacje","type":"photos","required":false,"hint":"Do 3 zdjęć"}
+      - title: "Przebieg konsultacji"
+        fields:
+          - {"key":"topic","label":"Czego dotyczą konsultacje","type":"text","required":true,"placeholder":"np. przyszłość terenów poprzemysłowych"}
+          - {"key":"decisionBy","label":"Kto podejmie decyzję","type":"text","required":false,"placeholder":"np. Rada Miasta Krakowa"}
+          - {"key":"consultationEnd","label":"Konsultacje trwają do","type":"date","required":false}
+          - {"key":"estimatedCost","label":"Szacowany koszt przedsięwzięcia","type":"number","required":false,"unit":"zł","min":0}
       - title: "Kontakt i odpowiedzialność"
         fields:
           - {"key":"contactPerson","label":"Osoba kontaktowa","type":"text","required":true}

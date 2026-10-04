@@ -62,6 +62,11 @@ export class MapController implements OnDestroy {
       this.centerPosition.set({ lat, lng });
     };
     this.map.on('move', syncCenter);
+    // Styl OpenFreeMap odwołuje się do ikon, których nie ma w jego sprite'cie (np. running, shooting, brownfield). MapLibre ostrzega o każdej
+    // w konsoli. Podstawiamy przezroczysty piksel: te punkty i tak nie mają ikony, a konsola zostaje czysta.
+    this.map.on('styleimagemissing', (event) => {
+      if (!this.map!.hasImage(event.id)) this.map!.addImage(event.id, { width: 1, height: 1, data: new Uint8Array(4) });
+    });
     this.map.on('load', () => {
       this.map!.addLayer(this.characters);
       syncCenter();

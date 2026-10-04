@@ -45,8 +45,8 @@ Odrzucenia moderacji AI widzi administrator w aplikacji (karta „Odrzucenia AI�
 
 Konto administratora IT zakłada `bootstrap` (a ręcznie `manage.py ensure_admin`) z adresu `admin.email` w YAML i hasła `ADMIN_PASSWORD` ze środowiska.
 
-Dane demo (konta, zweryfikowana organizacja i 6 pinezek wokół Rynku w Krakowie; tylko tryb debug, hasło z `DEMO_PASSWORD`):
-`DEMO_PASSWORD=... .venv/bin/python manage.py seed_demo`. Test "z zewnątrz" na działającym serwerze: `.venv/bin/python scripts/api_walkthrough.py`.
+Dane demo (23 konta, dwie zweryfikowane organizacje i 42 zmyślone pinezki rozsiane po Krakowie i okolicy; tylko tryb debug, hasło z `DEMO_PASSWORD`):
+`DEMO_PASSWORD=... .venv/bin/python manage.py seed_demo`. Seed jest idempotentny i niczego nie kasuje, więc po zmianie `config/seed/demo.yaml` użyj `manage.py seed_demo --reset`: usuwa wszystkie pinezki (z głosami, komentarzami i ankietami), zdejmuje zastawy i ładuje listę od nowa (konta i wydarzenia zostają). Seed pomija moderację AI i liczy poparcie wprost z pliku (`votes: [za, przeciw]`). Test "z zewnątrz" na działającym serwerze: `.venv/bin/python scripts/api_walkthrough.py`.
 
 Testy: `.venv/bin/python -m pytest` (117 testów, SQLite w pamięci, bez zewnętrznych usług).
 

@@ -40,17 +40,47 @@ export class AuthService {
     this.store(await firstValueFrom(this.http.post<Tokens>(`${this.config.api.baseUrl}/auth/guest`, {})));
   }
 
-  /** Odświeża token dostępu. Zwraca false, gdy odświeżenie się nie udało (sesja wygasła). */
+  /**
+   * Odświeża token dostępu. Zwraca false, gdy odświeżenie się nie udało (sesja wygasła albo tokeny pochodzą z innego serwera,
+   * np. po zmianie klucza lub bazy). Wtedy kończymy sesję: bez tego aplikacja zostawała z martwym tokenem i każde żądanie
+   * dostawało 401, aż użytkownik sam przeładował stronę.
+   */
   async refresh(): Promise<boolean> {
     const refresh = this.read(this.keys.refresh);
-    if (!refresh) return false;
+    if (!refresh) {
+      this.endSession();
+      return false;
+    }
     try {
       this.store(await firstValueFrom(this.http.post<Tokens>(`${this.config.api.baseUrl}/auth/refresh`, { refresh })));
       return true;
     } catch {
-      this.clear();
+      this.endSession();
       return false;
     }
+  }
+
+  /** Usuwa nieważne tokeny i, gdy włączono `auth.autoGuest`, przeładowuje stronę: start aplikacji założy wtedy nowe konto gościa. */
+  private endSession(): void {
+    this.clear();
+    if (this.needsSession && this.config.auth.autoGuest && this.mayReload()) this.reloadPage();
+  }
+
+  /** Najwyżej jedno przeładowanie na 15 s, żeby niedostępny backend nie wprowadził strony w pętlę przeładowań. */
+  private mayReload(): boolean {
+    const key = `${this.config.auth.storageKeyPrefix}.reloadedAt`;
+    try {
+      const last = Number(sessionStorage.getItem(key) ?? 0);
+      if (Date.now() - last < 15_000) return false;
+      sessionStorage.setItem(key, String(Date.now()));
+    } catch {
+      /* sessionStorage niedostępny: przeładowujemy raz na wywołanie, a start aplikacji i tak nie zapętli się bez tokenu */
+    }
+    return true;
+  }
+
+  protected reloadPage(): void {
+    location.reload();
   }
 
   /** Zapamiętuje tokeny po logowaniu lub rejestracji (sesja zaczyna działać od następnego żądania). */

@@ -1,0 +1,19 @@
+# Jednolite końce linii (LF) w całym repozytorium, także po klonowaniu na Windows (core.autocrlf=true).
+# Pliki wykonywane w kontenerach Linuksa z CRLF przestają działać ("exec ./entrypoint.sh: no such file or directory").
+* text=auto eol=lf
+*.sh text eol=lf
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+Dockerfile text eol=lf
+# Pliki binarne
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.pdf binary
+*.glb binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary

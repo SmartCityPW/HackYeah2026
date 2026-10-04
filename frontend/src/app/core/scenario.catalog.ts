@@ -111,6 +111,11 @@ export const RESIDENT_SCENARIOS: Scenario[] = [
   problem('res-green', 'Zaniedbana zieleń', '🌳', 'tree', 'Zarośnięty skwer, chore drzewo, brak trawnika.', 'Zaniedbana zieleń'),
   problem('res-transport', 'Problem z komunikacją', '🚆', 'car', 'Przystanek, rozkład, korek, niebezpieczne przejście.', 'Problem z komunikacją'),
   problem('res-bike', 'Problem dla rowerzystów', '🚴', 'bicycle', 'Brak ścieżki, zepsuty stojak, niebezpieczny odcinek.', 'Problem dla rowerzystów'),
+  problem('res-noise', 'Hałas', '🔊', 'sports_car', 'Głośne wydarzenia, nocne imprezy, ruch uliczny.', 'Uciążliwy hałas'),
+  problem('res-parking', 'Parkowanie', '🅿️', 'car', 'Brak miejsc postojowych, auta na chodniku lub trawniku.', 'Problem z parkowaniem'),
+  problem('res-air', 'Smród i smog', '🌫️', 'air_conditioner', 'Zapach, dym z kominów, zanieczyszczone powietrze.', 'Smród lub smog'),
+  problem('res-heat', 'Upał i brak cienia', '☀️', 'potted_tree', 'Za mało zieleni i cienia, nagrzany beton.', 'Brak cienia i zieleni'),
+  problem('res-other', 'Inny problem', '📌', 'cone', 'Coś, co psuje to miejsce, a nie pasuje do pozostałych kategorii.', 'Inny problem w mieście'),
 
   initiative('idea-bus-stop', 'Przystanek autobusowy', '🚏', 'small_car', 'Tu przydałby się nowy przystanek.', 'Nowy przystanek'),
   initiative('idea-shop', 'Sklep lub usługa na osiedlu', '🥕', 'van', 'Warzywniak, piekarnia, apteka, punkt usługowy.', 'Sklep warzywny na osiedlu', [
@@ -299,6 +304,29 @@ export const ORG_SCENARIOS: Scenario[] = [
           { key: 'depthCm', label: 'Głębokość', type: 'number', unit: 'cm', min: 0 },
           yes('blocksPassage', 'Szkoda blokuje przejście lub przejazd'),
           { key: 'affected', label: 'Kogo to dotyczy', type: 'multiselect', options: opts(['pedestrians', 'Piesi'], ['wheelchairs', 'Wózki i osoby z niepełnosprawnościami'], ['visually', 'Osoby niewidome'], ['bikes', 'Rowerzyści'], ['cars', 'Kierowcy']) },
+        ],
+      },
+      contactSection(),
+    ],
+  },
+  {
+    id: 'org-consultation',
+    audience: 'org',
+    pokestopType: 'consultation',
+    label: 'Konsultacje społeczne',
+    emoji: '🗳️',
+    description: 'Pytamy mieszkańców o zdanie w sprawie planowanej zmiany. Ankieta z pytaniami dodawana jest do inicjatywy.',
+    character: 'bicycle',
+    defaultTitle: 'Konsultacje społeczne',
+    sections: [
+      basics('Konsultacje społeczne'),
+      {
+        title: 'Przebieg konsultacji',
+        fields: [
+          { key: 'topic', label: 'Czego dotyczą konsultacje', type: 'text', required: true, placeholder: 'np. przyszłość terenów poprzemysłowych' },
+          { key: 'decisionBy', label: 'Kto podejmie decyzję', type: 'text', placeholder: 'np. Rada Miasta Krakowa' },
+          { key: 'consultationEnd', label: 'Konsultacje trwają do', type: 'date' },
+          { key: 'estimatedCost', label: 'Szacowany koszt przedsięwzięcia', type: 'number', unit: 'zł', min: 0 },
         ],
       },
       contactSection(),

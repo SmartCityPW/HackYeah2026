@@ -97,6 +97,57 @@ describe('GeolocationService (pozycja z danymi do weryfikacji przez serwer)', ()
     expect(await geo.fresh()).toBeNull();
   });
 
+  describe('błędy lokalizacji', () => {
+    /** Atrapa, w której `watchPosition` zapamiętuje oba callbacki i opcje kolejnych wywołań. */
+    const stubWatch = () => {
+      const calls: { ok: PositionCallback; fail: (e: Partial<GeolocationPositionError>) => void; options: PositionOptions }[] = [];
+      Object.defineProperty(navigator, 'geolocation', {
+        configurable: true,
+        value: {
+          watchPosition: (ok: PositionCallback, fail: (e: Partial<GeolocationPositionError>) => void, options: PositionOptions) => {
+            calls.push({ ok, fail, options });
+            return calls.length;
+          },
+          clearWatch: () => undefined,
+          getCurrentPosition: () => undefined,
+        },
+      });
+      return calls;
+    };
+
+    it('retries once with low accuracy when the browser cannot work out the position (Safari on a Mac has no GPS)', () => {
+      const calls = stubWatch();
+      const geo = setup();
+      geo.start();
+      expect(calls[0].options.enableHighAccuracy).toBe(true);
+      calls[0].fail({ code: 2, message: 'kCLErrorLocationUnknown' });
+      expect(calls).toHaveLength(2);
+      expect(calls[1].options.enableHighAccuracy).toBe(false);
+      expect(geo.locationProblem()).toBeNull(); // jeszcze próbujemy
+      calls[1].ok(reading(50.06, 19.94, 80, Date.now()));
+      expect(geo.latLng()).toMatchObject({ lat: 50.06, lng: 19.94, accuracyM: 80, source: 'gps' });
+    });
+
+    it('does not retry after a refusal and reports why there is no position', () => {
+      const calls = stubWatch();
+      const geo = setup();
+      geo.start();
+      calls[0].fail({ code: 1, message: 'User denied Geolocation' });
+      expect(calls).toHaveLength(1);
+      expect(geo.locationProblem()).toBe('denied');
+    });
+
+    it('reports an unavailable position when even the low-accuracy retry fails, with the browser message', () => {
+      const calls = stubWatch();
+      const geo = setup();
+      geo.start();
+      calls[0].fail({ code: 3, message: 'Timeout expired' });
+      calls[1].fail({ code: 2, message: 'kCLErrorLocationUnknown' });
+      expect(geo.locationProblem()).toBe('unavailable');
+      expect(geo.locationDetail()).toBe('kCLErrorLocationUnknown');
+    });
+  });
+
   describe('?gps=lat,lng (mock location for tests, dev tools only)', () => {
     it('starts with a simulated position from the address', () => {
       history.replaceState({}, '', '/?gps=50.0676,19.9917');

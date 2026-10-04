@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import * as THREE from 'three';
 import { createCharacter } from './character-factory';
+import { addLights } from './lighting';
 
 /** Rozmiar bufora renderowania jednej miniatury (px, przed devicePixelRatio). */
 const RENDER_PX = 220;
@@ -78,10 +79,7 @@ export class ModelPreviewService {
     renderer.setPixelRatio(ratio);
     renderer.setSize(RENDER_PX, RENDER_PX, false);
     renderer.setClearColor(0x000000, 0);
-    this.scene.add(new THREE.AmbientLight(0xffffff, 1.6));
-    const sun = new THREE.DirectionalLight(0xffffff, 2.2);
-    sun.position.set(-1, 2, 1.5);
-    this.scene.add(sun);
+    addLights(this.scene);
     this.renderer = renderer;
   }
 

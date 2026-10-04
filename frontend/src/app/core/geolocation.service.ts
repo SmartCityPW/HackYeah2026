@@ -10,6 +10,13 @@ interface Fix {
   takenAt: number;
 }
 
+/** Dlaczego nie mamy pozycji z przeglądarki (do komunikatu dla użytkownika). */
+export type LocationProblem = 'denied' | 'unavailable' | 'timeout' | 'insecure' | 'unsupported';
+
+/** Kody błędów `GeolocationPositionError`, których nie importujemy z DOM (w testach obiekt bywa atrapą). */
+const PERMISSION_DENIED = 1;
+const TIMEOUT = 3;
+
 /**
  * Pozycja użytkownika. `position` to prawdziwy GPS albo, w trybie deweloperskim, pozycja symulowana (do testów bez wychodzenia z domu:
  * przycisk GPS, strzałki/WASD albo parametr adresu `?gps=lat,lng`). Symulacja jest oznaczona `source: 'simulated'`, a serwer przyjmie ją
@@ -21,6 +28,11 @@ export class GeolocationService {
   private readonly actual = signal<Fix | null>(null);
   private readonly simulated = signal<[number, number] | null>(null);
   private watchId?: number;
+  private readonly problem = signal<LocationProblem | null>(null);
+  /** Dlaczego przeglądarka nie podaje pozycji (null, gdy podaje albo jeszcze czekamy). */
+  readonly locationProblem = this.problem.asReadonly();
+  /** Komunikat techniczny z przeglądarki (np. "kCLErrorLocationUnknown" w Safari), pomocny przy diagnozie. */
+  readonly locationDetail = signal('');
 
   readonly position = computed(() => this.simulated() ?? this.actual()?.lngLat ?? null);
   readonly isSimulated = computed(() => this.simulated() !== null);
@@ -34,14 +46,46 @@ export class GeolocationService {
 
   start(): void {
     this.applyUrlOverride();
-    if (this.watchId !== undefined || !('geolocation' in navigator)) return;
+    if (this.watchId !== undefined) return;
+    if (!('geolocation' in navigator)) {
+      this.problem.set('unsupported');
+      return;
+    }
+    // Poza HTTPS i localhost przeglądarki (Safari bez ostrzeżenia) odmawiają lokalizacji.
+    if (globalThis.isSecureContext === false) {
+      this.problem.set('insecure');
+      return;
+    }
+    this.watch(true);
+  }
+
+  /**
+   * Obserwuje pozycję. Wysoka dokładność prosi o GPS, którego komputer (np. Mac z Safari) nie ma: wtedy przeglądarka często odpowiada
+   * błędem "pozycja nieznana" albo przekracza czas, więc przy takim błędzie próbujemy jeszcze raz z niską dokładnością (Wi-Fi, adres IP).
+   * Odmowa zgody jest ostateczna i nie ma sensu jej ponawiać.
+   */
+  private watch(highAccuracy: boolean): void {
     this.watchId = navigator.geolocation.watchPosition(
-      (pos) => this.actual.set(this.toFix(pos)),
-      () => {
-        /* brak zgody lub GPS: aplikacja działa dalej na domyślnym widoku */
+      (pos) => {
+        this.problem.set(null);
+        this.actual.set(this.toFix(pos));
       },
-      { enableHighAccuracy: true },
+      (error?: GeolocationPositionError) => {
+        const code = error?.code ?? 2;
+        this.locationDetail.set(error?.message ?? '');
+        if (code !== PERMISSION_DENIED && highAccuracy) {
+          this.restart(false);
+          return;
+        }
+        this.problem.set(code === PERMISSION_DENIED ? 'denied' : code === TIMEOUT ? 'timeout' : 'unavailable');
+      },
+      { enableHighAccuracy: highAccuracy, timeout: highAccuracy ? 15_000 : 30_000, maximumAge: highAccuracy ? 0 : 10_000 },
     );
+  }
+
+  private restart(highAccuracy: boolean): void {
+    if (this.watchId !== undefined) navigator.geolocation.clearWatch(this.watchId);
+    this.watch(highAccuracy);
   }
 
   stop(): void {
@@ -57,16 +101,19 @@ export class GeolocationService {
   fresh(): Promise<PlayerPosition | null> {
     if (this.simulated() || !('geolocation' in navigator)) return Promise.resolve(this.latLng());
     const { gpsMaxAgeSeconds, gpsTimeoutSeconds } = this.appConfig.config.game;
-    return new Promise((resolve) => {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          this.actual.set(this.toFix(pos));
-          resolve(this.latLng());
-        },
-        () => resolve(this.latLng()),
-        { enableHighAccuracy: true, maximumAge: gpsMaxAgeSeconds * 1000, timeout: gpsTimeoutSeconds * 1000 },
-      );
-    });
+    const read = (enableHighAccuracy: boolean): Promise<GeolocationPosition | null> =>
+      new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition((pos) => resolve(pos), () => resolve(null), {
+          enableHighAccuracy, maximumAge: gpsMaxAgeSeconds * 1000, timeout: gpsTimeoutSeconds * 1000,
+        });
+      });
+    // Jak przy obserwowaniu: gdy GPS (wysoka dokładność) zawodzi, pytamy jeszcze raz o pozycję z Wi-Fi/IP.
+    return read(true)
+      .then((pos) => pos ?? read(false))
+      .then((pos) => {
+        if (pos) this.actual.set(this.toFix(pos));
+        return this.latLng();
+      });
   }
 
   /** Tryb deweloperski: "spacer" symulowaną pozycją o `dn` metrów na północ i `de` na wschód. */

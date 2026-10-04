@@ -23,7 +23,7 @@ narzędzie do konsultacji, ankiet i wydarzeń. Wymagania źródłowe: [`docs/opi
 
 | Mechanika | Jak działa |
 |---|---|
-| **Pinezki** | Zgłoszenie problemu, pomysł mieszkańca, cool miejsce, inicjatywa NGO, konsultacje. Formularze to dane (katalog 20 scenariuszy), nie kod. |
+| **Pinezki** | Zgłoszenie problemu, pomysł mieszkańca, cool miejsce, inicjatywa NGO, konsultacje. Formularze to dane (katalog 26 scenariuszy), nie kod. |
 | **Zastaw** | Zgłaszając problem lub pomysł zostawiasz na nim jednego swojego pokemona. Wraca z premią exp, gdy zgłoszenie zbierze próg głosów lub zostanie rozwiązane, a bez premii po odrzuceniu lub wycofaniu. |
 | **Głosowanie z bliska** | Głos „za/przeciw” działa tylko w promieniu 50 m od pinezki (liczy serwer). Za głos wybrany pokemon dostaje exp. Autor nie głosuje na własną pinezkę. |
 | **Moderacja** | Dwie warstwy (`moderation.provider: layered`, domyślnie). 1) **Reguły** (`config/moderation_rules.yaml`, bez sieci i klucza): wulgaryzmy, mowa nienawiści, groźby, dane osobowe (telefon, e-mail, PESEL, karta), spam i linki, próby wstrzyknięcia instrukcji do AI; obejmują też warianty typu `k u r w a`, `ku*wa`, `kurwaaa`. 2) **Google Gemini** (klucz `AI_API_KEY`): ocenia, czy zgłoszenie dotyczy miasta. Bez klucza działają same reguły. Moderowane są: zgłoszenia mieszkańców (reguły + AI), komentarze, odpowiedzi tekstowe w ankietach i nazwy (konto, organizacja) (reguły). Odrzucone nie powstają i trafiają do logu z kategorią (`vulgar`, `spam`, `injection`, `ai`…). Awaria Gemini nie przepuszcza treści (zmienisz to w `moderation.layered.on_ai_error`). |
@@ -74,7 +74,7 @@ Terminal 1, serwer:
 
 ```bash
 .venv/bin/python manage.py bootstrap     # migracje + słowniki + 20 scenariuszy
-.venv/bin/python manage.py seed_demo     # 8 kont, zweryfikowana fundacja, 6 pinezek w Krakowie
+.venv/bin/python manage.py seed_demo     # 23 konta, 2 zweryfikowane organizacje, 42 pinezki w Krakowie (świeże dane: seed_demo --reset)
 .venv/bin/python manage.py runserver     # http://localhost:8000/api/v1/
 ```
 
@@ -194,6 +194,36 @@ docker compose --profile tls up -d --build                        # PostgreSQL +
 - Sprawdzenie moderacji na żywo (z kluczem): `cd backend && python manage.py moderation_eval --delay 3`; bez klucza pomija przypadki „nie na temat”.
 
 **Czego prototyp nie ma:** zdjęć (`POST /photos` → 501), polityki prywatności i zgody rodziców dla osób poniżej 16 lat (do dopisania przed publicznym udostępnieniem), unieważniania tokenów po wylogowaniu, pewności co do lokalizacji (pozycję podaje telefon; serwer odrzuca złą dokładność, stare odczyty i teleportację, ale jej nie dowodzi).
+
+### Windows (i inne systemy niż macOS)
+
+Najprościej przez Dockera: zainstaluj **Docker Desktop** (z WSL2) i **Git**, a potem w PowerShell:
+
+```powershell
+git clone git@github.com:SmartCityPW/HackYeah2026.git
+cd HackYeah2026
+copy .env.example .env          # uzupełnij DJANGO_SECRET_KEY, DB_PASSWORD, ADMIN_PASSWORD (AI_API_KEY opcjonalnie)
+docker compose up --build
+```
+
+Aplikacja: http://localhost:4200. Repozytorium ma `.gitattributes` wymuszające końce linii LF; jeśli sklonowałeś je **przed** tą zmianą i kontener backendu wywala
+`exec docker/entrypoint.sh: no such file or directory`, to pliki mają CRLF. Napraw: `git add --renormalize .` albo sklonuj repozytorium od nowa (`git config --global core.autocrlf input`).
+
+Bez Dockera (backend na SQLite, frontend `npm start`) w PowerShell, w `backend`:
+
+```powershell
+py -3.13 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements\dev.txt
+copy config\local.example.yaml config\local.yaml
+$env:DJANGO_SECRET_KEY = "dowolny-dlugi-ciag"
+$env:APP_CONFIG_OVERRIDE = "config/local.yaml"
+$env:DEMO_PASSWORD = "demo-haslo-1234"
+python manage.py bootstrap; python manage.py seed_demo; python manage.py runserver
+```
+
+(zmienne ustawiasz w każdym oknie PowerShell; odpowiednik `source config/local.env`). Testy: `python -m pytest`. Kopię bazy w Dockerze zrobisz
+`docker compose exec -T db pg_dump -U smartcity smartcity > backup.sql` (zamiast `scripts/backup_db.sh`). Frontend: `cd frontend; npm ci; npm start`.
 
 ### 8. Kontrola dokumentacji względem kodu
 

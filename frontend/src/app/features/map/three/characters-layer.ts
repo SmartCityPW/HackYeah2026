@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import * as maplibregl from 'maplibre-gl';
 import { CharacterId, Pokestop, isTrustedType } from '../../../core/pokestop.model';
 import { createCharacter, createEventBase, createTrustedMarker } from './character-factory';
+import { addLights } from './lighting';
 
 /** Klucz wspólnego modelu inicjatyw zaufanych podmiotów w pamięci podręcznej (nie jest kodem postaci). */
 const TRUSTED_KEY = '!trusted';
@@ -38,10 +39,7 @@ export class CharactersLayer implements maplibregl.CustomLayerInterface {
     this.map = map;
     this.renderer = new THREE.WebGLRenderer({ canvas: map.getCanvas(), context: gl, antialias: true });
     this.renderer.autoClear = false;
-    this.scene.add(new THREE.AmbientLight(0xffffff, 1.6));
-    const sun = new THREE.DirectionalLight(0xffffff, 2.2);
-    sun.position.set(-1, 2, 1.5);
-    this.scene.add(sun);
+    addLights(this.scene);
   }
 
   onRemove(): void {
