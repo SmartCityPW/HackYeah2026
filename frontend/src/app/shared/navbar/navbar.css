@@ -3,7 +3,8 @@ nav { display: flex; justify-content: space-around; background: var(--surface); 
 .item { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 2px; border-radius: 12px; font-size: .72rem; color: var(--text-muted); text-decoration: none; }
 .icon { font-size: 1.35rem; }
 .item.active { color: var(--brand-strong); font-weight: 700; }
-.item.active .icon { background: var(--tint); border-radius: 999px; padding: 2px 14px; }
+.pill { display: inline-flex; padding: 2px 14px; border-radius: 999px; }
+.item.active .pill { background: var(--tint); }
 .soon { opacity: .5; cursor: not-allowed; }
 .soon small { font-size: .6rem; }
 

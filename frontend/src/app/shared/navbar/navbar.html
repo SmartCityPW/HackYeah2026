@@ -2,14 +2,14 @@
   @for (item of items(); track item.path) {
     @if (item.soon) {
       <span class="item soon" aria-disabled="true">
-        <app-icon class="icon" [name]="item.icon" />
+        <span class="pill"><app-icon class="icon" [name]="item.icon" /></span>
         <span>{{ item.label }}</span>
         <small>wkrótce</small>
       </span>
     } @else {
       <a class="item" [routerLink]="item.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: !!item.exact }"
          [attr.aria-label]="item.badge ? item.label + ', nowych: ' + item.badge : null">
-        <app-icon class="icon" [name]="item.icon" />
+        <span class="pill"><app-icon class="icon" [name]="item.icon" /></span>
         <span>{{ item.label }}</span>
         @if (item.badge) { <b class="badge" aria-hidden="true">{{ item.badge > 99 ? '99+' : item.badge }}</b> }
       </a>
