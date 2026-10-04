@@ -57,7 +57,7 @@ Każdy krok działa samodzielnie. Zacznij od 1 i 2 (automatyczne), a krok 5 to p
 cd backend
 python3 --version                   # musi być 3.12 lub nowszy (inaczej: brew install python@3.13 i użyj python3.13)
 python3 -m venv .venv && .venv/bin/pip install -r requirements/dev.txt
-.venv/bin/python -m pytest          # oczekiwane: 300 passed
+.venv/bin/python -m pytest          # oczekiwane: 301 passed
 ```
 
 ### 2. Backend na żywo + dane demo + automatyczne przejście przez API
@@ -270,7 +270,7 @@ Kod nie zawiera wartości zmiennych na stałe, a testy pilnują, że w plikach Y
 │   ├── config/           YAML: konfiguracja, seedy (słowniki, scenariusze, demo), prompt agenta moderującego
 │   ├── core/             konfiguracja, błędy, uprawnienia, geografia, porównanie z kontraktem
 │   ├── scripts/          api_walkthrough.py (test całego API z zewnątrz)
-│   └── tests/            300 testów
+│   └── tests/            301 testów
 ├── frontend/             Angular 22, PWA
 │   ├── public/config/    app-config.yaml (konfiguracja ładowana przy starcie)
 │   └── src/app/          core (modele, serwisy, API: mock i http), features (mapa, widoki ról), shared
