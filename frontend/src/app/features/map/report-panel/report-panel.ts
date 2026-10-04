@@ -27,12 +27,12 @@ export class ReportPanel {
   private readonly pokemons = inject(PokemonService);
 
   readonly drafted = output<ReportDraft>();
-  /** Środek mapy: tam organizacja stawia wydarzenie (bez ograniczenia kółkiem gracza). */
-  readonly center = input<{ lat: number; lng: number } | null>(null);
+  /** Miejsce wskazane na mapie (dotknięcie albo przeciągnięta pinezka); organizacja stawia tu też wydarzenie (bez ograniczenia kółkiem gracza). */
+  readonly location = input<{ lat: number; lng: number } | null>(null);
   readonly eventCreated = output<GameEvent>();
   /** Organizacja tworzy wydarzenie "cool thing" zamiast inicjatywy. */
   protected readonly eventMode = signal(false);
-  /** Czy celownik stoi w kółku interakcji gracza (tylko tam można dodać pinezkę). */
+  /** Czy pinezka stoi w kółku interakcji gracza (tylko tam można dodać pinezkę). */
   readonly pinInRange = input(true);
 
   /** Pytania ankiety dopisane przez organizację (tylko kompletne) i to, czy wszystkie rozpoczęte pytania są kompletne. */

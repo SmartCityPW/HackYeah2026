@@ -39,3 +39,17 @@
 /* Cele poza kółkiem interakcji: widoczne, ale przygaszone, bo trzeba do nich podejść. */
 .stop-marker.out-of-range, .enemy-marker.out-of-range { opacity: .45; filter: grayscale(.6); }
 .stop-marker.event-marker.out-of-range::before, .enemy-marker.out-of-range::before { animation: none; }
+
+/*
+ * Pozycja gracza: niebieska kropka lokalizacji z białą obwódką i łagodnym pulsem (jak w aplikacjach map). Kolor to indygo z palety projektu.
+ * Puls rysuje ::after, bo MapLibre ustawia `transform` na samym elemencie (pozycja na mapie).
+ */
+.user-dot { width: 20px; height: 20px; border-radius: 50%; background: var(--color-indigo); border: 3px solid var(--surface); box-shadow: 0 1px 6px var(--shadow-strong); pointer-events: none; }
+.user-dot::after { content: ''; position: absolute; inset: -3px; border-radius: 50%; background: var(--color-indigo); opacity: .35; animation: user-dot-pulse 2.4s ease-out infinite; }
+@keyframes user-dot-pulse { from { transform: scale(1); opacity: .35; } to { transform: scale(2.6); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .user-dot::after { animation: none; display: none; } }
+
+/* Pinezka stawiana dotknięciem mapy lub przeciągnięciem; poza kółkiem gracza jest szara (serwer odrzuciłby zgłoszenie w tym miejscu). */
+.draft-pin { font-size: 40px; line-height: 1; cursor: grab; filter: drop-shadow(0 4px 4px var(--shadow-strong)); }
+.draft-pin:active { cursor: grabbing; }
+.draft-pin.out-of-range { opacity: .45; filter: grayscale(1) drop-shadow(0 4px 4px var(--shadow-strong)); }

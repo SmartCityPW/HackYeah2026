@@ -4,9 +4,9 @@
     <p class="kicker">{{ scenario.emoji }} {{ isOrg() ? 'Inicjatywa organizacji' : categoryMeta()?.label }}</p>
     <h2>{{ scenario.label }}</h2>
     @if (pinInRange()) {
-      <p class="pin-hint">Przesuń mapę, aby pinezka wskazała właściwe miejsce w Twoim kółku.</p>
+      <p class="pin-hint">Dotknij mapy w swoim kółku, żeby ustawić pinezkę (możesz ją też przeciągnąć).</p>
     } @else {
-      <p class="pin-hint out">Pinezka jest poza Twoim kółkiem. Przesuń mapę albo podejdź bliżej.</p>
+      <p class="pin-hint out">Pinezka jest poza Twoim kółkiem. Dotknij mapy bliżej siebie albo podejdź bliżej.</p>
     }
     @if (needsStake()) {
       <label class="stake">
@@ -43,7 +43,7 @@
   @case ('event') {
     <p class="kicker">{{ organization() }}</p>
     <h2>Nowe wydarzenie „cool thing”</h2>
-    <app-event-form [location]="center()" (cancelled)="back()" (created)="eventCreated.emit($event)" />
+    <app-event-form [location]="location()" (cancelled)="back()" (created)="eventCreated.emit($event)" />
   }
   @case ('scenario') {
     <p class="kicker">{{ isOrg() ? organization() : categoryMeta()?.label }}</p>

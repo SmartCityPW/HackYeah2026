@@ -31,8 +31,8 @@ export class MapController implements OnDestroy {
   private readonly config = this.appConfig.map;
   private readonly radiusM = this.appConfig.game.interactionRangeM;
   readonly ready = signal(false);
-  /** Środek widoku (tam celuje celownik przy dodawaniu zgłoszenia), aktualizowany przy każdym ruchu mapy. */
-  readonly centerPosition = signal<{ lat: number; lng: number } | null>(null);
+  /** Miejsce wskazane na mapie dla nowej pinezki (dotknięcie mapy albo przeciągnięcie pinezki); null, gdy nic nie stawiamy. */
+  readonly pin = signal<{ lat: number; lng: number } | null>(null);
 
   private map?: maplibregl.Map;
   private readonly catalog = inject(CatalogService);
@@ -41,6 +41,8 @@ export class MapController implements OnDestroy {
   private readonly enemyMarkers = new Map<number, maplibregl.Marker>();
   private readonly eventMarkers = new Map<number, maplibregl.Marker>();
   private pulseFrame?: number;
+  private userDot?: maplibregl.Marker;
+  private pinMarker?: maplibregl.Marker;
   private userLat?: number;
   /** Widok sprzed trybu walki, przywracany po jej zakończeniu. */
   private beforeBattle?: { zoom: number; pitch: number };
@@ -57,11 +59,6 @@ export class MapController implements OnDestroy {
       bearing: this.config.bearing,
       attributionControl: { compact: true },
     });
-    const syncCenter = () => {
-      const { lat, lng } = this.map!.getCenter();
-      this.centerPosition.set({ lat, lng });
-    };
-    this.map.on('move', syncCenter);
     // Styl OpenFreeMap odwołuje się do ikon, których nie ma w jego sprite'cie (np. running, shooting, brownfield). MapLibre ostrzega o każdej
     // w konsoli. Podstawiamy przezroczysty piksel: te punkty i tak nie mają ikony, a konsola zostaje czysta.
     this.map.on('styleimagemissing', (event) => {
@@ -69,7 +66,6 @@ export class MapController implements OnDestroy {
     });
     this.map.on('load', () => {
       this.map!.addLayer(this.characters);
-      syncCenter();
       this.addRangeLayers();
       this.ready.set(true);
     });
@@ -139,8 +135,8 @@ export class MapController implements OnDestroy {
     }
   }
 
-  /** Pozycja gracza: kółko interakcji i model 3D jego Spryciaka-towarzysza (`modelPath`) zamiast kropki. */
-  showUser(lngLat: [number, number], modelPath: string | null): void {
+  /** Pozycja gracza: kółko interakcji i niebieska kropka lokalizacji (jak w mapach), zamiast modelu 3D. */
+  showUser(lngLat: [number, number]): void {
     if (!this.map) return;
     const ring = circleRing({ lng: lngLat[0], lat: lngLat[1] }, this.radiusM);
     (this.map.getSource(RANGE_SOURCE) as maplibregl.GeoJSONSource | undefined)?.setData({
@@ -153,10 +149,65 @@ export class MapController implements OnDestroy {
       properties: {},
       geometry: { type: 'Point', coordinates: lngLat },
     });
+    if (this.userDot) {
+      this.userDot.setLngLat(lngLat);
+    } else {
+      const el = document.createElement('div');
+      el.className = 'user-dot';
+      el.setAttribute('role', 'img');
+      el.setAttribute('aria-label', 'Twoja pozycja');
+      this.userDot = new maplibregl.Marker({ element: el, anchor: 'center' }).setLngLat(lngLat).addTo(this.map);
+    }
     const first = this.userLat === undefined;
     this.userLat = lngLat[1];
-    void this.characters.setPlayer(lngLat, modelPath);
     if (first) this.map.jumpTo({ center: lngLat });
+  }
+
+  /**
+   * Tryb stawiania pinezki: na mapie pojawia się pinezka (na starcie w `start`, zwykle na graczu), którą ustawia się dotknięciem mapy
+   * albo przeciągnięciem. Wskazane miejsce trafia do `pin`.
+   */
+  startPinPlacement(start: { lat: number; lng: number } | null): void {
+    if (!this.map || this.pinMarker) return;
+    const from = start ?? this.map.getCenter();
+    const el = document.createElement('div');
+    el.className = 'draft-pin';
+    el.innerHTML = '<span>📍</span>';
+    el.setAttribute('role', 'img');
+    el.setAttribute('aria-label', 'Pinezka do ustawienia: dotknij mapy albo przeciągnij pinezkę');
+    this.pinMarker = new maplibregl.Marker({ element: el, anchor: 'bottom', draggable: true }).setLngLat([from.lng, from.lat]).addTo(this.map);
+    this.pinMarker.on('dragend', () => {
+      const { lat, lng } = this.pinMarker!.getLngLat();
+      this.pin.set({ lat, lng });
+    });
+    this.map.on('click', this.onMapClick);
+    this.pin.set({ lat: from.lat, lng: from.lng });
+  }
+
+  stopPinPlacement(): void {
+    this.map?.off('click', this.onMapClick);
+    this.pinMarker?.remove();
+    this.pinMarker = undefined;
+    this.pin.set(null);
+  }
+
+  /** Pinezka poza kółkiem gracza jest szara: zgłoszenia w tym miejscu serwer by odrzucił. */
+  markPinInRange(inRange: boolean): void {
+    this.pinMarker?.getElement().classList.toggle('out-of-range', !inRange);
+  }
+
+  private readonly onMapClick = (event: maplibregl.MapMouseEvent): void => {
+    const { lat, lng } = event.lngLat;
+    this.pinMarker?.setLngLat([lng, lat]);
+    this.pin.set({ lat, lng });
+  };
+
+  /**
+   * Odsuwa widok mapy od dołu o `bottom` px (tyle zajmuje panel nad mapą), żeby środek widocznego fragmentu, a z nim gracz i pinezka,
+   * zostawał poza panelem. `center` dodatkowo przesuwa mapę na wskazane miejsce.
+   */
+  setBottomInset(bottom: number, center?: { lat: number; lng: number } | null): void {
+    this.map?.easeTo({ padding: { bottom, top: 0, left: 0, right: 0 }, ...(center ? { center: [center.lng, center.lat] as [number, number] } : {}), duration: 300 });
   }
 
   focus(lat: number, lng: number): void {
